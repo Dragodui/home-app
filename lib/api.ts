@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   User,
   Home,
+  HomeMembership,
   Room,
   Task,
   TaskAssignment,
@@ -168,6 +169,11 @@ export const homeApi = {
     return { message: response.data.message };
   },
 
+  getUserHomes: async (): Promise<Home[]> => {
+    const response = await api.get<{ homes: Home[] }>("/homes/list");
+    return response.data.homes ?? [];
+  },
+
   getUserHome: async (): Promise<Home> => {
     const response = await api.get<{ home: Home }>("/homes/my");
     return response.data.home;
@@ -196,6 +202,11 @@ export const homeApi = {
   removeMember: async (homeId: number, userId: number): Promise<{ message: string }> => {
     const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/members/${userId}`);
     return { message: response.data.message };
+  },
+
+  getMembers: async (homeId: number): Promise<HomeMembership[]> => {
+    const response = await api.get<{ members: HomeMembership[] }>(`/homes/${homeId}/members`);
+    return response.data.members || [];
   },
 
   regenerateInviteCode: async (homeId: number): Promise<{ message: string }> => {
@@ -574,6 +585,7 @@ export const ocrApi = {
 export type {
   User,
   Home,
+  HomeMembership,
   Room,
   Task,
   TaskAssignment,

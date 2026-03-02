@@ -246,6 +246,21 @@ export default {
     leaveHomeFailed: "Heim verlassen fehlgeschlagen",
   },
 
+  // Members
+  members: {
+    title: "Mitglieder",
+    admin: "Admin",
+    member: "Mitglied",
+    removeMember: "Mitglied entfernen?",
+    removeMemberConfirm: "Sind Sie sicher, dass Sie dieses Mitglied aus dem Zuhause entfernen möchten?",
+    remove: "Entfernen",
+    cannotRemoveSelf: "Sie können sich nicht selbst entfernen",
+    failedToRemove: "Mitglied konnte nicht entfernt werden",
+    failedToLoad: "Mitglieder konnten nicht geladen werden",
+    noMembers: "Keine Mitglieder gefunden",
+    joined: "Beigetreten {date}",
+  },
+
   // Notifications
   notifications: {
     noNotifications: "Keine Benachrichtigungen",
@@ -302,6 +317,8 @@ export default {
     failedToJoin: "Beitritt zum Zuhause fehlgeschlagen",
     failedToUpload: "Bild konnte nicht hochgeladen werden",
     failedToPick: "Bild konnte nicht ausgewählt werden",
+    myHomes: "MEINE HÄUSER",
+    switchHome: "Zuhause wechseln",
   },
 
   // Rooms

@@ -246,6 +246,21 @@ export default {
     leaveHomeFailed: "Impossible de quitter le foyer",
   },
 
+  // Members
+  members: {
+    title: "Membres",
+    admin: "Admin",
+    member: "Membre",
+    removeMember: "Retirer le membre ?",
+    removeMemberConfirm: "Êtes-vous sûr de vouloir retirer ce membre du foyer ?",
+    remove: "Retirer",
+    cannotRemoveSelf: "Vous ne pouvez pas vous retirer vous-même",
+    failedToRemove: "Échec de la suppression du membre",
+    failedToLoad: "Échec du chargement des membres",
+    noMembers: "Aucun membre trouvé",
+    joined: "Rejoint {date}",
+  },
+
   // Notifications
   notifications: {
     noNotifications: "Aucune notification",
@@ -302,6 +317,8 @@ export default {
     failedToJoin: "Impossible de rejoindre le foyer",
     failedToUpload: "Impossible de télécharger l'image",
     failedToPick: "Impossible de sélectionner l'image",
+    myHomes: "MES FOYERS",
+    switchHome: "Changer de foyer",
   },
 
   // Rooms

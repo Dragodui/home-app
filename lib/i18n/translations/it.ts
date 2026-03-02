@@ -246,6 +246,21 @@ export default {
     leaveHomeFailed: "Impossibile lasciare la casa",
   },
 
+  // Members
+  members: {
+    title: "Membri",
+    admin: "Admin",
+    member: "Membro",
+    removeMember: "Rimuovere il membro?",
+    removeMemberConfirm: "Sei sicuro di voler rimuovere questo membro dalla casa?",
+    remove: "Rimuovi",
+    cannotRemoveSelf: "Non puoi rimuovere te stesso",
+    failedToRemove: "Impossibile rimuovere il membro",
+    failedToLoad: "Impossibile caricare i membri",
+    noMembers: "Nessun membro trovato",
+    joined: "Iscritto {date}",
+  },
+
   // Notifications
   notifications: {
     noNotifications: "Nessuna notifica",
@@ -302,6 +317,8 @@ export default {
     failedToJoin: "Impossibile unirsi alla casa",
     failedToUpload: "Impossibile caricare l'immagine",
     failedToPick: "Impossibile selezionare l'immagine",
+    myHomes: "LE MIE CASE",
+    switchHome: "Cambia casa",
   },
 
   // Rooms

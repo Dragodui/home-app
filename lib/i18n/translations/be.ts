@@ -246,6 +246,21 @@ export default {
     leaveHomeFailed: "Не атрымалася пакінуць дом",
   },
 
+  // Members
+  members: {
+    title: "Удзельнікі",
+    admin: "Адмін",
+    member: "Удзельнік",
+    removeMember: "Выдаліць удзельніка?",
+    removeMemberConfirm: "Вы ўпэўнены, што хочаце выдаліць гэтага ўдзельніка з дому?",
+    remove: "Выдаліць",
+    cannotRemoveSelf: "Вы не можаце выдаліць сябе",
+    failedToRemove: "Не атрымалася выдаліць удзельніка",
+    failedToLoad: "Не атрымалася загрузіць удзельнікаў",
+    noMembers: "Удзельнікаў не знойдзена",
+    joined: "Далучыўся {date}",
+  },
+
   // Notifications
   notifications: {
     noNotifications: "Няма апавяшчэнняў",
@@ -302,6 +317,8 @@ export default {
     failedToJoin: "Не атрымалася далучыцца да дома",
     failedToUpload: "Не атрымалася загрузіць выяву",
     failedToPick: "Не атрымалася выбраць выяву",
+    myHomes: "МАЕ ДАМЫ",
+    switchHome: "Змяніць дом",
   },
 
   // Rooms

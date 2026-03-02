@@ -247,6 +247,21 @@ export default {
     leaveHomeFailed: "Failed to leave home",
   },
 
+  // Members
+  members: {
+    title: "Members",
+    admin: "Admin",
+    member: "Member",
+    removeMember: "Remove Member?",
+    removeMemberConfirm: "Are you sure you want to remove this member from the home?",
+    remove: "Remove",
+    cannotRemoveSelf: "You cannot remove yourself",
+    failedToRemove: "Failed to remove member",
+    failedToLoad: "Failed to load members",
+    noMembers: "No members found",
+    joined: "Joined {date}",
+  },
+
   // Notifications
   notifications: {
     noNotifications: "No notifications",
@@ -303,6 +318,8 @@ export default {
     failedToJoin: "Failed to join home",
     failedToUpload: "Failed to upload image",
     failedToPick: "Failed to pick image",
+    myHomes: "MY HOMES",
+    switchHome: "Switch Home",
   },
 
   // Rooms

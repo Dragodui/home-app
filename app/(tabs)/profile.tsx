@@ -16,11 +16,14 @@ import {
   Shield,
   ChevronRight,
   User,
+  Users,
   Sun,
   Moon,
   Copy,
   Globe,
   Zap,
+  Check,
+  Plus,
 } from "lucide-react-native";
 import * as Clipboard from "expo-clipboard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -40,7 +43,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout, updateUser } = useAuth();
-  const { home, isAdmin, createHome, joinHome, leaveHome } = useHome();
+  const { home, homes, isAdmin, createHome, joinHome, leaveHome, switchHome } = useHome();
   const { theme, themeMode, setThemeMode } = useTheme();
   const { t, language, setLanguage, languageNames, availableLanguages } = useI18n();
 
@@ -152,6 +155,16 @@ export default function ProfileScreen() {
       color: theme.accent.yellow,
       onPress: () => router.push("/rooms"),
     },
+    ...(isAdmin
+      ? [
+          {
+            icon: Users,
+            label: t.members.title,
+            color: theme.accent.mint,
+            onPress: () => router.push("/members"),
+          },
+        ]
+      : []),
     {
       icon: Zap,
       label: "Smart Home",
@@ -369,34 +382,82 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Home Actions */}
-        {!home && (
-          <View className="gap-3 mb-8">
+        {/* My Homes */}
+        <View className="mb-8">
+          <Text
+            className="text-[12px] font-manrope-bold tracking-widest mb-3 ml-1"
+            style={{ color: theme.textSecondary }}
+          >
+            {t.profile.myHomes || "MY HOMES"}
+          </Text>
+
+          {homes.length > 0 && (
+            <View className="gap-2.5 mb-4">
+              {homes.map((h) => {
+                const isCurrent = h.id === home?.id;
+                return (
+                  <TouchableOpacity
+                    key={h.id}
+                    className="flex-row items-center p-4 rounded-[20px] gap-3.5"
+                    style={{
+                      backgroundColor: isCurrent ? theme.accent.purple : theme.surface,
+                    }}
+                    onPress={() => switchHome(h.id)}
+                    activeOpacity={0.8}
+                  >
+                    <View
+                      className="w-11 h-11 rounded-[14px] justify-center items-center"
+                      style={{
+                        backgroundColor: isCurrent ? "rgba(0,0,0,0.15)" : theme.accent.yellow,
+                      }}
+                    >
+                      <HomeIcon size={22} color={isCurrent ? "#FFFFFF" : "#1C1C1E"} />
+                    </View>
+                    <Text
+                      className="flex-1 text-[16px] font-manrope-semibold"
+                      style={{ color: isCurrent ? "#1C1C1E" : theme.text }}
+                    >
+                      {h.name}
+                    </Text>
+                    {isCurrent && <Check size={20} color="#1C1C1E" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          <View className="flex-row gap-3">
             <Button
               title={t.profile.createHome}
               onPress={() => setShowCreateModal(true)}
               variant="yellow"
+              style={{ flex: 1 }}
+              icon={<Plus size={18} color="#1C1C1E" />}
             />
             <Button
               title={t.profile.joinHome}
               onPress={() => setShowJoinModal(true)}
               variant="purple"
+              style={{ flex: 1 }}
+              icon={<Plus size={18} color="#1C1C1E" />}
             />
           </View>
-        )}
+        </View>
 
-         {/* Logout Button */}
-        <TouchableOpacity
-          className="flex-row items-center justify-center gap-2.5 mb-3 py-[18px] rounded-[20px]"
-          style={{ backgroundColor: theme.accent.dangerLight }}
-          onPress={leaveHome}
-          activeOpacity={0.8}
-        >
-          <Text className="text-[16px] font-manrope-bold text-white">
-            {t.auth.leaveHome}
-          </Text>
-          <LogOut size={20} color="#FFFFFF" />
-        </TouchableOpacity>
+        {/* Leave Home Button */}
+        {home && (
+          <TouchableOpacity
+            className="flex-row items-center justify-center gap-2.5 mb-3 py-[18px] rounded-[20px]"
+            style={{ backgroundColor: theme.accent.dangerLight }}
+            onPress={leaveHome}
+            activeOpacity={0.8}
+          >
+            <Text className="text-[16px] font-manrope-bold text-white">
+              {t.auth.leaveHome}
+            </Text>
+            <LogOut size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
 
         {/* Logout Button */}
         <TouchableOpacity
