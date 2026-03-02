@@ -4,9 +4,9 @@ import {
   Home,
   CheckCircle,
   ShoppingBag,
-  Clock,
   User,
   ChartColumn,
+  DollarSign,
 } from "lucide-react-native";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useI18n } from "@/contexts/I18nContext";
@@ -130,7 +130,7 @@ export default function TabLayout() {
                   : ""
               }`}
             >
-              <Clock
+              <DollarSign 
                 size={22}
                 color={focused ? "#1C1C1E" : color}
                 strokeWidth={focused ? 2.5 : 2}

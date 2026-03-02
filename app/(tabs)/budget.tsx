@@ -20,7 +20,6 @@ import { useI18n } from "@/contexts/I18nContext";
 import { billApi, billCategoryApi, imageApi, ocrApi } from "@/lib/api";
 import { Bill, BillCategory, OCRResult } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import fonts from "@/constants/fonts";
 import Modal from "@/components/ui/modal";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
@@ -62,7 +61,7 @@ const DonutChart = ({ data, size = 180, strokeWidth = 20, total, theme }: { data
         })}
       </Svg>
       <View className="absolute justify-center items-center">
-        <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>${total.toFixed(0)}</Text>
+        <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>{total.toFixed(0)}</Text>
         <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>Total</Text>
       </View>
     </View>
@@ -424,7 +423,7 @@ export default function BudgetScreen() {
                   </Text>
                 </View>
                 <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
-                  ${bill.total_amount.toFixed(2)}
+                  {bill.total_amount.toFixed(2)}
                 </Text>
                 <TouchableOpacity
                   onPress={() => handleDeleteBill(bill.id)}
@@ -476,7 +475,7 @@ export default function BudgetScreen() {
                         </Text>
                       </View>
                       <Text className="text-lg font-manrope-bold mr-2" style={{ color: theme.text }}>
-                        ${bill.total_amount.toFixed(2)}
+                        {bill.total_amount.toFixed(2)}
                       </Text>
                       {isExpanded ? (
                         <ChevronUp size={18} color={theme.textSecondary} />
@@ -496,7 +495,7 @@ export default function BudgetScreen() {
                               )}
                             </Text>
                             <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
-                              ${item.price?.toFixed(2)}
+                              {item.price?.toFixed(2)}
                             </Text>
                           </View>
                         ))}
@@ -627,7 +626,7 @@ export default function BudgetScreen() {
                               )}
                             </Text>
                             <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
-                              ${item.price.toFixed(2)}
+                              {item.price.toFixed(2)}
                             </Text>
                           </View>
                         ))}
@@ -637,7 +636,7 @@ export default function BudgetScreen() {
                     {ocrResult.total > 0 && (
                       <View className="flex-row justify-between mt-2 pt-2" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
                         <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>{t.common.total}</Text>
-                        <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>${ocrResult.total.toFixed(2)}</Text>
+                        <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>{ocrResult.total.toFixed(2)}</Text>
                       </View>
                     )}
                   </View>
