@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
   Image,
   ActivityIndicator,
 } from "react-native";
@@ -38,6 +37,7 @@ import Button from "@/components/ui/button";
 import * as ImagePicker from "expo-image-picker";
 import { imageApi } from "@/lib/api";
 import { useI18n } from "@/stores/i18nStore";
+import { useAlert } from "@/components/ui/alert";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -46,6 +46,7 @@ export default function ProfileScreen() {
   const { home, homes, isAdmin, createHome, joinHome, leaveHome, switchHome } = useHome();
   const { theme, themeMode, setThemeMode } = useTheme();
   const { t, language, setLanguage, languageNames, availableLanguages } = useI18n();
+  const { alert } = useAlert();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -69,7 +70,7 @@ export default function ProfileScreen() {
       }
     } catch (error) {
       console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to pick image");
+      alert("Error", "Failed to pick image");
     }
   };
 
@@ -90,14 +91,14 @@ export default function ProfileScreen() {
       }
     } catch (error) {
       console.error("Error uploading image:", error);
-      Alert.alert("Error", "Failed to upload image");
+      alert("Error", "Failed to upload image");
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert(t.auth.logOut, t.auth.logOutConfirm, [
+    alert(t.auth.logOut, t.auth.logOutConfirm, [
       { text: t.common.cancel, style: "cancel" },
       {
         text: t.auth.logOut,
@@ -121,7 +122,7 @@ export default function ProfileScreen() {
       setShowCreateModal(false);
       setHomeName("");
     } else {
-      Alert.alert("Error", result.error || "Failed to create home");
+      alert("Error", result.error || "Failed to create home");
     }
   };
 
@@ -136,7 +137,7 @@ export default function ProfileScreen() {
       setShowJoinModal(false);
       setInviteCode("");
     } else {
-      Alert.alert("Error", result.error || "Failed to join home");
+      alert("Error", result.error || "Failed to join home");
     }
   };
 
@@ -261,7 +262,7 @@ export default function ProfileScreen() {
               style={{ backgroundColor: theme.surface }}
               onPress={async () => {
                 await Clipboard.setStringAsync(home.invite_code);
-                Alert.alert(t.common.copied, t.profile.inviteCodeCopied);
+                alert(t.common.copied, t.profile.inviteCodeCopied);
               }}
               activeOpacity={0.7}
             >

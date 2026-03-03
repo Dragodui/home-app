@@ -22,6 +22,7 @@ import { useThemeStore, useTheme } from "@/stores/themeStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useHomeStore } from "@/stores/homeStore";
 import { wsManager } from "@/lib/websocket";
+import { AlertProvider } from "@/components/ui/alert";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -82,7 +83,9 @@ function AppContent() {
     <GestureHandlerRootView
       className={`flex-1 ${theme.isDark ? "bg-background-dark" : "bg-background"}`}
     >
-      <RootLayoutNav />
+      <AlertProvider>
+        <RootLayoutNav />
+      </AlertProvider>
     </GestureHandlerRootView>
   );
 }

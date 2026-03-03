@@ -323,8 +323,9 @@ export const billApi = {
     return { message: response.data.message };
   },
 
-  getByHomeId: async (homeId: number): Promise<Bill[]> => {
-    const response = await api.get<{ status: boolean; bills: Bill[] }>(`/homes/${homeId}/bills`);
+  getByHomeId: async (homeId: number, categoryId?: number): Promise<Bill[]> => {
+    const params = categoryId != null ? { category_id: categoryId } : undefined;
+    const response = await api.get<{ status: boolean; bills: Bill[] }>(`/homes/${homeId}/bills`, { params });
     return response.data.bills || [];
   },
 
@@ -356,17 +357,17 @@ export const billApi = {
 
 export const billCategoryApi = {
   create: async (homeId: number, data: { name: string; color?: string }): Promise<{ message: string }> => {
-    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/bill-categories`, data);
+    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/bill_categories`, data);
     return { message: response.data.message };
   },
 
   getAll: async (homeId: number): Promise<BillCategory[]> => {
-    const response = await api.get<{ status: boolean; categories: BillCategory[] }>(`/homes/${homeId}/bill-categories`);
+    const response = await api.get<{ status: boolean; categories: BillCategory[] }>(`/homes/${homeId}/bill_categories`);
     return response.data.categories || [];
   },
 
   delete: async (homeId: number, categoryId: number): Promise<{ message: string }> => {
-    const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/bill-categories/${categoryId}`);
+    const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/bill_categories/${categoryId}`);
     return { message: response.data.message };
   },
 };

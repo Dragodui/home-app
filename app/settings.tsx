@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,6 +25,7 @@ import Modal from "@/components/ui/modal";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import { smarthomeApi } from "@/lib/api";
+import { useAlert } from "@/components/ui/alert";
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -33,6 +33,7 @@ export default function SettingsScreen() {
   const { theme, themeMode, setThemeMode } = useTheme();
   const { t, language, setLanguage, languageNames, availableLanguages } = useI18n();
   const { home, leaveHome, isAdmin } = useHome();
+  const { alert } = useAlert();
 
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -71,9 +72,9 @@ export default function SettingsScreen() {
     try {
       await smarthomeApi.connect(home.id, haUrl, haToken);
       await fetchHAStatus();
-      Alert.alert(t.common.success || "Success", "Home Assistant connected successfully");
+      alert(t.common.success || "Success", "Home Assistant connected successfully");
     } catch (error) {
-      Alert.alert(t.common.error, "Failed to connect to Home Assistant");
+      alert(t.common.error, "Failed to connect to Home Assistant");
     } finally {
       setHaLoading(false);
     }
@@ -86,9 +87,9 @@ export default function SettingsScreen() {
       await smarthomeApi.disconnect(home.id);
       await fetchHAStatus();
       setHaToken("");
-      Alert.alert(t.common.success || "Success", "Disconnected from Home Assistant");
+      alert(t.common.success || "Success", "Disconnected from Home Assistant");
     } catch (error) {
-      Alert.alert(t.common.error, "Failed to disconnect");
+      alert(t.common.error, "Failed to disconnect");
     } finally {
       setHaLoading(false);
     }
@@ -104,10 +105,10 @@ export default function SettingsScreen() {
         setShowDeleteConfirm(false);
         router.replace("/(tabs)/profile");
       } else {
-        Alert.alert(t.common.error, result.error || t.settings.leaveHomeFailed);
+        alert(t.common.error, result.error || t.settings.leaveHomeFailed);
       }
     } catch (error) {
-      Alert.alert(t.common.error, t.settings.leaveHomeFailed);
+      alert(t.common.error, t.settings.leaveHomeFailed);
     } finally {
       setIsLeaving(false);
     }

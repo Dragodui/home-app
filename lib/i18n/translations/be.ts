@@ -17,6 +17,7 @@ export default {
     tomorrow: "Заўтра",
     copied: "Скапіявана!",
     success: "Поспех",
+    all: "Усе",
   },
 
   // Auth
@@ -207,6 +208,8 @@ export default {
     markAsPaid: "Пазначыць як аплачана",
     paid: "Аплачана",
     unpaid: "Неаплачана",
+    description: "Апісанне (Неабавязкова)",
+    descriptionPlaceholder: "Дадаць дэталі...",
   },
 
   // Polls
@@ -237,6 +240,7 @@ export default {
     noEndDate: "Без абмежавання",
     ended: "Скончана",
     removeVote: "Скасаваць голас",
+    noVotesYet: "Яшчэ няма галасоў",
   },
 
   // Settings

@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   RefreshControl,
   Image,
@@ -26,6 +25,7 @@ import { homeApi } from "@/lib/api";
 import { HomeMembership } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { interpolate } from "@/stores/i18nStore";
+import { useAlert } from "@/components/ui/alert";
 
 export default function MembersScreen() {
   const insets = useSafeAreaInsets();
@@ -34,6 +34,7 @@ export default function MembersScreen() {
   const { t } = useI18n();
   const { home, isAdmin, removeMember } = useHome();
   const { user } = useAuth();
+  const { alert } = useAlert();
 
   const [members, setMembers] = useState<HomeMembership[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +47,7 @@ export default function MembersScreen() {
       setMembers(data);
     } catch (error) {
       console.error("Error loading members:", error);
-      Alert.alert(t.common.error, t.members.failedToLoad);
+      alert(t.common.error, t.members.failedToLoad);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -61,11 +62,11 @@ export default function MembersScreen() {
 
   const handleRemoveMember = (member: HomeMembership) => {
     if (member.user_id === user?.id) {
-      Alert.alert(t.common.error, t.members.cannotRemoveSelf);
+      alert(t.common.error, t.members.cannotRemoveSelf);
       return;
     }
 
-    Alert.alert(t.members.removeMember, t.members.removeMemberConfirm, [
+    alert(t.members.removeMember, t.members.removeMemberConfirm, [
       { text: t.common.cancel, style: "cancel" },
       {
         text: t.members.remove,
@@ -75,7 +76,7 @@ export default function MembersScreen() {
           if (result.success) {
             await loadMembers();
           } else {
-            Alert.alert(t.common.error, result.error || t.members.failedToRemove);
+            alert(t.common.error, result.error || t.members.failedToRemove);
           }
         },
       },

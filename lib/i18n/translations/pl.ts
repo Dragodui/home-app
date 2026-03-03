@@ -17,6 +17,7 @@ export default {
     tomorrow: "Jutro",
     copied: "Skopiowano!",
     success: "Sukces",
+    all: "Wszystko",
   },
 
   // Auth
@@ -207,6 +208,8 @@ export default {
     markAsPaid: "Oznacz jako opłacone",
     paid: "Opłacone",
     unpaid: "Nieopłacone",
+    description: "Opis (Opcjonalny)",
+    descriptionPlaceholder: "Dodaj szczegóły...",
   },
 
   // Polls
@@ -237,6 +240,7 @@ export default {
     noEndDate: "Bez ograniczenia",
     ended: "Zakończona",
     removeVote: "Cofnij głos",
+    noVotesYet: "Brak głosów",
   },
 
   // Settings

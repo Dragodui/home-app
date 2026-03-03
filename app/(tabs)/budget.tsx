@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Alert,
   Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,6 +22,7 @@ import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import Modal from "@/components/ui/modal";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
+import { useAlert } from "@/components/ui/alert";
 
 const DonutChart = ({ data, size = 180, strokeWidth = 20, total, theme }: { data: { value: number; color: string }[]; size?: number; strokeWidth?: number; total: number; theme: any }) => {
   const center = size / 2;
@@ -74,14 +74,18 @@ export default function BudgetScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { t } = useI18n();
+  const { alert } = useAlert();
 
   const [bills, setBills] = useState<Bill[]>([]);
   const [categories, setCategories] = useState<BillCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [filterCategoryId, setFilterCategoryId] = useState<number | null>(null);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [newBillDescription, setNewBillDescription] = useState("");
   const [newBillAmount, setNewBillAmount] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -137,7 +141,7 @@ export default function BudgetScreen() {
 
     try {
       const [billsData, categoriesData] = await Promise.all([
-        billApi.getByHomeId(home.id).catch(() => []),
+        billApi.getByHomeId(home.id, filterCategoryId ?? undefined).catch(() => []),
         billCategoryApi.getAll(home.id).catch(() => []),
       ]);
       setBills(billsData || []);
@@ -147,7 +151,7 @@ export default function BudgetScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [home]);
+  }, [home, filterCategoryId]);
 
   useEffect(() => {
     loadData();
@@ -170,6 +174,7 @@ export default function BudgetScreen() {
   const handleOpenCreateModal = () => {
     resetScanState();
     setNewBillAmount("");
+    setNewBillDescription("");
     setSelectedCategoryId(null);
     setSplitUserIds([]);
     setSplitMode("equal");
@@ -196,7 +201,7 @@ export default function BudgetScreen() {
       await loadData();
     } catch (error) {
       console.error("Error creating category:", error);
-      Alert.alert(t.common.error, t.budget.failedToCreate);
+      alert(t.common.error, t.budget.failedToCreate);
     } finally {
       setCreatingCategory(false);
     }
@@ -204,7 +209,7 @@ export default function BudgetScreen() {
 
   const handleDeleteCategory = async (categoryId: number) => {
     if (!home) return;
-    Alert.alert(
+    alert(
       t.budget.deleteCategory,
       t.budget.deleteCategoryConfirm,
       [
@@ -218,7 +223,7 @@ export default function BudgetScreen() {
               await loadData();
             } catch (error) {
               console.error(error);
-              Alert.alert(t.common.error, t.budget.failedToDelete);
+              alert(t.common.error, t.budget.failedToDelete);
             }
           },
         },
@@ -251,6 +256,7 @@ export default function BudgetScreen() {
       await billApi.create(home.id, {
         type: category?.name || "Expense",
         bill_category_id: selectedCategoryId,
+        description: newBillDescription || undefined,
         total_amount: totalAmount,
         period_start: now.toISOString(),
         period_end: endDate.toISOString(),
@@ -265,7 +271,7 @@ export default function BudgetScreen() {
       await loadData();
     } catch (error) {
       console.error("Error creating bill:", error);
-      Alert.alert(t.common.error, t.budget.failedToCreate);
+      alert(t.common.error, t.budget.failedToCreate);
     } finally {
       setCreating(false);
     }
@@ -273,7 +279,7 @@ export default function BudgetScreen() {
 
   const handleDeleteBill = async (billId: number) => {
     if (!home) return;
-    Alert.alert(t.budget.deleteBill, t.budget.deleteBillConfirm, [
+    alert(t.budget.deleteBill, t.budget.deleteBillConfirm, [
       { text: t.common.cancel, style: "cancel" },
       {
         text: t.common.delete,
@@ -284,7 +290,7 @@ export default function BudgetScreen() {
             await loadData();
           } catch (error) {
             console.error(error);
-            Alert.alert(t.common.error, t.budget.failedToDelete);
+            alert(t.common.error, t.budget.failedToDelete);
           }
         },
       },
@@ -323,7 +329,7 @@ export default function BudgetScreen() {
       await loadData();
     } catch (error) {
       console.error("Error updating splits:", error);
-      Alert.alert(t.common.error, t.budget.failedToCreate);
+      alert(t.common.error, t.budget.failedToCreate);
     } finally {
       setSavingSplits(false);
     }
@@ -379,11 +385,11 @@ export default function BudgetScreen() {
       if (result.total) {
         setNewBillAmount(result.total.toString());
       } else {
-        Alert.alert("OCR", t.budget.noTotalDetected);
+        alert("OCR", t.budget.noTotalDetected);
       }
     } catch (error) {
       console.error("Scan error:", error);
-      Alert.alert(t.common.error, t.budget.scanFailed);
+      alert(t.common.error, t.budget.scanFailed);
     } finally {
       setScanning(false);
     }
@@ -591,15 +597,31 @@ export default function BudgetScreen() {
         <View className="mb-6">
           <Text className="text-sm font-manrope-bold uppercase mb-3" style={{ color: theme.textSecondary }}>{t.budget.categories}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+            <TouchableOpacity
+              className="flex-row items-center px-3 py-2 rounded-2xl border gap-2"
+              style={{
+                backgroundColor: filterCategoryId === null ? theme.text : theme.surface,
+                borderColor: filterCategoryId === null ? theme.text : theme.border,
+              }}
+              onPress={() => setFilterCategoryId(null)}
+            >
+              <Text className="font-manrope-semibold text-sm" style={{ color: filterCategoryId === null ? theme.background : theme.text }}>
+                {t.common.all}
+              </Text>
+            </TouchableOpacity>
             {categories.map(cat => (
               <TouchableOpacity
                 key={cat.id}
                 className="flex-row items-center px-3 py-2 rounded-2xl border gap-2"
-                style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                style={{
+                  backgroundColor: filterCategoryId === cat.id ? theme.text : theme.surface,
+                  borderColor: filterCategoryId === cat.id ? theme.text : theme.border,
+                }}
+                onPress={() => setFilterCategoryId(filterCategoryId === cat.id ? null : cat.id)}
                 onLongPress={() => handleDeleteCategory(cat.id)}
               >
                 <View className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color || theme.accent.yellow }} />
-                <Text className="font-manrope-semibold text-sm" style={{ color: theme.text }}>{cat.name}</Text>
+                <Text className="font-manrope-semibold text-sm" style={{ color: filterCategoryId === cat.id ? theme.background : theme.text }}>{cat.name}</Text>
               </TouchableOpacity>
             ))}
             {categories.length === 0 && (
@@ -960,6 +982,15 @@ export default function BudgetScreen() {
             onChangeText={setNewBillAmount}
             keyboardType="numeric"
           />
+
+          <View className="mt-4">
+            <Input
+              label={t.budget.description}
+              placeholder={t.budget.descriptionPlaceholder}
+              value={newBillDescription}
+              onChangeText={setNewBillDescription}
+            />
+          </View>
 
           {/* Split Between section */}
           <View className="mt-5">

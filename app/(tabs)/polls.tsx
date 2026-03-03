@@ -6,11 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Alert,
   Switch,
-  Platform,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DatePicker from "@/components/ui/date-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Plus, Check, Users, X, Eye, EyeOff, Calendar, RotateCcw } from "lucide-react-native";
@@ -21,6 +19,7 @@ import { useI18n } from "@/stores/i18nStore";
 import { pollApi } from "@/lib/api";
 import { Poll, PollOption } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useAlert } from "@/components/ui/alert";
 import Modal from "@/components/ui/modal";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
@@ -32,10 +31,12 @@ export default function PollsScreen() {
   const { home, isAdmin } = useHome();
   const { theme } = useTheme();
   const { t } = useI18n();
+  const { alert } = useAlert();
 
   const [polls, setPolls] = useState<Poll[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [votersOption, setVotersOption] = useState<PollOption | null>(null);
 
   // Create poll modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -46,7 +47,6 @@ export default function PollsScreen() {
   const [hasEndDate, setHasEndDate] = useState(false);
   const [endsAt, setEndsAt] = useState<Date>(new Date(Date.now() + 24 * 60 * 60 * 1000)); // Default: tomorrow
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const loadPolls = useCallback(async () => {
@@ -82,7 +82,7 @@ export default function PollsScreen() {
 
     const validOptions = pollOptions.filter((opt) => opt.trim());
     if (validOptions.length < 2) {
-      Alert.alert(t.common.error, t.polls.addAtLeastTwoOptions);
+      alert(t.common.error, t.polls.addAtLeastTwoOptions);
       return;
     }
 
@@ -106,7 +106,7 @@ export default function PollsScreen() {
       await loadPolls();
     } catch (error) {
       console.error("Error creating poll:", error);
-      Alert.alert(t.common.error, t.polls.failedToCreate);
+      alert(t.common.error, t.polls.failedToCreate);
     } finally {
       setCreating(false);
     }
@@ -120,7 +120,7 @@ export default function PollsScreen() {
       await loadPolls();
     } catch (error: any) {
       console.error("Error removing vote:", error);
-      Alert.alert(t.common.error, t.polls.failedToUnvote || "Failed to remove vote");
+      alert(t.common.error, t.polls.failedToUnvote || "Failed to remove vote");
     }
   };
 
@@ -132,7 +132,7 @@ export default function PollsScreen() {
       await loadPolls();
     } catch (error) {
       console.error("Error voting:", error);
-      Alert.alert(t.common.error, t.polls.failedToVote);
+      alert(t.common.error, t.polls.failedToVote);
     }
   };
 
@@ -287,7 +287,8 @@ export default function PollsScreen() {
                           isSelected ? "bg-[#1C1C1E]" : "bg-white/60"
                         }`}
                         onPress={() => !voted && handleVote(poll.id, option.id)}
-                        disabled={voted}
+                        onLongPress={() => poll.type === "public" && (option.votes?.length ?? 0) > 0 && setVotersOption(option)}
+                        disabled={voted && poll.type !== "public"}
                         activeOpacity={voted ? 1 : 0.8}
                       >
                         <Text
@@ -506,58 +507,19 @@ export default function PollsScreen() {
                 </TouchableOpacity>
               )}
 
-              {showDatePicker && (
-                <DateTimePicker
-                  value={endsAt}
-                  mode="date"
-                  display={Platform.OS === "ios" ? "spinner" : "default"}
-                  minimumDate={new Date()}
-                  onChange={(event, selectedDate) => {
-                    setShowDatePicker(Platform.OS === "ios");
-                    if (selectedDate) {
-                      setEndsAt(selectedDate);
-                      if (Platform.OS !== "ios") {
-                        setShowTimePicker(true);
-                      }
-                    }
-                  }}
-                />
-              )}
-
-              {showTimePicker && Platform.OS !== "ios" && (
-                <DateTimePicker
-                  value={endsAt}
-                  mode="time"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowTimePicker(false);
-                    if (selectedDate) {
-                      setEndsAt(selectedDate);
-                    }
-                  }}
-                />
-              )}
-
-              {showDatePicker && Platform.OS === "ios" && (
-                <View className="mt-2 p-4 rounded-xl">
-                  <DateTimePicker
-                    value={endsAt}
-                    mode="datetime"
-                    display="spinner"
-                    minimumDate={new Date()}
-                    onChange={(event, selectedDate) => {
-                      if (selectedDate) {
-                        setEndsAt(selectedDate);
-                      }
-                    }}
-                  />
-                  <Button
-                    title={t.common.done}
-                    onPress={() => setShowDatePicker(false)}
-                    variant="purple"
-                  />
-                </View>
-              )}
+              <DatePicker
+                visible={showDatePicker}
+                onClose={() => setShowDatePicker(false)}
+                onConfirm={(date) => {
+                  setEndsAt(date);
+                  setShowDatePicker(false);
+                }}
+                value={endsAt}
+                mode="datetime"
+                minimumDate={new Date()}
+                title={t.polls.endDate}
+                confirmLabel={t.common.done}
+              />
             </View>
           </View>
         </ScrollView>
@@ -574,6 +536,37 @@ export default function PollsScreen() {
             }
             variant="purple"
           />
+        </View>
+      </Modal>
+
+      {/* Voters Modal */}
+      <Modal
+        visible={votersOption !== null}
+        onClose={() => setVotersOption(null)}
+        title={votersOption?.title}
+        height="auto"
+      >
+        <View className="gap-3">
+          {votersOption?.votes?.map((vote) => (
+            <View key={vote.id} className="flex-row items-center gap-3 py-2">
+              <View
+                className="w-9 h-9 rounded-full justify-center items-center"
+                style={{ backgroundColor: theme.accent.purple }}
+              >
+                <Text className="text-sm font-manrope-bold text-[#1C1C1E]">
+                  {(vote.user?.name ?? "?").charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
+                {vote.user?.name ?? `User #${vote.user_id}`}
+              </Text>
+            </View>
+          ))}
+          {(!votersOption?.votes || votersOption.votes.length === 0) && (
+            <Text className="text-sm text-center py-4" style={{ color: theme.textSecondary }}>
+              {t.polls.noVotesYet}
+            </Text>
+          )}
         </View>
       </Modal>
     </View>

@@ -85,6 +85,7 @@ export interface Bill {
   period_start: string;
   period_end: string;
   uploaded_by: number;
+  description?: string;
   ocr_data?: Record<string, any>;
   created_at: string;
   user?: User;
@@ -217,6 +218,7 @@ export interface CreateTaskForm {
 
 export interface CreateBillForm {
   type: string;
+  description?: string;
   total_amount: number;
   period_start: string;
   period_end: string;

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
-  Alert,
   Switch,
   Image,
 } from "react-native";
@@ -33,6 +32,7 @@ import Modal from "@/components/ui/modal";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import { smarthomeApi, SmartDevice, HAState } from "@/lib/api";
+import { useAlert } from "@/components/ui/alert";
 
 export default function SmartHomeDashboard() {
   const insets = useSafeAreaInsets();
@@ -40,6 +40,7 @@ export default function SmartHomeDashboard() {
   const { home, isAdmin, rooms } = useHome();
   const { theme } = useTheme();
   const { t } = useI18n();
+  const { alert } = useAlert();
 
   const [devices, setDevices] = useState<SmartDevice[]>([]);
   const [deviceStates, setDeviceStates] = useState<Record<string, HAState>>({});
@@ -136,7 +137,7 @@ export default function SmartHomeDashboard() {
       fetchDevicesAndStatus();
     } catch (error) {
        // @ts-ignore
-      Alert.alert(t.common.error, error.response?.data?.error || "Failed to add device");
+      alert(t.common.error, error.response?.data?.error || "Failed to add device");
     } finally {
       setAddingDevice(false);
     }
@@ -155,7 +156,7 @@ export default function SmartHomeDashboard() {
       setEditingDevice(null);
       fetchDevicesAndStatus();
     } catch (error) {
-      Alert.alert(t.common.error, "Failed to update device");
+      alert(t.common.error, "Failed to update device");
     } finally {
       setSavingEdit(false);
     }
@@ -163,7 +164,7 @@ export default function SmartHomeDashboard() {
 
   const handleDeleteDevice = (deviceId: number, deviceName: string) => {
     if (!home) return;
-    Alert.alert("Delete Device", `Are you sure you want to remove ${deviceName}?`, [
+    alert("Delete Device", `Are you sure you want to remove ${deviceName}?`, [
       { text: t.common.cancel, style: "cancel" },
       {
         text: t.common.delete,
@@ -173,7 +174,7 @@ export default function SmartHomeDashboard() {
             await smarthomeApi.deleteDevice(home.id, deviceId);
             fetchDevicesAndStatus();
           } catch (error) {
-            Alert.alert(t.common.error, "Failed to delete device");
+            alert(t.common.error, "Failed to delete device");
           }
         },
       },

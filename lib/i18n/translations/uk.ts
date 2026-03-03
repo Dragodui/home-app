@@ -17,6 +17,7 @@ export default {
     tomorrow: "Завтра",
     copied: "Скопійовано!",
     success: "Успіх",
+    all: "Усі",
   },
 
   // Auth
@@ -207,6 +208,8 @@ export default {
     markAsPaid: "Позначити як сплачено",
     paid: "Сплачено",
     unpaid: "Несплачено",
+    description: "Опис (Необов'язково)",
+    descriptionPlaceholder: "Додайте деталі...",
   },
 
   // Polls
@@ -237,6 +240,7 @@ export default {
     noEndDate: "Без обмеження",
     ended: "Завершено",
     removeVote: "Скасувати голос",
+    noVotesYet: "Ще немає голосів",
   },
 
   // Settings

@@ -6,11 +6,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, Plus, Calendar, Trash } from "lucide-react-native";
-import DateTimePickerModal from "react-native-modal-datetime-picker";
+import DatePicker from "@/components/ui/date-picker";
 
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
@@ -19,6 +18,7 @@ import { useI18n, interpolate } from "@/stores/i18nStore";
 import { taskApi } from "@/lib/api";
 import { Task, TaskAssignment } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useAlert } from "@/components/ui/alert";
 import Modal from "@/components/ui/modal";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
@@ -32,6 +32,7 @@ export default function TasksScreen() {
   const { home, rooms } = useHome();
   const { theme } = useTheme();
   const { t } = useI18n();
+  const { alert } = useAlert();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [assignments, setAssignments] = useState<TaskAssignment[]>([]);
@@ -92,7 +93,7 @@ export default function TasksScreen() {
   const handleDelete = (taskId: number) => {
     if (!home) return;
 
-    Alert.alert(t.tasks.deleteTask, t.tasks.deleteTaskConfirm, [
+    alert(t.tasks.deleteTask, t.tasks.deleteTaskConfirm, [
       { text: t.common.cancel, style: "cancel" },
       {
         text: t.common.delete,
@@ -103,7 +104,7 @@ export default function TasksScreen() {
             await loadTasks();
           } catch (error) {
             console.error(error);
-            Alert.alert(t.common.error, t.tasks.failedToDelete);
+            alert(t.common.error, t.tasks.failedToDelete);
           }
         },
       },
@@ -127,11 +128,11 @@ export default function TasksScreen() {
           await loadTasks();
         } catch (error) {
           console.error("Error uncompleting task:", error);
-          Alert.alert(t.common.error, t.tasks.failedToUncomplete);
+          alert(t.common.error, t.tasks.failedToUncomplete);
         }
       }
     } else {
-      Alert.alert(t.tasks.completeTask, t.tasks.completeTaskConfirm, [
+      alert(t.tasks.completeTask, t.tasks.completeTaskConfirm, [
         { text: t.common.cancel, style: "cancel" },
         {
           text: t.tasks.complete,
@@ -141,7 +142,7 @@ export default function TasksScreen() {
               await loadTasks();
             } catch (error) {
               console.error("Error completing task:", error);
-              Alert.alert(t.common.error, t.tasks.failedToComplete);
+              alert(t.common.error, t.tasks.failedToComplete);
             }
           },
         },
@@ -173,7 +174,7 @@ export default function TasksScreen() {
       await loadTasks();
     } catch (error) {
       console.error("Error creating task:", error);
-      Alert.alert(t.common.error, t.tasks.couldNotCreate);
+      alert(t.common.error, t.tasks.couldNotCreate);
     } finally {
       setCreating(false);
     }
@@ -438,13 +439,14 @@ export default function TasksScreen() {
               </Text>
             </TouchableOpacity>
 
-            <DateTimePickerModal
-              isVisible={isDatePickerVisible}
-              mode="datetime"
+            <DatePicker
+              visible={isDatePickerVisible}
+              onClose={hideDatePicker}
               onConfirm={handleConfirmDate}
-              onCancel={hideDatePicker}
-              is24Hour={true}
-              themeVariant={theme.mode === "dark" ? "dark" : "light"}
+              value={selectedDate ?? undefined}
+              mode="datetime"
+              minimumDate={new Date()}
+              title={t.tasks.selectDateTime}
             />
           </View>
 

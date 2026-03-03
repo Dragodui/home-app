@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -23,6 +22,7 @@ import { authApi } from "@/lib/api";
 import Modal from "@/components/ui/modal";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
+import { useAlert } from "@/components/ui/alert";
 
 export default function SecurityScreen() {
   const insets = useSafeAreaInsets();
@@ -30,6 +30,7 @@ export default function SecurityScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
   const { user } = useAuth();
+  const { alert } = useAlert();
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -39,17 +40,17 @@ export default function SecurityScreen() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert(t.common.error, t.security.fillAllFields || "Please fill all fields");
+      alert(t.common.error, t.security.fillAllFields || "Please fill all fields");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert(t.common.error, t.security.passwordsMismatch || "Passwords don't match");
+      alert(t.common.error, t.security.passwordsMismatch || "Passwords don't match");
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert(t.common.error, t.security.passwordTooShort || "Password must be at least 6 characters");
+      alert(t.common.error, t.security.passwordTooShort || "Password must be at least 6 characters");
       return;
     }
 
@@ -57,7 +58,7 @@ export default function SecurityScreen() {
     try {
       await authApi.changePassword(currentPassword, newPassword);
 
-      Alert.alert(
+      alert(
         t.common.success || "Success",
         t.security.passwordChanged || "Password changed successfully"
       );
@@ -67,7 +68,7 @@ export default function SecurityScreen() {
       setConfirmPassword("");
     } catch (error: any) {
       const msg = error?.response?.data?.error || t.security.passwordChangeFailed || "Failed to change password";
-      Alert.alert(t.common.error, msg);
+      alert(t.common.error, msg);
     } finally {
       setIsChangingPassword(false);
     }
