@@ -23,6 +23,7 @@ import Modal from "@/components/ui/modal";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import { userColors } from "@/constants/colors";
+import { TasksSkeleton } from "@/components/skeletons";
 
 type FilterType = "All" | "My" | "By Room";
 
@@ -310,11 +311,7 @@ export default function TasksScreen() {
   };
 
   if (isLoading) {
-    return (
-      <View className="flex-1 justify-center items-center" style={{ backgroundColor: theme.background }}>
-        <ActivityIndicator size="large" color={theme.text} />
-      </View>
-    );
+    return <TasksSkeleton />;
   }
 
   return (

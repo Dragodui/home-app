@@ -16,6 +16,7 @@ import { useHome } from "@/stores/homeStore";
 import { notificationApi } from "@/lib/api";
 import { Notification, HomeNotification } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { NotificationsSkeleton } from "@/components/skeletons";
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
@@ -98,11 +99,7 @@ export default function NotificationsScreen() {
   };
 
   if (isLoading) {
-    return (
-      <View className="flex-1 justify-center items-center" style={{ backgroundColor: theme.background }}>
-        <ActivityIndicator size="large" color={theme.text} />
-      </View>
-    );
+    return <NotificationsSkeleton />;
   }
 
   return (

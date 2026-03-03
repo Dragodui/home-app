@@ -23,6 +23,7 @@ import Modal from "@/components/ui/modal";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import { useAlert } from "@/components/ui/alert";
+import { BudgetSkeleton } from "@/components/skeletons";
 
 const DonutChart = ({ data, size = 180, strokeWidth = 20, total, theme }: { data: { value: number; color: string }[]; size?: number; strokeWidth?: number; total: number; theme: any }) => {
   const center = size / 2;
@@ -555,11 +556,7 @@ export default function BudgetScreen() {
   );
 
   if (isLoading) {
-    return (
-      <View className="flex-1 justify-center items-center" style={{ backgroundColor: theme.background }}>
-        <ActivityIndicator size="large" color={theme.text} />
-      </View>
-    );
+    return <BudgetSkeleton />;
   }
 
   return (

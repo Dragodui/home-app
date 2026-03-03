@@ -26,6 +26,7 @@ import { HomeMembership } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { interpolate } from "@/stores/i18nStore";
 import { useAlert } from "@/components/ui/alert";
+import { MembersSkeleton } from "@/components/skeletons";
 
 export default function MembersScreen() {
   const insets = useSafeAreaInsets();
@@ -127,9 +128,7 @@ export default function MembersScreen() {
 
         {/* Loading State */}
         {isLoading ? (
-          <View className="flex-1 justify-center items-center py-20">
-            <ActivityIndicator size="large" color={theme.accent.purple} />
-          </View>
+          <MembersSkeleton />
         ) : members.length === 0 ? (
           /* Empty State */
           <View className="flex-1 justify-center items-center py-20">

@@ -25,6 +25,7 @@ import { taskApi, pollApi, billApi } from "@/lib/api";
 import { TaskAssignment, Poll } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import Card from "@/components/ui/card";
+import { HomeSkeleton } from "@/components/skeletons";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -107,14 +108,7 @@ export default function HomeScreen() {
   };
 
   if (authLoading || homeLoading || isLoading) {
-    return (
-      <View
-        className="flex-1 justify-center items-center"
-        style={{ backgroundColor: theme.background }}
-      >
-        <ActivityIndicator size="large" color={theme.text} />
-      </View>
-    );
+    return <HomeSkeleton />;
   }
 
   // No home state
