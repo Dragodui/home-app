@@ -367,7 +367,7 @@ export default {
     roomNamePlaceholder: "e.g., Kitchen, Living Room",
     createRoom: "Create Room",
     deleteRoom: "Delete Room",
-    deleteRoomConfirm: "Are you sure you want to delete \"{name}\"?",
+    deleteRoomConfirm: 'Are you sure you want to delete "{name}"?',
     noRooms: "No Rooms Yet",
     noRoomsAdminHint: "Create your first room to organize tasks by location",
     noRoomsMemberHint: "Ask your home admin to create rooms",

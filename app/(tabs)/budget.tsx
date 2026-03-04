@@ -1,32 +1,52 @@
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { DollarSign, Plus, Trash, ScanLine, Camera, ChevronDown, ChevronUp, Receipt, Check, Pencil, Users, FileText, File, TrendingUp, Eye } from "lucide-react-native";
-import Svg, { Circle, Rect, Text as SvgText, Line } from "react-native-svg";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { useHome } from "@/stores/homeStore";
-import { useTheme } from "@/stores/themeStore";
-import { useAuth } from "@/stores/authStore";
-import { useI18n } from "@/stores/i18nStore";
-import { billApi, billCategoryApi, ocrApi, imageApi } from "@/lib/api";
-import { Bill, BillCategory, BillSplit, OCRResult, HomeMembership } from "@/lib/types";
-import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import Modal from "@/components/ui/modal";
-import Input from "@/components/ui/input";
-import Button from "@/components/ui/button";
-import { useAlert } from "@/components/ui/alert";
+import {
+  Camera,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  DollarSign,
+  Eye,
+  File,
+  FileText,
+  Pencil,
+  Plus,
+  Receipt,
+  ScanLine,
+  Trash,
+  TrendingUp,
+  Users,
+} from "lucide-react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Circle, Line, Rect, Text as SvgText } from "react-native-svg";
 import { BudgetSkeleton } from "@/components/skeletons";
+import { useAlert } from "@/components/ui/alert";
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import Modal from "@/components/ui/modal";
+import { billApi, billCategoryApi, imageApi, ocrApi } from "@/lib/api";
+import type { Bill, BillCategory, BillSplit, HomeMembership, OCRResult } from "@/lib/types";
+import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useAuth } from "@/stores/authStore";
+import { useHome } from "@/stores/homeStore";
+import { useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
-const DonutChart = ({ data, size = 180, strokeWidth = 20, total, theme }: { data: { value: number; color: string }[]; size?: number; strokeWidth?: number; total: number; theme: any }) => {
+const DonutChart = ({
+  data,
+  size = 180,
+  strokeWidth = 20,
+  total,
+  theme,
+}: {
+  data: { value: number; color: string }[];
+  size?: number;
+  strokeWidth?: number;
+  total: number;
+  theme: any;
+}) => {
   const center = size / 2;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -63,15 +83,29 @@ const DonutChart = ({ data, size = 180, strokeWidth = 20, total, theme }: { data
         })}
       </Svg>
       <View className="absolute justify-center items-center">
-        <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>{total.toFixed(0)}</Text>
-        <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>Total</Text>
+        <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
+          {total.toFixed(0)}
+        </Text>
+        <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
+          Total
+        </Text>
       </View>
     </View>
   );
 };
 
-const BarChart = ({ data, width = 300, height = 240, theme }: { data: { month: string; total: number }[]; width?: number; height?: number; theme: any }) => {
-  const maxVal = Math.max(...data.map(d => d.total), 1);
+const BarChart = ({
+  data,
+  width = 300,
+  height = 240,
+  theme,
+}: {
+  data: { month: string; total: number }[];
+  width?: number;
+  height?: number;
+  theme: any;
+}) => {
+  const maxVal = Math.max(...data.map((d) => d.total), 1);
   const barWidth = Math.min(32, (width - 40) / data.length - 8);
   const chartHeight = height - 40;
   const barSpacing = (width - 20) / data.length;
@@ -189,8 +223,19 @@ export default function BudgetScreen() {
   const members: HomeMembership[] = home?.memberships ?? [];
 
   const COLOR_OPTIONS = [
-    "#FF7476", "#FF9F7A", "#FBEB9E", "#A8E6CF", "#7DD3E8", "#D8D4FC", "#F5A3D3",
-    "#22C55E", "#F472B6", "#C4B5FD", "#94A3B8", "#FDE68A", "#6EE7B7",
+    "#FF7476",
+    "#FF9F7A",
+    "#FBEB9E",
+    "#A8E6CF",
+    "#7DD3E8",
+    "#D8D4FC",
+    "#F5A3D3",
+    "#22C55E",
+    "#F472B6",
+    "#C4B5FD",
+    "#94A3B8",
+    "#FDE68A",
+    "#6EE7B7",
   ];
 
   const LANGUAGES = [
@@ -296,35 +341,36 @@ export default function BudgetScreen() {
 
   const handleDeleteCategory = async (categoryId: number) => {
     if (!home) return;
-    alert(
-      t.budget.deleteCategory,
-      t.budget.deleteCategoryConfirm,
-      [
-        { text: t.common.cancel, style: "cancel" },
-        {
-          text: t.common.delete,
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await billCategoryApi.delete(home.id, categoryId);
-              await loadData();
-            } catch (error) {
-              console.error(error);
-              alert(t.common.error, t.budget.failedToDelete);
-            }
-          },
+    alert(t.budget.deleteCategory, t.budget.deleteCategoryConfirm, [
+      { text: t.common.cancel, style: "cancel" },
+      {
+        text: t.common.delete,
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await billCategoryApi.delete(home.id, categoryId);
+            await loadData();
+          } catch (error) {
+            console.error(error);
+            alert(t.common.error, t.budget.failedToDelete);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const buildSplits = (userIds: number[], mode: "equal" | "manual", amounts: Record<number, string>, totalAmount: number) => {
+  const buildSplits = (
+    userIds: number[],
+    mode: "equal" | "manual",
+    amounts: Record<number, string>,
+    totalAmount: number,
+  ) => {
     if (userIds.length === 0) return undefined;
     if (mode === "equal") {
       const perPerson = totalAmount / userIds.length;
-      return userIds.map(uid => ({ userId: uid, amount: Math.round(perPerson * 100) / 100 }));
+      return userIds.map((uid) => ({ userId: uid, amount: Math.round(perPerson * 100) / 100 }));
     }
-    return userIds.map(uid => ({ userId: uid, amount: parseFloat(amounts[uid] || "0") }));
+    return userIds.map((uid) => ({ userId: uid, amount: parseFloat(amounts[uid] || "0") }));
   };
 
   const handleCreateBill = async () => {
@@ -336,7 +382,7 @@ export default function BudgetScreen() {
       const endDate = new Date(now);
       endDate.setMonth(endDate.getMonth() + 1);
 
-      const category = categories.find(c => c.id === selectedCategoryId);
+      const category = categories.find((c) => c.id === selectedCategoryId);
       const totalAmount = parseFloat(newBillAmount);
       const splits = buildSplits(splitUserIds, splitMode, manualAmounts, totalAmount);
 
@@ -405,20 +451,22 @@ export default function BudgetScreen() {
   const handleOpenEditSplits = (bill: Bill) => {
     setEditingBill(bill);
     const existingSplits = bill.splits ?? [];
-    const userIds = existingSplits.map(s => s.userId);
+    const userIds = existingSplits.map((s) => s.userId);
     setEditSplitUserIds(userIds);
 
     // Detect if existing splits are equal
     if (existingSplits.length > 0) {
       const firstAmount = existingSplits[0].amount;
-      const allEqual = existingSplits.every(s => Math.abs(s.amount - firstAmount) < 0.01);
+      const allEqual = existingSplits.every((s) => Math.abs(s.amount - firstAmount) < 0.01);
       setEditSplitMode(allEqual ? "equal" : "manual");
     } else {
       setEditSplitMode("equal");
     }
 
     const amounts: Record<number, string> = {};
-    existingSplits.forEach(s => { amounts[s.userId] = s.amount.toString(); });
+    existingSplits.forEach((s) => {
+      amounts[s.userId] = s.amount.toString();
+    });
     setEditManualAmounts(amounts);
     setShowEditSplitsModal(true);
   };
@@ -503,17 +551,17 @@ export default function BudgetScreen() {
       const fileName = selectedFileName || (selectedFileType === "pdf" ? "receipt.pdf" : "receipt.jpg");
       const ext = fileName.split(".").pop()?.toLowerCase();
       const mimeMap: Record<string, string> = {
-        pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg",
-        png: "image/png", gif: "image/gif", webp: "image/webp", bmp: "image/bmp",
+        pdf: "application/pdf",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+        bmp: "image/bmp",
       };
       const mimeType = mimeMap[ext || ""] || "image/jpeg";
 
-      result = await ocrApi.process(
-        selectedImageUri,
-        fileName,
-        mimeType,
-        selectedLanguage
-      );
+      result = await ocrApi.process(selectedImageUri, fileName, mimeType, selectedLanguage);
 
       setOcrResult(result);
 
@@ -531,24 +579,24 @@ export default function BudgetScreen() {
   };
 
   const getCategoryColor = (categoryId?: number) => {
-    const category = categories.find(c => c.id === categoryId);
+    const category = categories.find((c) => c.id === categoryId);
     return category?.color || theme.accent.yellow;
   };
 
   const getCategoryName = (bill: Bill) => {
     if (bill.billCategory) return bill.billCategory.name;
-    const category = categories.find(c => c.id === bill.billCategoryId);
+    const category = categories.find((c) => c.id === bill.billCategoryId);
     return category?.name || bill.type;
   };
 
   const getMemberName = (userId: number) => {
-    const m = members.find(m => m.userId === userId);
+    const m = members.find((m) => m.userId === userId);
     return m?.user?.name ?? `User #${userId}`;
   };
 
   const toggleSplitUser = (userId: number, ids: number[], setIds: (v: number[]) => void) => {
     if (ids.includes(userId)) {
-      setIds(ids.filter(id => id !== userId));
+      setIds(ids.filter((id) => id !== userId));
     } else {
       setIds([...ids, userId]);
     }
@@ -558,30 +606,32 @@ export default function BudgetScreen() {
     return isAdmin || bill.uploadedBy === user?.id;
   };
 
-  const chartData = categories.map(cat => {
-    const catBills = bills.filter(b => b.billCategoryId === cat.id);
-    const total = catBills.reduce((sum, b) => sum + b.totalAmount, 0);
-    return {
-      value: total,
-      color: cat.color || theme.accent.yellow,
-      name: cat.name
-    };
-  }).filter(d => d.value > 0);
+  const chartData = categories
+    .map((cat) => {
+      const catBills = bills.filter((b) => b.billCategoryId === cat.id);
+      const total = catBills.reduce((sum, b) => sum + b.totalAmount, 0);
+      return {
+        value: total,
+        color: cat.color || theme.accent.yellow,
+        name: cat.name,
+      };
+    })
+    .filter((d) => d.value > 0);
 
-  const uncategorizedBills = bills.filter(b => !b.billCategoryId);
+  const uncategorizedBills = bills.filter((b) => !b.billCategoryId);
   if (uncategorizedBills.length > 0) {
     const total = uncategorizedBills.reduce((sum, b) => sum + b.totalAmount, 0);
     chartData.push({
       value: total,
       color: theme.textSecondary,
-      name: t.budget.uncategorized
+      name: t.budget.uncategorized,
     });
   }
 
   const totalSpend = bills.reduce((sum, b) => sum + b.totalAmount, 0);
 
   // Bills that have OCR data with actual content
-  const receiptBills = bills.filter(b => {
+  const receiptBills = bills.filter((b) => {
     if (!b.ocrData) return false;
     const data = b.ocrData as Record<string, any>;
     return data.vendor || data.total || (data.items && data.items.length > 0);
@@ -604,7 +654,7 @@ export default function BudgetScreen() {
 
       {/* Member chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3" contentContainerStyle={{ gap: 8 }}>
-        {members.map(m => {
+        {members.map((m) => {
           const isSelected = selectedIds.includes(m.userId);
           return (
             <TouchableOpacity
@@ -637,7 +687,10 @@ export default function BudgetScreen() {
               }}
               onPress={() => setMode("equal")}
             >
-              <Text className="text-sm font-manrope-semibold" style={{ color: mode === "equal" ? theme.background : theme.textSecondary }}>
+              <Text
+                className="text-sm font-manrope-semibold"
+                style={{ color: mode === "equal" ? theme.background : theme.textSecondary }}
+              >
                 {t.budget.equalSplit}
               </Text>
             </TouchableOpacity>
@@ -649,7 +702,10 @@ export default function BudgetScreen() {
               }}
               onPress={() => setMode("manual")}
             >
-              <Text className="text-sm font-manrope-semibold" style={{ color: mode === "manual" ? theme.background : theme.textSecondary }}>
+              <Text
+                className="text-sm font-manrope-semibold"
+                style={{ color: mode === "manual" ? theme.background : theme.textSecondary }}
+              >
                 {t.budget.manualSplit}
               </Text>
             </TouchableOpacity>
@@ -657,9 +713,11 @@ export default function BudgetScreen() {
 
           {mode === "equal" && totalAmount > 0 && (
             <View className="p-3 rounded-xl" style={{ backgroundColor: theme.background }}>
-              {selectedIds.map(uid => (
+              {selectedIds.map((uid) => (
                 <View key={uid} className="flex-row justify-between py-1">
-                  <Text className="text-sm" style={{ color: theme.text }}>{getMemberName(uid)}</Text>
+                  <Text className="text-sm" style={{ color: theme.text }}>
+                    {getMemberName(uid)}
+                  </Text>
                   <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
                     {(totalAmount / selectedIds.length).toFixed(2)}
                   </Text>
@@ -670,9 +728,11 @@ export default function BudgetScreen() {
 
           {mode === "manual" && (
             <View className="gap-2">
-              {selectedIds.map(uid => (
+              {selectedIds.map((uid) => (
                 <View key={uid} className="flex-row items-center gap-3">
-                  <Text className="text-sm flex-1" style={{ color: theme.text }}>{getMemberName(uid)}</Text>
+                  <Text className="text-sm flex-1" style={{ color: theme.text }}>
+                    {getMemberName(uid)}
+                  </Text>
                   <Input
                     placeholder="0.00"
                     value={amounts[uid] || ""}
@@ -700,14 +760,18 @@ export default function BudgetScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
       >
         <View className="flex-row justify-between items-center mb-6">
-          <Text className="text-3xl font-manrope-bold" style={{ color: theme.text }}>{t.budget.title}</Text>
+          <Text className="text-3xl font-manrope-bold" style={{ color: theme.text }}>
+            {t.budget.title}
+          </Text>
           <View className="flex-row gap-2.5">
             <TouchableOpacity
               className="px-4 py-2 rounded-xl justify-center items-center"
               style={{ backgroundColor: theme.surface }}
               onPress={() => setShowCategoryModal(true)}
             >
-              <Text className="text-xs font-manrope-semibold" style={{ color: theme.text }}>+ {t.budget.category}</Text>
+              <Text className="text-xs font-manrope-semibold" style={{ color: theme.text }}>
+                + {t.budget.category}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="px-4 py-2 rounded-xl justify-center items-center"
@@ -740,7 +804,9 @@ export default function BudgetScreen() {
         )}
 
         <View className="mb-6">
-          <Text className="text-sm font-manrope-bold uppercase mb-3" style={{ color: theme.textSecondary }}>{t.budget.categories}</Text>
+          <Text className="text-sm font-manrope-bold uppercase mb-3" style={{ color: theme.textSecondary }}>
+            {t.budget.categories}
+          </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
             <TouchableOpacity
               className="flex-row items-center px-3 py-2 rounded-2xl border gap-2"
@@ -750,11 +816,14 @@ export default function BudgetScreen() {
               }}
               onPress={() => setFilterCategoryId(null)}
             >
-              <Text className="font-manrope-semibold text-sm" style={{ color: filterCategoryId === null ? theme.background : theme.text }}>
+              <Text
+                className="font-manrope-semibold text-sm"
+                style={{ color: filterCategoryId === null ? theme.background : theme.text }}
+              >
                 {t.common.all}
               </Text>
             </TouchableOpacity>
-            {categories.map(cat => (
+            {categories.map((cat) => (
               <TouchableOpacity
                 key={cat.id}
                 className="flex-row items-center px-3 py-2 rounded-2xl border gap-2"
@@ -766,11 +835,18 @@ export default function BudgetScreen() {
                 onLongPress={() => handleDeleteCategory(cat.id)}
               >
                 <View className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color || theme.accent.yellow }} />
-                <Text className="font-manrope-semibold text-sm" style={{ color: filterCategoryId === cat.id ? theme.background : theme.text }}>{cat.name}</Text>
+                <Text
+                  className="font-manrope-semibold text-sm"
+                  style={{ color: filterCategoryId === cat.id ? theme.background : theme.text }}
+                >
+                  {cat.name}
+                </Text>
               </TouchableOpacity>
             ))}
             {categories.length === 0 && (
-              <Text className="italic" style={{ color: theme.textSecondary }}>{t.budget.noCategories}</Text>
+              <Text className="italic" style={{ color: theme.textSecondary }}>
+                {t.budget.noCategories}
+              </Text>
             )}
           </ScrollView>
         </View>
@@ -780,7 +856,7 @@ export default function BudgetScreen() {
           {bills.map((bill) => {
             const isExpanded = expandedBillId === bill.id;
             const splits = bill.splits ?? [];
-            const userSplit = splits.find(s => s.userId === user?.id);
+            const userSplit = splits.find((s) => s.userId === user?.id);
             const uploaderName = bill.user?.name ?? getMemberName(bill.uploadedBy);
 
             return (
@@ -792,11 +868,16 @@ export default function BudgetScreen() {
                 activeOpacity={0.7}
               >
                 <View className="flex-row items-center gap-3">
-                  <View className="w-10 h-10 rounded-full justify-center items-center" style={{ backgroundColor: getCategoryColor(bill.billCategoryId) }}>
+                  <View
+                    className="w-10 h-10 rounded-full justify-center items-center"
+                    style={{ backgroundColor: getCategoryColor(bill.billCategoryId) }}
+                  >
                     <DollarSign size={20} color="#1C1C1E" />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-base font-manrope-semibold mb-0.5" style={{ color: theme.text }}>{getCategoryName(bill)}</Text>
+                    <Text className="text-base font-manrope-semibold mb-0.5" style={{ color: theme.text }}>
+                      {getCategoryName(bill)}
+                    </Text>
                     <Text className="text-xs" style={{ color: theme.textSecondary }}>
                       {uploaderName} · {new Date(bill.createdAt).toLocaleDateString("pl-PL")}
                     </Text>
@@ -811,10 +892,7 @@ export default function BudgetScreen() {
                       </Text>
                     )}
                   </View>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteBill(bill.id)}
-                    className="p-0.5"
-                  >
+                  <TouchableOpacity onPress={() => handleDeleteBill(bill.id)} className="p-0.5">
                     <Trash size={18} color={theme.accent.pink || "#FF3B30"} />
                   </TouchableOpacity>
                 </View>
@@ -842,7 +920,7 @@ export default function BudgetScreen() {
                         </TouchableOpacity>
                       )}
                     </View>
-                    {splits.map(split => (
+                    {splits.map((split) => (
                       <View key={split.id} className="flex-row items-center justify-between py-1.5">
                         <View className="flex-row items-center gap-2 flex-1">
                           <View
@@ -882,7 +960,8 @@ export default function BudgetScreen() {
                   <View className="flex-row items-center mt-2 gap-1">
                     <Users size={12} color={theme.textSecondary} />
                     <Text className="text-xs" style={{ color: theme.textSecondary }}>
-                      {splits.length} {splits.length === 1 ? "split" : "splits"} · {splits.filter(s => s.paid).length} {t.budget.paid.toLowerCase()}
+                      {splits.length} {splits.length === 1 ? "split" : "splits"} · {splits.filter((s) => s.paid).length}{" "}
+                      {t.budget.paid.toLowerCase()}
                     </Text>
                   </View>
                 )}
@@ -917,7 +996,10 @@ export default function BudgetScreen() {
                     activeOpacity={0.7}
                   >
                     <View className="flex-row items-center gap-3">
-                      <View className="w-10 h-10 rounded-full justify-center items-center" style={{ backgroundColor: theme.accent.yellow }}>
+                      <View
+                        className="w-10 h-10 rounded-full justify-center items-center"
+                        style={{ backgroundColor: theme.accent.yellow }}
+                      >
                         <Receipt size={20} color="#1C1C1E" />
                       </View>
                       <View className="flex-1">
@@ -981,12 +1063,7 @@ export default function BudgetScreen() {
       </ScrollView>
 
       {/* Create Expense Modal */}
-      <Modal
-        visible={showCreateModal}
-        onClose={handleCloseCreateModal}
-        title={t.budget.addExpense}
-        height="full"
-      >
+      <Modal visible={showCreateModal} onClose={handleCloseCreateModal} title={t.budget.addExpense} height="full">
         <View className="pt-2.5">
           {/* Scan Receipt Section */}
           <View className="mb-6">
@@ -999,7 +1076,12 @@ export default function BudgetScreen() {
               <View className="flex-row gap-3">
                 <TouchableOpacity
                   className="flex-1 py-6 rounded-xl justify-center items-center gap-2"
-                  style={{ backgroundColor: theme.surface, borderStyle: 'dashed', borderWidth: 1, borderColor: theme.border }}
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderStyle: "dashed",
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                  }}
                   onPress={handleTakePhoto}
                 >
                   <Camera size={28} color={theme.textSecondary} />
@@ -1009,7 +1091,12 @@ export default function BudgetScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   className="flex-1 py-6 rounded-xl justify-center items-center gap-2"
-                  style={{ backgroundColor: theme.surface, borderStyle: 'dashed', borderWidth: 1, borderColor: theme.border }}
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderStyle: "dashed",
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                  }}
                   onPress={handlePickFile}
                 >
                   <File size={28} color={theme.textSecondary} />
@@ -1022,20 +1109,28 @@ export default function BudgetScreen() {
               <View>
                 {/* File preview */}
                 {selectedFileType === "pdf" ? (
-                  <View className="rounded-xl p-4 mb-3 flex-row items-center gap-3" style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }}>
+                  <View
+                    className="rounded-xl p-4 mb-3 flex-row items-center gap-3"
+                    style={{ backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }}
+                  >
                     <FileText size={32} color={theme.accent.pink} />
                     <View className="flex-1">
                       <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }} numberOfLines={1}>
                         {selectedFileName || "document.pdf"}
                       </Text>
-                      <Text className="text-xs" style={{ color: theme.textSecondary }}>PDF</Text>
+                      <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                        PDF
+                      </Text>
                     </View>
                   </View>
                 ) : (
-                  <View className="rounded-xl overflow-hidden mb-3" style={{ borderWidth: 1, borderColor: theme.border }}>
+                  <View
+                    className="rounded-xl overflow-hidden mb-3"
+                    style={{ borderWidth: 1, borderColor: theme.border }}
+                  >
                     <Image
                       source={{ uri: selectedImageUri }}
-                      style={{ width: '100%', height: 160 }}
+                      style={{ width: "100%", height: 160 }}
                       resizeMode="cover"
                     />
                   </View>
@@ -1043,7 +1138,9 @@ export default function BudgetScreen() {
 
                 <TouchableOpacity
                   className="mb-3"
-                  onPress={() => { resetScanState(); }}
+                  onPress={() => {
+                    resetScanState();
+                  }}
                 >
                   <Text className="text-sm font-manrope-semibold text-center" style={{ color: theme.accent.pink }}>
                     {t.budget.changePhoto}
@@ -1053,22 +1150,29 @@ export default function BudgetScreen() {
                 {/* Step 2: Language selector + Process button (only if no result yet) */}
                 {!ocrResult && (
                   <View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3" contentContainerStyle={{ gap: 8 }}>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      className="mb-3"
+                      contentContainerStyle={{ gap: 8 }}
+                    >
                       {LANGUAGES.map((lang) => (
                         <TouchableOpacity
                           key={lang.code}
                           onPress={() => setSelectedLanguage(lang.code)}
                           className="px-3 py-1.5 rounded-full border"
                           style={{
-                            backgroundColor: selectedLanguage === lang.code ? theme.text : 'transparent',
-                            borderColor: selectedLanguage === lang.code ? theme.text : theme.border
+                            backgroundColor: selectedLanguage === lang.code ? theme.text : "transparent",
+                            borderColor: selectedLanguage === lang.code ? theme.text : theme.border,
                           }}
                         >
-                          <Text style={{
-                            color: selectedLanguage === lang.code ? theme.background : theme.textSecondary,
-                            fontSize: 12,
-                            fontWeight: '600'
-                          }}>
+                          <Text
+                            style={{
+                              color: selectedLanguage === lang.code ? theme.background : theme.textSecondary,
+                              fontSize: 12,
+                              fontWeight: "600",
+                            }}
+                          >
                             {lang.label}
                           </Text>
                         </TouchableOpacity>
@@ -1095,21 +1199,32 @@ export default function BudgetScreen() {
 
                     {ocrResult.vendor && (
                       <View className="flex-row justify-between mb-2">
-                        <Text className="text-sm" style={{ color: theme.textSecondary }}>{t.budget.vendor}</Text>
-                        <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>{ocrResult.vendor}</Text>
+                        <Text className="text-sm" style={{ color: theme.textSecondary }}>
+                          {t.budget.vendor}
+                        </Text>
+                        <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
+                          {ocrResult.vendor}
+                        </Text>
                       </View>
                     )}
 
                     {ocrResult.date && (
                       <View className="flex-row justify-between mb-2">
-                        <Text className="text-sm" style={{ color: theme.textSecondary }}>{t.budget.date}</Text>
-                        <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>{ocrResult.date}</Text>
+                        <Text className="text-sm" style={{ color: theme.textSecondary }}>
+                          {t.budget.date}
+                        </Text>
+                        <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
+                          {ocrResult.date}
+                        </Text>
                       </View>
                     )}
 
                     {ocrResult.items && ocrResult.items.length > 0 && (
                       <View className="mt-1 pt-2" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
-                        <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
+                        <Text
+                          className="text-xs font-manrope-bold uppercase mb-2"
+                          style={{ color: theme.textSecondary }}
+                        >
                           {t.budget.items} ({ocrResult.items.length})
                         </Text>
                         {ocrResult.items.map((item, idx) => (
@@ -1129,9 +1244,16 @@ export default function BudgetScreen() {
                     )}
 
                     {ocrResult.total > 0 && (
-                      <View className="flex-row justify-between mt-2 pt-2" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
-                        <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>{t.common.total}</Text>
-                        <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>{ocrResult.total.toFixed(2)}</Text>
+                      <View
+                        className="flex-row justify-between mt-2 pt-2"
+                        style={{ borderTopWidth: 1, borderTopColor: theme.border }}
+                      >
+                        <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+                          {t.common.total}
+                        </Text>
+                        <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+                          {ocrResult.total.toFixed(2)}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -1141,16 +1263,21 @@ export default function BudgetScreen() {
           </View>
 
           {/* Manual entry / Category & Amount */}
-          <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>{t.budget.category}</Text>
+          <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
+            {t.budget.category}
+          </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
             <View className="flex-row gap-2.5">
-              {categories.map(cat => (
+              {categories.map((cat) => (
                 <TouchableOpacity
                   key={cat.id}
                   className="px-4 py-2.5 rounded-xl border"
                   style={[
                     { backgroundColor: theme.surface, borderColor: theme.border },
-                    selectedCategoryId === cat.id && { borderColor: theme.accent.pink, backgroundColor: theme.accent.pinkLight }
+                    selectedCategoryId === cat.id && {
+                      borderColor: theme.accent.pink,
+                      backgroundColor: theme.accent.pinkLight,
+                    },
                   ]}
                   onPress={() => setSelectedCategoryId(cat.id)}
                 >
@@ -1180,9 +1307,12 @@ export default function BudgetScreen() {
           {/* Split Between section */}
           <View className="mt-5">
             {renderSplitPicker(
-              splitUserIds, setSplitUserIds,
-              splitMode, setSplitMode,
-              manualAmounts, setManualAmounts,
+              splitUserIds,
+              setSplitUserIds,
+              splitMode,
+              setSplitMode,
+              manualAmounts,
+              setManualAmounts,
               parseFloat(newBillAmount) || 0,
             )}
           </View>
@@ -1201,7 +1331,10 @@ export default function BudgetScreen() {
       {/* Edit Splits Modal */}
       <Modal
         visible={showEditSplitsModal}
-        onClose={() => { setShowEditSplitsModal(false); setEditingBill(null); }}
+        onClose={() => {
+          setShowEditSplitsModal(false);
+          setEditingBill(null);
+        }}
         title={t.budget.editSplits}
         height="full"
       >
@@ -1218,9 +1351,12 @@ export default function BudgetScreen() {
               </View>
 
               {renderSplitPicker(
-                editSplitUserIds, setEditSplitUserIds,
-                editSplitMode, setEditSplitMode,
-                editManualAmounts, setEditManualAmounts,
+                editSplitUserIds,
+                setEditSplitUserIds,
+                editSplitMode,
+                setEditSplitMode,
+                editManualAmounts,
+                setEditManualAmounts,
                 editingBill.totalAmount,
               )}
 
@@ -1251,7 +1387,9 @@ export default function BudgetScreen() {
             onChangeText={setNewCategoryName}
           />
 
-          <Text className="text-xs font-manrope-bold uppercase mb-2 mt-5" style={{ color: theme.textSecondary }}>{t.budget.color}</Text>
+          <Text className="text-xs font-manrope-bold uppercase mb-2 mt-5" style={{ color: theme.textSecondary }}>
+            {t.budget.color}
+          </Text>
           <View className="flex-row flex-wrap gap-3 mb-5">
             {COLOR_OPTIONS.map((color) => (
               <TouchableOpacity
@@ -1259,7 +1397,7 @@ export default function BudgetScreen() {
                 className="w-8 h-8 rounded-full"
                 style={[
                   { backgroundColor: color },
-                  selectedColor === color && { borderWidth: 2, borderColor: theme.text }
+                  selectedColor === color && { borderWidth: 2, borderColor: theme.text },
                 ]}
                 onPress={() => setSelectedColor(color)}
               />
@@ -1293,9 +1431,18 @@ export default function BudgetScreen() {
           </View>
           <View className="gap-2">
             {monthlyTrends.map((item, idx) => (
-              <View key={idx} className="flex-row justify-between py-2 px-3 rounded-xl" style={{ backgroundColor: theme.background }}>
-                <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>{item.month}</Text>
-                <Text className="text-sm font-manrope-bold" style={{ color: idx === monthlyTrends.length - 1 ? theme.accent.pink : theme.text }}>
+              <View
+                key={idx}
+                className="flex-row justify-between py-2 px-3 rounded-xl"
+                style={{ backgroundColor: theme.background }}
+              >
+                <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
+                  {item.month}
+                </Text>
+                <Text
+                  className="text-sm font-manrope-bold"
+                  style={{ color: idx === monthlyTrends.length - 1 ? theme.accent.pink : theme.text }}
+                >
                   ${item.total.toFixed(2)}
                 </Text>
               </View>
@@ -1307,17 +1454,16 @@ export default function BudgetScreen() {
       {/* Receipt Image Viewer Modal */}
       <Modal
         visible={showReceiptImageModal}
-        onClose={() => { setShowReceiptImageModal(false); setReceiptImageUrl(null); }}
+        onClose={() => {
+          setShowReceiptImageModal(false);
+          setReceiptImageUrl(null);
+        }}
         title={t.budget.viewReceipt}
         height="full"
       >
         {receiptImageUrl && (
           <View className="flex-1 items-center justify-center pt-4">
-            <Image
-              source={{ uri: receiptImageUrl }}
-              style={{ width: "100%", height: 500 }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: receiptImageUrl }} style={{ width: "100%", height: 500 }} resizeMode="contain" />
           </View>
         )}
       </Modal>

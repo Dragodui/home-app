@@ -62,7 +62,8 @@ export default {
     verifiedMessage: "Twój e-mail został pomyślnie zweryfikowany. Możesz się teraz zalogować.",
     linkExpired: "Link weryfikacyjny mógł wygasnąć.",
     sentMessage: "Nowy link weryfikacyjny został wysłany na {email}",
-    checkInbox: "Wysłaliśmy link weryfikacyjny na {email}. Sprawdź skrzynkę odbiorczą i kliknij link, aby zweryfikować.",
+    checkInbox:
+      "Wysłaliśmy link weryfikacyjny na {email}. Sprawdź skrzynkę odbiorczą i kliknij link, aby zweryfikować.",
     resendEmail: "Wyślij ponownie e-mail weryfikacyjny",
     backToLogin: "Powrót do logowania",
     continueToLogin: "Przejdź do logowania",
@@ -367,7 +368,7 @@ export default {
     roomNamePlaceholder: "np. Kuchnia, Salon",
     createRoom: "Utwórz pokój",
     deleteRoom: "Usuń pokój",
-    deleteRoomConfirm: "Czy na pewno chcesz usunąć \"{name}\"?",
+    deleteRoomConfirm: 'Czy na pewno chcesz usunąć "{name}"?',
     noRooms: "Brak pokoi",
     noRoomsAdminHint: "Utwórz swój pierwszy pokój, aby organizować zadania według lokalizacji",
     noRoomsMemberHint: "Poproś administratora domu o utworzenie pokoi",

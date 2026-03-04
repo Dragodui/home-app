@@ -1,6 +1,6 @@
-import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { translations, Language, Translations, defaultLanguage, languageNames } from "@/lib/i18n";
+import { create } from "zustand";
+import { defaultLanguage, type Language, languageNames, type Translations, translations } from "@/lib/i18n";
 
 const I18N_STORAGE_KEY = "@app_language";
 

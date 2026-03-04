@@ -1,22 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Bell, Check } from "lucide-react-native";
-import { useTheme } from "@/stores/themeStore";
-import { useI18n } from "@/stores/i18nStore";
-import { useHome } from "@/stores/homeStore";
-import { notificationApi } from "@/lib/api";
-import { Notification, HomeNotification } from "@/lib/types";
-import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useCallback, useEffect, useState } from "react";
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NotificationsSkeleton } from "@/components/skeletons";
+import { notificationApi } from "@/lib/api";
+import type { HomeNotification, Notification } from "@/lib/types";
+import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useHome } from "@/stores/homeStore";
+import { useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
@@ -44,9 +37,7 @@ export default function NotificationsScreen() {
       }
 
       // Sort by date (newest first)
-      allNotifications.sort((a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
+      allNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
       setNotifications(allNotifications);
     } catch (error) {
@@ -70,7 +61,7 @@ export default function NotificationsScreen() {
 
   const markAsRead = async (notification: Notification | HomeNotification) => {
     try {
-      if ('homeId' in notification) {
+      if ("homeId" in notification) {
         // Home notification
         await notificationApi.markHomeNotificationAsRead(notification.homeId, notification.id);
       } else {
@@ -107,9 +98,7 @@ export default function NotificationsScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: insets.top + 16 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
@@ -147,7 +136,7 @@ export default function NotificationsScreen() {
           <View className="gap-3">
             {notifications.map((notification) => (
               <View
-                key={`${notification.id}-${'homeId' in notification ? 'home' : 'user'}`}
+                key={`${notification.id}-${"homeId" in notification ? "home" : "user"}`}
                 className="p-4 rounded-16"
                 style={{
                   backgroundColor: theme.surface,
@@ -163,10 +152,7 @@ export default function NotificationsScreen() {
                     <Bell size={18} color="#1C1C1E" />
                   </View>
                   <View className="flex-1">
-                    <Text
-                      className="text-15 font-manrope-medium mb-1"
-                      style={{ color: theme.text, lineHeight: 22 }}
-                    >
+                    <Text className="text-15 font-manrope-medium mb-1" style={{ color: theme.text, lineHeight: 22 }}>
                       {notification.description}
                     </Text>
                     <Text className="text-13 font-manrope" style={{ color: theme.textSecondary }}>

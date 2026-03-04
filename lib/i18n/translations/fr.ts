@@ -62,7 +62,8 @@ export default {
     verifiedMessage: "Votre e-mail a été vérifié avec succès. Vous pouvez maintenant vous connecter.",
     linkExpired: "Le lien de vérification a peut-être expiré.",
     sentMessage: "Un nouveau lien de vérification a été envoyé à {email}",
-    checkInbox: "Nous avons envoyé un lien de vérification à {email}. Vérifiez votre boîte de réception et cliquez sur le lien pour vérifier.",
+    checkInbox:
+      "Nous avons envoyé un lien de vérification à {email}. Vérifiez votre boîte de réception et cliquez sur le lien pour vérifier.",
     resendEmail: "Renvoyer l'e-mail de vérification",
     backToLogin: "Retour à la connexion",
     continueToLogin: "Continuer vers la connexion",
@@ -278,7 +279,8 @@ export default {
     leaveHome: "Quitter le foyer",
     deleteHomeConfirmTitle: "Supprimer le foyer ?",
     leaveHomeConfirmTitle: "Quitter le foyer ?",
-    deleteHomeConfirmText: "Cette action ne peut pas être annulée. Toutes les données seront définitivement supprimées.",
+    deleteHomeConfirmText:
+      "Cette action ne peut pas être annulée. Toutes les données seront définitivement supprimées.",
     leaveHomeConfirmText: "Vous n'aurez plus accès à ce foyer.",
     leave: "Quitter",
     leaveHomeFailed: "Impossible de quitter le foyer",
@@ -367,7 +369,7 @@ export default {
     roomNamePlaceholder: "ex. Cuisine, Salon",
     createRoom: "Créer la pièce",
     deleteRoom: "Supprimer la pièce",
-    deleteRoomConfirm: "Êtes-vous sûr de vouloir supprimer \"{name}\" ?",
+    deleteRoomConfirm: 'Êtes-vous sûr de vouloir supprimer "{name}" ?',
     noRooms: "Pas encore de pièces",
     noRoomsAdminHint: "Créez votre première pièce pour organiser les tâches par emplacement",
     noRoomsMemberHint: "Demandez à l'administrateur de votre foyer de créer des pièces",

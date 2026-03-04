@@ -1,12 +1,6 @@
 import "../global.css";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
-  useFonts,
   Manrope_200ExtraLight,
   Manrope_300Light,
   Manrope_400Regular,
@@ -14,15 +8,20 @@ import {
   Manrope_600SemiBold,
   Manrope_700Bold,
   Manrope_800ExtraBold,
+  useFonts,
 } from "@expo-google-fonts/manrope";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-
-import { useI18nStore } from "@/stores/i18nStore";
-import { useThemeStore, useTheme } from "@/stores/themeStore";
+import { useEffect, useState } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { AlertProvider } from "@/components/ui/alert";
+import { wsManager } from "@/lib/websocket";
 import { useAuthStore } from "@/stores/authStore";
 import { useHomeStore } from "@/stores/homeStore";
-import { wsManager } from "@/lib/websocket";
-import { AlertProvider } from "@/components/ui/alert";
+import { useI18nStore } from "@/stores/i18nStore";
+import { useTheme, useThemeStore } from "@/stores/themeStore";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -80,9 +79,7 @@ function AppContent() {
   const { theme } = useTheme();
 
   return (
-    <GestureHandlerRootView
-      className={`flex-1 ${theme.isDark ? "bg-background-dark" : "bg-background"}`}
-    >
+    <GestureHandlerRootView className={`flex-1 ${theme.isDark ? "bg-background-dark" : "bg-background"}`}>
       <AlertProvider>
         <RootLayoutNav />
       </AlertProvider>

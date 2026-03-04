@@ -1,38 +1,29 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  FlatList,
-  Switch,
-  Image,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
-  Plus,
-  Trash2,
-  Power,
-  Lightbulb,
+  Edit2,
   Fan,
-  Tv,
+  Lightbulb,
+  Plus,
+  Power,
   RefreshCw,
   Settings,
-  Edit2,
+  Trash2,
+  Tv,
   Wifi,
   WifiOff,
 } from "lucide-react-native";
-import { useHome } from "@/stores/homeStore";
-import { useTheme } from "@/stores/themeStore";
-import { useI18n } from "@/stores/i18nStore";
-import Modal from "@/components/ui/modal";
-import Input from "@/components/ui/input";
-import Button from "@/components/ui/button";
-import { smarthomeApi, SmartDevice, HAState } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/components/ui/alert";
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import Modal from "@/components/ui/modal";
+import { type HAState, type SmartDevice, smarthomeApi } from "@/lib/api";
+import { useHome } from "@/stores/homeStore";
+import { useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
 export default function SmartHomeDashboard() {
   const insets = useSafeAreaInsets();
@@ -71,7 +62,7 @@ export default function SmartHomeDashboard() {
       let status = { connected: false };
       try {
         status = await smarthomeApi.getStatus(home.id);
-      } catch (err) {
+      } catch (_err) {
         // If config doesn't exist, backend might return 404 or 500 with "record not found"
         // We treat this as not connected
         console.log("No existing HA config found or failed to fetch status");
@@ -88,11 +79,10 @@ export default function SmartHomeDashboard() {
         const stateMap: Record<string, HAState> = {};
         statesData.forEach((s) => (stateMap[s.entityId] = s));
         setDeviceStates(stateMap);
-      } catch (err) {
-          console.log("Failed to fetch devices/states (likely not connected)");
-          setDevices([]);
+      } catch (_err) {
+        console.log("Failed to fetch devices/states (likely not connected)");
+        setDevices([]);
       }
-
     } catch (error) {
       console.error("Failed to load smart home data:", error);
     } finally {
@@ -110,8 +100,8 @@ export default function SmartHomeDashboard() {
     try {
       const results = await smarthomeApi.discover(home.id);
       // Filter out already added devices
-      const addedEntityIds = new Set(devices.map(d => d.entityId));
-      const newDevices = results.filter(d => !addedEntityIds.has(d.entityId));
+      const addedEntityIds = new Set(devices.map((d) => d.entityId));
+      const newDevices = results.filter((d) => !addedEntityIds.has(d.entityId));
       setDiscoveredDevices(newDevices);
     } catch (error) {
       console.error("Failed to discover devices", error);
@@ -135,9 +125,8 @@ export default function SmartHomeDashboard() {
       setSelectedEntity(null);
       setSelectedRoomId(undefined);
       fetchDevicesAndStatus();
-    } catch (error) {
-       // @ts-ignore
-      alert(t.common.error, error.response?.data?.error || "Failed to add device");
+    } catch (err: any) {
+      alert(t.common.error, err.response?.data?.error || "Failed to add device");
     } finally {
       setAddingDevice(false);
     }
@@ -155,7 +144,7 @@ export default function SmartHomeDashboard() {
       setShowEditModal(false);
       setEditingDevice(null);
       fetchDevicesAndStatus();
-    } catch (error) {
+    } catch (_error) {
       alert(t.common.error, "Failed to update device");
     } finally {
       setSavingEdit(false);
@@ -173,7 +162,7 @@ export default function SmartHomeDashboard() {
           try {
             await smarthomeApi.deleteDevice(home.id, deviceId);
             fetchDevicesAndStatus();
-          } catch (error) {
+          } catch (_error) {
             alert(t.common.error, "Failed to delete device");
           }
         },
@@ -187,7 +176,7 @@ export default function SmartHomeDashboard() {
 
     // Optimistic update
     const newState = { ...deviceStates[device.entityId], state: state ? "on" : "off" };
-    setDeviceStates(prev => ({ ...prev, [device.entityId]: newState }));
+    setDeviceStates((prev) => ({ ...prev, [device.entityId]: newState }));
 
     try {
       await smarthomeApi.controlDevice(home.id, device.id, service);
@@ -216,7 +205,7 @@ export default function SmartHomeDashboard() {
     const state = deviceStates[item.entityId];
     const isOn = state?.state === "on";
     const isOffline = state?.state === "unavailable" || state?.state === "unknown";
-    const roomName = rooms.find(r => r.id === item.roomId)?.name || "No Room";
+    const roomName = rooms.find((r) => r.id === item.roomId)?.name || "No Room";
 
     return (
       <View className="flex-row items-center p-4 rounded-20 mb-3" style={{ backgroundColor: theme.surface }}>
@@ -224,13 +213,18 @@ export default function SmartHomeDashboard() {
           {getIcon(item.type, 24, isOn ? theme.accent.yellow : theme.text)}
         </View>
         <View className="flex-1">
-          <Text className="text-base font-manrope-bold" style={{ color: theme.text }}>{item.name}</Text>
+          <Text className="text-base font-manrope-bold" style={{ color: theme.text }}>
+            {item.name}
+          </Text>
           <View className="flex-row items-center">
             <Text className="text-xs font-manrope mr-2" style={{ color: theme.textSecondary }}>
               {state?.state || "Unknown"}
             </Text>
-            <Text className="text-xs font-manrope-semibold px-1.5 py-0.5 rounded-md bg-black/5" style={{ color: theme.textSecondary }}>
-               {roomName}
+            <Text
+              className="text-xs font-manrope-semibold px-1.5 py-0.5 rounded-md bg-black/5"
+              style={{ color: theme.textSecondary }}
+            >
+              {roomName}
             </Text>
           </View>
         </View>
@@ -243,25 +237,22 @@ export default function SmartHomeDashboard() {
         />
 
         {isAdmin && (
-            <View className="flex-row ml-2">
-                 <TouchableOpacity
-                    className="p-2"
-                    onPress={() => {
-                        setEditingDevice(item);
-                        setEditName(item.name);
-                        setEditRoomId(item.roomId);
-                        setShowEditModal(true);
-                    }}
-                 >
-                    <Edit2 size={18} color={theme.text} />
-                 </TouchableOpacity>
-                 <TouchableOpacity
-                    className="p-2"
-                    onPress={() => handleDeleteDevice(item.id, item.name)}
-                 >
-                    <Trash2 size={18} color={theme.accent.danger} />
-                 </TouchableOpacity>
-            </View>
+          <View className="flex-row ml-2">
+            <TouchableOpacity
+              className="p-2"
+              onPress={() => {
+                setEditingDevice(item);
+                setEditName(item.name);
+                setEditRoomId(item.roomId);
+                setShowEditModal(true);
+              }}
+            >
+              <Edit2 size={18} color={theme.text} />
+            </TouchableOpacity>
+            <TouchableOpacity className="p-2" onPress={() => handleDeleteDevice(item.id, item.name)}>
+              <Trash2 size={18} color={theme.accent.danger} />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     );
@@ -286,7 +277,9 @@ export default function SmartHomeDashboard() {
         >
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>Smart Home</Text>
+        <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
+          Smart Home
+        </Text>
         {isAdmin ? (
           <TouchableOpacity
             onPress={() => {
@@ -305,83 +298,95 @@ export default function SmartHomeDashboard() {
 
       {/* Status Banner */}
       {haStatus && (
-        <View className="mx-6 mb-6 p-4 rounded-20 flex-row items-center justify-between" 
-              style={{ backgroundColor: haStatus.connected ? theme.accent.cyan + '20' : theme.accent.danger + '20' }}>
-            <View className="flex-row items-center gap-3">
-                {haStatus.connected ? <Wifi size={20} color={theme.accent.cyan} /> : <WifiOff size={20} color={theme.accent.danger} />}
-                <View>
-                    <Text className="font-manrope-bold" style={{ color: haStatus.connected ? theme.accent.cyan : theme.accent.danger }}>
-                        {haStatus.connected ? "Connected" : "Disconnected"}
-                    </Text>
-                    {haStatus.url && (
-                        <Text className="text-xs" style={{ color: theme.textSecondary }}>{haStatus.url}</Text>
-                    )}
-                </View>
-            </View>
-             {isAdmin && (
-                <TouchableOpacity onPress={() => router.push("/settings")}>
-                    <Settings size={20} color={theme.text} />
-                </TouchableOpacity>
+        <View
+          className="mx-6 mb-6 p-4 rounded-20 flex-row items-center justify-between"
+          style={{ backgroundColor: haStatus.connected ? `${theme.accent.cyan}20` : `${theme.accent.danger}20` }}
+        >
+          <View className="flex-row items-center gap-3">
+            {haStatus.connected ? (
+              <Wifi size={20} color={theme.accent.cyan} />
+            ) : (
+              <WifiOff size={20} color={theme.accent.danger} />
             )}
+            <View>
+              <Text
+                className="font-manrope-bold"
+                style={{ color: haStatus.connected ? theme.accent.cyan : theme.accent.danger }}
+              >
+                {haStatus.connected ? "Connected" : "Disconnected"}
+              </Text>
+              {haStatus.url && (
+                <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                  {haStatus.url}
+                </Text>
+              )}
+            </View>
+          </View>
+          {isAdmin && (
+            <TouchableOpacity onPress={() => router.push("/settings")}>
+              <Settings size={20} color={theme.text} />
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
       {/* Content */}
       <View className="flex-1 px-6">
         <View className="flex-row justify-between items-center mb-4">
-             <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>All Devices</Text>
-             <TouchableOpacity onPress={fetchDevicesAndStatus} disabled={loading}>
-                 {loading ? <ActivityIndicator size="small" color={theme.text} /> : <RefreshCw size={20} color={theme.text} />}
-             </TouchableOpacity>
+          <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
+            All Devices
+          </Text>
+          <TouchableOpacity onPress={fetchDevicesAndStatus} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator size="small" color={theme.text} />
+            ) : (
+              <RefreshCw size={20} color={theme.text} />
+            )}
+          </TouchableOpacity>
         </View>
 
         {devices.length === 0 ? (
           <View className="items-center mt-10">
             <Text style={{ color: theme.textSecondary }}>No devices added yet</Text>
-             {isAdmin && (
-                <>
-                    {!haStatus?.connected ? (
-                        <Button 
-                            title="Connect Home Assistant" 
-                            onPress={() => router.push("/settings")} 
-                            variant="primary"
-                            style={{ marginTop: 20 }}
-                        />
-                    ) : (
-                        <Button 
-                            title="Add Device" 
-                            onPress={() => { setShowAddModal(true); handleDiscover(); }} 
-                            variant="primary"
-                            style={{ marginTop: 20 }}
-                        />
-                    )}
-                </>
-             )}
+            {isAdmin &&
+              (!haStatus?.connected ? (
+                <Button
+                  title="Connect Home Assistant"
+                  onPress={() => router.push("/settings")}
+                  variant="primary"
+                  style={{ marginTop: 20 }}
+                />
+              ) : (
+                <Button
+                  title="Add Device"
+                  onPress={() => {
+                    setShowAddModal(true);
+                    handleDiscover();
+                  }}
+                  variant="primary"
+                  style={{ marginTop: 20 }}
+                />
+              ))}
           </View>
         ) : (
           <FlatList
             data={devices}
             renderItem={renderDevice}
-            keyExtractor={item => item.id.toString()}
+            keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={{ paddingBottom: 40 }}
           />
         )}
       </View>
 
       {/* Add Device Modal */}
-      <Modal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        title="Add Device"
-        height="full"
-      >
+      <Modal visible={showAddModal} onClose={() => setShowAddModal(false)} title="Add Device" height="full">
         <View className="flex-1">
           {selectedEntity ? (
             <View>
               <TouchableOpacity onPress={() => setSelectedEntity(null)} className="mb-4">
                 <Text style={{ color: theme.accent.cyan }}>Back to list</Text>
               </TouchableOpacity>
-              
+
               <Input
                 label="Device Name"
                 value={newDeviceName}
@@ -389,29 +394,35 @@ export default function SmartHomeDashboard() {
                 placeholder="e.g. Living Room Light"
               />
 
-              <Text className="mb-2 font-manrope-medium" style={{ color: theme.text }}>Assign Room (Optional)</Text>
+              <Text className="mb-2 font-manrope-medium" style={{ color: theme.text }}>
+                Assign Room (Optional)
+              </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
                 <TouchableOpacity
-                    className={`px-4 py-2 rounded-full mr-2 ${selectedRoomId === undefined ? 'bg-black' : 'bg-gray-200'}`}
-                    style={{ backgroundColor: selectedRoomId === undefined ? theme.text : theme.surface }}
-                    onPress={() => setSelectedRoomId(undefined)}
+                  className={`px-4 py-2 rounded-full mr-2 ${selectedRoomId === undefined ? "bg-black" : "bg-gray-200"}`}
+                  style={{ backgroundColor: selectedRoomId === undefined ? theme.text : theme.surface }}
+                  onPress={() => setSelectedRoomId(undefined)}
                 >
-                    <Text style={{ color: selectedRoomId === undefined ? theme.background : theme.text }}>None</Text>
+                  <Text style={{ color: selectedRoomId === undefined ? theme.background : theme.text }}>None</Text>
                 </TouchableOpacity>
-                {rooms.map(room => (
-                    <TouchableOpacity
-                        key={room.id}
-                        className={`px-4 py-2 rounded-full mr-2`}
-                        style={{ backgroundColor: selectedRoomId === room.id ? theme.text : theme.surface }}
-                        onPress={() => setSelectedRoomId(room.id)}
-                    >
-                        <Text style={{ color: selectedRoomId === room.id ? theme.background : theme.text }}>{room.name}</Text>
-                    </TouchableOpacity>
+                {rooms.map((room) => (
+                  <TouchableOpacity
+                    key={room.id}
+                    className={`px-4 py-2 rounded-full mr-2`}
+                    style={{ backgroundColor: selectedRoomId === room.id ? theme.text : theme.surface }}
+                    onPress={() => setSelectedRoomId(room.id)}
+                  >
+                    <Text style={{ color: selectedRoomId === room.id ? theme.background : theme.text }}>
+                      {room.name}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
 
-              <Text className="mb-2" style={{ color: theme.textSecondary }}>Entity: {selectedEntity}</Text>
-              
+              <Text className="mb-2" style={{ color: theme.textSecondary }}>
+                Entity: {selectedEntity}
+              </Text>
+
               <Button
                 title={t.common.add || "Add"}
                 onPress={handleAddDevice}
@@ -421,17 +432,19 @@ export default function SmartHomeDashboard() {
             </View>
           ) : (
             <>
-              <Text className="mb-4" style={{ color: theme.textSecondary }}>Select a device to add</Text>
+              <Text className="mb-4" style={{ color: theme.textSecondary }}>
+                Select a device to add
+              </Text>
               {discovering ? (
                 <ActivityIndicator color={theme.accent.cyan} />
               ) : discoveredDevices.length === 0 ? (
-                  <View className="items-center py-5">
-                      <Text style={{ color: theme.textSecondary }}>No new devices found</Text>
-                  </View>
+                <View className="items-center py-5">
+                  <Text style={{ color: theme.textSecondary }}>No new devices found</Text>
+                </View>
               ) : (
                 <FlatList
                   data={discoveredDevices}
-                  keyExtractor={item => item.entityId}
+                  keyExtractor={(item) => item.entityId}
                   renderItem={({ item }) => (
                     <TouchableOpacity
                       className="py-3 border-b"
@@ -441,8 +454,12 @@ export default function SmartHomeDashboard() {
                         setNewDeviceName(item.attributes.friendlyName || item.entityId);
                       }}
                     >
-                      <Text className="font-bold" style={{ color: theme.text }}>{item.attributes.friendlyName || item.entityId}</Text>
-                      <Text className="text-xs" style={{ color: theme.textSecondary }}>{item.entityId}</Text>
+                      <Text className="font-bold" style={{ color: theme.text }}>
+                        {item.attributes.friendlyName || item.entityId}
+                      </Text>
+                      <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                        {item.entityId}
+                      </Text>
                     </TouchableOpacity>
                   )}
                 />
@@ -453,45 +470,34 @@ export default function SmartHomeDashboard() {
       </Modal>
 
       {/* Edit Device Modal */}
-      <Modal
-        visible={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        title="Edit Device"
-      >
+      <Modal visible={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Device">
         <View>
-            <Input
-                label="Device Name"
-                value={editName}
-                onChangeText={setEditName}
-            />
+          <Input label="Device Name" value={editName} onChangeText={setEditName} />
 
-            <Text className="mb-2 font-manrope-medium" style={{ color: theme.text }}>Room</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
-                <TouchableOpacity
-                    className={`px-4 py-2 rounded-full mr-2`}
-                    style={{ backgroundColor: editRoomId === undefined ? theme.text : theme.surface }}
-                    onPress={() => setEditRoomId(undefined)}
-                >
-                    <Text style={{ color: editRoomId === undefined ? theme.background : theme.text }}>None</Text>
-                </TouchableOpacity>
-                {rooms.map(room => (
-                    <TouchableOpacity
-                        key={room.id}
-                        className={`px-4 py-2 rounded-full mr-2`}
-                        style={{ backgroundColor: editRoomId === room.id ? theme.text : theme.surface }}
-                        onPress={() => setEditRoomId(room.id)}
-                    >
-                        <Text style={{ color: editRoomId === room.id ? theme.background : theme.text }}>{room.name}</Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
+          <Text className="mb-2 font-manrope-medium" style={{ color: theme.text }}>
+            Room
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
+            <TouchableOpacity
+              className={`px-4 py-2 rounded-full mr-2`}
+              style={{ backgroundColor: editRoomId === undefined ? theme.text : theme.surface }}
+              onPress={() => setEditRoomId(undefined)}
+            >
+              <Text style={{ color: editRoomId === undefined ? theme.background : theme.text }}>None</Text>
+            </TouchableOpacity>
+            {rooms.map((room) => (
+              <TouchableOpacity
+                key={room.id}
+                className={`px-4 py-2 rounded-full mr-2`}
+                style={{ backgroundColor: editRoomId === room.id ? theme.text : theme.surface }}
+                onPress={() => setEditRoomId(room.id)}
+              >
+                <Text style={{ color: editRoomId === room.id ? theme.background : theme.text }}>{room.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
-            <Button
-                title={t.common.save || "Save"}
-                onPress={handleUpdateDevice}
-                loading={savingEdit}
-                variant="primary"
-            />
+          <Button title={t.common.save || "Save"} onPress={handleUpdateDevice} loading={savingEdit} variant="primary" />
         </View>
       </Modal>
     </View>

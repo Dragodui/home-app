@@ -1,6 +1,6 @@
 import { View } from "react-native";
-import { useTheme } from "@/stores/themeStore";
 import Skeleton from "@/components/ui/skeleton";
+import { useTheme } from "@/stores/themeStore";
 
 export default function MembersSkeleton() {
   const { theme } = useTheme();
@@ -8,11 +8,7 @@ export default function MembersSkeleton() {
   return (
     <View className="gap-3">
       {[1, 2, 3, 4].map((i) => (
-        <View
-          key={i}
-          className="flex-row items-center p-4 rounded-[20px]"
-          style={{ backgroundColor: theme.surface }}
-        >
+        <View key={i} className="flex-row items-center p-4 rounded-[20px]" style={{ backgroundColor: theme.surface }}>
           {/* Avatar */}
           <Skeleton width={48} height={48} borderRadius={24} style={{ marginRight: 14 }} />
 

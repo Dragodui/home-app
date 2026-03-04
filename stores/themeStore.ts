@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { darkTheme, lightTheme, accentColors, statusColors, userColors, categoryColors } from "@/constants/colors";
+import { Appearance } from "react-native";
+import { create } from "zustand";
+import { accentColors, categoryColors, darkTheme, lightTheme, statusColors, userColors } from "@/constants/colors";
 
 type ThemeMode = "light" | "dark" | "system";
 

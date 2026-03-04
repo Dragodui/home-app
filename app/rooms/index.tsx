@@ -1,20 +1,15 @@
-import { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Plus, Home, Trash2, DoorOpen } from "lucide-react-native";
-import { useHome } from "@/stores/homeStore";
-import { useTheme } from "@/stores/themeStore";
-import { useI18n, interpolate } from "@/stores/i18nStore";
-import Modal from "@/components/ui/modal";
-import Input from "@/components/ui/input";
-import Button from "@/components/ui/button";
+import { ArrowLeft, DoorOpen, Home, Plus, Trash2 } from "lucide-react-native";
+import { useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/components/ui/alert";
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import Modal from "@/components/ui/modal";
+import { useHome } from "@/stores/homeStore";
+import { interpolate, useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
 export default function RoomsScreen() {
   const insets = useSafeAreaInsets();
@@ -132,9 +127,7 @@ export default function RoomsScreen() {
               className="text-sm font-manrope text-center px-5"
               style={{ color: theme.textSecondary, lineHeight: 22 }}
             >
-              {isAdmin
-                ? t.rooms.noRoomsAdminHint
-                : t.rooms.noRoomsMemberHint}
+              {isAdmin ? t.rooms.noRoomsAdminHint : t.rooms.noRoomsMemberHint}
             </Text>
           </View>
         ) : (
@@ -149,14 +142,17 @@ export default function RoomsScreen() {
               ];
               const colorIndex = index % ROOM_COLORS.length;
               const backgroundColor = ROOM_COLORS[colorIndex];
-              const finalTextColor = (backgroundColor === theme.surface || backgroundColor === theme.border) ? theme.text : "#1C1C1E";
+              const finalTextColor =
+                backgroundColor === theme.surface || backgroundColor === theme.border ? theme.text : "#1C1C1E";
 
               return (
                 <TouchableOpacity
                   key={room.id}
                   className="rounded-28 p-6 relative"
                   style={{ backgroundColor, width: "47%", minHeight: 160 }}
-                  onPress={() => router.push({ pathname: "/rooms/[id]", params: { id: String(room.id), name: room.name } })}
+                  onPress={() =>
+                    router.push({ pathname: "/rooms/[id]", params: { id: String(room.id), name: room.name } })
+                  }
                 >
                   <View className="w-14 h-14 rounded-20 justify-center items-center mb-4 bg-black/10">
                     <Home size={28} color={finalTextColor} />
@@ -184,12 +180,7 @@ export default function RoomsScreen() {
       </ScrollView>
 
       {/* Create Room Modal */}
-      <Modal
-        visible={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        title={t.rooms.newRoom}
-        height="full"
-      >
+      <Modal visible={showCreateModal} onClose={() => setShowCreateModal(false)} title={t.rooms.newRoom} height="full">
         <View className="flex-1">
           <Input
             label={t.rooms.roomName}

@@ -1,31 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  Image,
-} from "react-native";
 import { useRouter } from "expo-router";
+import { ArrowRight, BarChart2, Bell, Home as HomeIcon, User, Zap } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Zap,
-  ArrowRight,
-  Home as HomeIcon,
-  BarChart2,
-  User,
-  Bell,
-} from "lucide-react-native";
+import { HomeSkeleton } from "@/components/skeletons";
+import Card from "@/components/ui/card";
+import { billApi, notificationApi, pollApi, taskApi } from "@/lib/api";
+import type { Poll, TaskAssignment } from "@/lib/types";
+import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
+import { interpolate, useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
-import { useI18n, interpolate } from "@/stores/i18nStore";
-import { taskApi, pollApi, billApi, notificationApi } from "@/lib/api";
-import { TaskAssignment, Poll } from "@/lib/types";
-import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import Card from "@/components/ui/card";
-import { HomeSkeleton } from "@/components/skeletons";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -35,9 +21,7 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
 
-  const [nextAssignment, setNextAssignment] = useState<TaskAssignment | null>(
-    null
-  );
+  const [nextAssignment, setNextAssignment] = useState<TaskAssignment | null>(null);
   const [polls, setPolls] = useState<Poll[]>([]);
   const [monthlySpend, setMonthlySpend] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,55 +35,54 @@ export default function HomeScreen() {
     return t.home.goodEvening;
   };
 
+  const loadDashboardData = useCallback(
+    async (isRefresh = false) => {
+      if (!home || !user) {
+        if (!homeLoading) {
+          setIsLoading(false);
+        }
+        return;
+      }
 
-  const loadDashboardData = useCallback(async (isRefresh = false) => {
-    if (!home || !user) {
-      if (!homeLoading) {
+      if (!isRefresh) {
+        setIsLoading(true);
+      }
+
+      try {
+        const [assignmentData, pollsData, billsData, userNotifs, homeNotifs] = await Promise.all([
+          taskApi.getClosestAssignment(home.id, user.id).catch(() => null),
+          pollApi.getByHomeId(home.id).catch(() => []),
+          billApi.getByHomeId(home.id).catch(() => []),
+          notificationApi.getUserNotifications().catch(() => []),
+          notificationApi.getHomeNotifications(home.id).catch(() => []),
+        ]);
+
+        setNextAssignment(assignmentData);
+        setPolls(pollsData.filter((p) => p.status === "open") || []);
+
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const total = (billsData || []).reduce((sum, bill) => {
+          const billDate = new Date(bill.createdAt);
+          if (billDate.getMonth() === currentMonth && billDate.getFullYear() === currentYear) {
+            return sum + bill.totalAmount;
+          }
+          return sum;
+        }, 0);
+        setMonthlySpend(total);
+
+        const allNotifs = [...(userNotifs || []), ...(homeNotifs || [])];
+        setUnreadCount(allNotifs.filter((n) => !n.read).length);
+      } catch (error) {
+        console.error("Error loading dashboard:", error);
+      } finally {
         setIsLoading(false);
       }
-      return;
-    }
-
-    if (!isRefresh) {
-      setIsLoading(true);
-    }
-
-    try {
-      const [assignmentData, pollsData, billsData, userNotifs, homeNotifs] = await Promise.all([
-        taskApi.getClosestAssignment(home.id, user.id).catch(() => null),
-        pollApi.getByHomeId(home.id).catch(() => []),
-        billApi.getByHomeId(home.id).catch(() => []),
-        notificationApi.getUserNotifications().catch(() => []),
-        notificationApi.getHomeNotifications(home.id).catch(() => []),
-      ]);
-
-      setNextAssignment(assignmentData);
-      setPolls(pollsData.filter((p) => p.status === "open") || []);
-
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-
-      const total = (billsData || []).reduce((sum, bill) => {
-        const billDate = new Date(bill.createdAt);
-        if (
-          billDate.getMonth() === currentMonth &&
-          billDate.getFullYear() === currentYear
-        ) {
-          return sum + bill.totalAmount;
-        }
-        return sum;
-      }, 0);
-      setMonthlySpend(total);
-
-      const allNotifs = [...(userNotifs || []), ...(homeNotifs || [])];
-      setUnreadCount(allNotifs.filter((n) => !n.read).length);
-    } catch (error) {
-      console.error("Error loading dashboard:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [home, user, homeLoading]);
+    },
+    [home, user, homeLoading],
+  );
 
   useEffect(() => {
     if (authLoading) return;
@@ -110,9 +93,11 @@ export default function HomeScreen() {
     }
 
     loadDashboardData(false);
-  }, [authLoading, isAuthenticated, home, user, loadDashboardData, router]);
+  }, [authLoading, isAuthenticated, loadDashboardData, router]);
 
-  useRealtimeRefresh(["TASK", "POLL", "BILL", "BILL_CATEGORY", "NOTIFICATION", "HOME_NOTIFICATION"], () => loadDashboardData(true));
+  useRealtimeRefresh(["TASK", "POLL", "BILL", "BILL_CATEGORY", "NOTIFICATION", "HOME_NOTIFICATION"], () =>
+    loadDashboardData(true),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -129,7 +114,7 @@ export default function HomeScreen() {
     }
 
     loadDashboardData();
-  }, [authLoading, isAuthenticated, home, user, loadDashboardData, router]);
+  }, [authLoading, isAuthenticated, loadDashboardData, router]);
 
   useRealtimeRefresh(["TASK", "POLL", "BILL", "BILL_CATEGORY", "NOTIFICATION", "HOME_NOTIFICATION"], loadDashboardData);
 
@@ -147,16 +132,10 @@ export default function HomeScreen() {
         <View className="w-24 h-24 rounded-48 justify-center items-center mb-6 bg-accent-yellow">
           <HomeIcon size={48} color="#1C1C1E" />
         </View>
-        <Text
-          className="text-2xl font-manrope-bold mb-3"
-          style={{ color: theme.text }}
-        >
+        <Text className="text-2xl font-manrope-bold mb-3" style={{ color: theme.text }}>
           {t.home.noHome}
         </Text>
-        <Text
-          className="text-base font-manrope text-center mb-8 leading-6"
-          style={{ color: theme.textSecondary }}
-        >
+        <Text className="text-base font-manrope text-center mb-8 leading-6" style={{ color: theme.textSecondary }}>
           {t.home.noHomeDescription}
         </Text>
         <TouchableOpacity
@@ -165,10 +144,7 @@ export default function HomeScreen() {
           onPress={() => router.push("/(tabs)/profile")}
           activeOpacity={0.8}
         >
-          <Text
-            className="text-base font-manrope-bold"
-            style={{ color: theme.background }}
-          >
+          <Text className="text-base font-manrope-bold" style={{ color: theme.background }}>
             {t.auth.getStarted}
           </Text>
         </TouchableOpacity>
@@ -205,28 +181,16 @@ export default function HomeScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: insets.top + 24 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.text}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View className="flex-row justify-between items-center mb-6">
           <View className="flex-1">
-            <Text
-              className="text-lg font-manrope italic mb-1"
-              style={{ color: theme.textSecondary }}
-            >
+            <Text className="text-lg font-manrope italic mb-1" style={{ color: theme.textSecondary }}>
               {getGreeting()}
             </Text>
-            <Text
-              className="text-4xl font-manrope-bold"
-              style={{ color: theme.text }}
-            >
+            <Text className="text-4xl font-manrope-bold" style={{ color: theme.text }}>
               {user?.name?.split(" ")[0] || "there"}
             </Text>
           </View>
@@ -249,10 +213,7 @@ export default function HomeScreen() {
                 </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/profile")}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.8}>
               <View
                 className="w-14 h-14 rounded-28 border-2 overflow-hidden justify-center items-center"
                 style={{ borderColor: theme.accent.purple }}
@@ -281,9 +242,7 @@ export default function HomeScreen() {
           className="mb-4"
         >
           <View className="flex-row justify-between items-start mb-4">
-            <Text className="text-xs font-manrope-bold tracking-widest text-black/40">
-              {t.home.upNext}
-            </Text>
+            <Text className="text-xs font-manrope-bold tracking-widest text-black/40">{t.home.upNext}</Text>
             <View className="w-12 h-12 rounded-24 bg-black/[0.08] justify-center items-center">
               <Zap size={24} color="#1C1C1E" fill="#1C1C1E" />
             </View>
@@ -309,9 +268,7 @@ export default function HomeScreen() {
               </Text>
               <View className="flex-row justify-between items-center">
                 <View className="bg-black/[0.08] px-4 py-3 rounded-14">
-                  <Text className="text-sm font-manrope-semibold text-primary">
-                    {t.home.noPendingTasks}
-                  </Text>
+                  <Text className="text-sm font-manrope-semibold text-primary">{t.home.noPendingTasks}</Text>
                 </View>
                 <ArrowRight size={24} color="#1C1C1E" />
               </View>
@@ -336,16 +293,10 @@ export default function HomeScreen() {
               <HomeIcon size={22} color={theme.text} />
             </View>
             <View className="flex-1 justify-end">
-              <Text
-                className="text-xl font-manrope-bold leading-[26px]"
-                style={{ color: theme.text }}
-              >
+              <Text className="text-xl font-manrope-bold leading-[26px]" style={{ color: theme.text }}>
                 {t.home.myRooms}
               </Text>
-              <Text
-                className="text-sm font-manrope mt-1"
-                style={{ color: theme.textSecondary }}
-              >
+              <Text className="text-sm font-manrope mt-1" style={{ color: theme.textSecondary }}>
                 {interpolate(t.home.spaces, { count: rooms.length })}
               </Text>
             </View>
@@ -363,9 +314,7 @@ export default function HomeScreen() {
               <BarChart2 size={22} color="#1C1C1E" />
             </View>
             <View className="flex-1 justify-end">
-              <Text className="text-xl font-manrope-bold text-primary leading-[26px]">
-                {t.home.activePolls}
-              </Text>
+              <Text className="text-xl font-manrope-bold text-primary leading-[26px]">{t.home.activePolls}</Text>
               <Text className="text-sm font-manrope text-black/50 mt-1">
                 {interpolate(t.home.pending, { count: polls.length })}
               </Text>
@@ -375,28 +324,28 @@ export default function HomeScreen() {
 
         {/* Smart Home Card */}
         <Card
-            variant="surface"
-            borderRadius={28}
-            padding={20}
-            onPress={() => router.push("/smarthome")}
-            className="mb-4"
+          variant="surface"
+          borderRadius={28}
+          padding={20}
+          onPress={() => router.push("/smarthome")}
+          className="mb-4"
         >
-            <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-4">
-                    <View className="w-11 h-11 rounded-22 bg-accent-cyan justify-center items-center">
-                         <Zap size={22} color="#FFFFFF" />
-                    </View>
-                    <View>
-                        <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
-                            Smart Home
-                        </Text>
-                        <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                            Manage devices
-                        </Text>
-                    </View>
-                </View>
-                <ArrowRight size={20} color={theme.text} />
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-4">
+              <View className="w-11 h-11 rounded-22 bg-accent-cyan justify-center items-center">
+                <Zap size={22} color="#FFFFFF" />
+              </View>
+              <View>
+                <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
+                  Smart Home
+                </Text>
+                <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
+                  Manage devices
+                </Text>
+              </View>
             </View>
+            <ArrowRight size={20} color={theme.text} />
+          </View>
         </Card>
 
         {/* Budget Card */}
@@ -408,18 +357,12 @@ export default function HomeScreen() {
           className="mb-6"
         >
           <View className="flex-row justify-between items-start mb-2">
-            <Text className="text-xs font-manrope-semibold text-muted tracking-widest">
-              {t.home.monthlySpend}
-            </Text>
+            <Text className="text-xs font-manrope-semibold text-muted tracking-widest">{t.home.monthlySpend}</Text>
           </View>
-          <Text className="text-5xl font-manrope-extrabold text-primary mb-5">
-            ${monthlySpend.toFixed(0)}
-          </Text>
+          <Text className="text-5xl font-manrope-extrabold text-primary mb-5">${monthlySpend.toFixed(0)}</Text>
           <View className="flex-row justify-between items-center">
             <View className="bg-accent-pink/15 px-4 py-3 rounded-14">
-              <Text className="text-[13px] font-manrope-bold text-accent-pink">
-                {t.home.totalExpenses}
-              </Text>
+              <Text className="text-[13px] font-manrope-bold text-accent-pink">{t.home.totalExpenses}</Text>
             </View>
             <ArrowRight size={24} color="#1C1C1E" />
           </View>

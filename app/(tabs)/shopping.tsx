@@ -1,29 +1,47 @@
-import { useState, useEffect, useCallback } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  ArrowLeft, Check, Plus, Search, Trash2,
-  Utensils, Candy, Cake, Apple, ShoppingCart, Coffee,
-  Wine, Milk, Beef, Fish, Carrot, Cookie,
-  Pill, Baby, Dog, Shirt, Sparkles, Scissors,
-  Home, Lightbulb, Wrench, Car, Book, Gift
+  Apple,
+  ArrowLeft,
+  Baby,
+  Beef,
+  Book,
+  Cake,
+  Candy,
+  Car,
+  Carrot,
+  Check,
+  Coffee,
+  Cookie,
+  Dog,
+  Fish,
+  Gift,
+  Home,
+  Lightbulb,
+  Milk,
+  Pill,
+  Plus,
+  Scissors,
+  Search,
+  Shirt,
+  ShoppingCart,
+  Sparkles,
+  Trash2,
+  Utensils,
+  Wine,
+  Wrench,
 } from "lucide-react-native";
-import { useHome } from "@/stores/homeStore";
-import { useTheme } from "@/stores/themeStore";
-import { useI18n } from "@/stores/i18nStore";
-import { shoppingApi } from "@/lib/api";
-import { ShoppingCategory, ShoppingItem } from "@/lib/types";
-import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import Modal from "@/components/ui/modal";
-import Input from "@/components/ui/input";
-import Button from "@/components/ui/button";
+import { useCallback, useEffect, useState } from "react";
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ShoppingSkeleton } from "@/components/skeletons";
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import Modal from "@/components/ui/modal";
+import { shoppingApi } from "@/lib/api";
+import type { ShoppingCategory, ShoppingItem } from "@/lib/types";
+import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useHome } from "@/stores/homeStore";
+import { useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
 // Category colors matching PDF
 const CATEGORY_COLORS = ["#D8D4FC", "#FBEB9E", "#FF7476", "#A8E6CF", "#7DD3E8", "#F5A3D3"];
@@ -58,38 +76,74 @@ const ICON_OPTIONS = [
 
 const getIconComponent = (iconId: string, size: number = 24, color: string = "#1C1C1E") => {
   switch (iconId) {
-    case "utensils": return <Utensils size={size} color={color} />;
-    case "shopping-cart": return <ShoppingCart size={size} color={color} />;
-    case "coffee": return <Coffee size={size} color={color} />;
-    case "wine": return <Wine size={size} color={color} />;
-    case "milk": return <Milk size={size} color={color} />;
-    case "beef": return <Beef size={size} color={color} />;
-    case "fish": return <Fish size={size} color={color} />;
-    case "carrot": return <Carrot size={size} color={color} />;
-    case "apple": return <Apple size={size} color={color} />;
-    case "candy": return <Candy size={size} color={color} />;
-    case "cake": return <Cake size={size} color={color} />;
-    case "cookie": return <Cookie size={size} color={color} />;
-    case "pill": return <Pill size={size} color={color} />;
-    case "baby": return <Baby size={size} color={color} />;
-    case "dog": return <Dog size={size} color={color} />;
-    case "shirt": return <Shirt size={size} color={color} />;
-    case "sparkles": return <Sparkles size={size} color={color} />;
-    case "scissors": return <Scissors size={size} color={color} />;
-    case "home": return <Home size={size} color={color} />;
-    case "lightbulb": return <Lightbulb size={size} color={color} />;
-    case "wrench": return <Wrench size={size} color={color} />;
-    case "car": return <Car size={size} color={color} />;
-    case "book": return <Book size={size} color={color} />;
-    case "gift": return <Gift size={size} color={color} />;
-    default: return <Utensils size={size} color={color} />;
+    case "utensils":
+      return <Utensils size={size} color={color} />;
+    case "shopping-cart":
+      return <ShoppingCart size={size} color={color} />;
+    case "coffee":
+      return <Coffee size={size} color={color} />;
+    case "wine":
+      return <Wine size={size} color={color} />;
+    case "milk":
+      return <Milk size={size} color={color} />;
+    case "beef":
+      return <Beef size={size} color={color} />;
+    case "fish":
+      return <Fish size={size} color={color} />;
+    case "carrot":
+      return <Carrot size={size} color={color} />;
+    case "apple":
+      return <Apple size={size} color={color} />;
+    case "candy":
+      return <Candy size={size} color={color} />;
+    case "cake":
+      return <Cake size={size} color={color} />;
+    case "cookie":
+      return <Cookie size={size} color={color} />;
+    case "pill":
+      return <Pill size={size} color={color} />;
+    case "baby":
+      return <Baby size={size} color={color} />;
+    case "dog":
+      return <Dog size={size} color={color} />;
+    case "shirt":
+      return <Shirt size={size} color={color} />;
+    case "sparkles":
+      return <Sparkles size={size} color={color} />;
+    case "scissors":
+      return <Scissors size={size} color={color} />;
+    case "home":
+      return <Home size={size} color={color} />;
+    case "lightbulb":
+      return <Lightbulb size={size} color={color} />;
+    case "wrench":
+      return <Wrench size={size} color={color} />;
+    case "car":
+      return <Car size={size} color={color} />;
+    case "book":
+      return <Book size={size} color={color} />;
+    case "gift":
+      return <Gift size={size} color={color} />;
+    default:
+      return <Utensils size={size} color={color} />;
   }
 };
 
 // Color options for creating new lists
 const COLOR_OPTIONS = [
-  "#FF7476", "#FF9F7A", "#FBEB9E", "#A8E6CF", "#7DD3E8", "#D8D4FC", "#F5A3D3",
-  "#22C55E", "#F472B6", "#C4B5FD", "#94A3B8", "#FDE68A", "#6EE7B7",
+  "#FF7476",
+  "#FF9F7A",
+  "#FBEB9E",
+  "#A8E6CF",
+  "#7DD3E8",
+  "#D8D4FC",
+  "#F5A3D3",
+  "#22C55E",
+  "#F472B6",
+  "#C4B5FD",
+  "#94A3B8",
+  "#FDE68A",
+  "#6EE7B7",
 ];
 
 export default function ShoppingScreen() {
@@ -210,7 +264,7 @@ export default function ShoppingScreen() {
         const updated = { ...prev };
         for (const catId in updated) {
           updated[catId] = updated[catId].map((item) =>
-            item.id === itemId ? { ...item, isBought: !item.isBought } : item
+            item.id === itemId ? { ...item, isBought: !item.isBought } : item,
           );
         }
         return updated;
@@ -288,10 +342,7 @@ export default function ShoppingScreen() {
             >
               <ArrowLeft size={22} color={theme.text} />
             </TouchableOpacity>
-            <Text
-              className="flex-1 text-2xl font-manrope-bold"
-              style={{ color: theme.text }}
-            >
+            <Text className="flex-1 text-2xl font-manrope-bold" style={{ color: theme.text }}>
               {activeCategory.name}
             </Text>
             <TouchableOpacity
@@ -337,10 +388,7 @@ export default function ShoppingScreen() {
                   {item.name}
                 </Text>
                 {item.isBought && (
-                  <TouchableOpacity
-                    className="p-2"
-                    onPress={() => handleDeleteItem(item.id)}
-                  >
+                  <TouchableOpacity className="p-2" onPress={() => handleDeleteItem(item.id)}>
                     <Trash2 size={18} color={theme.textSecondary} />
                   </TouchableOpacity>
                 )}
@@ -360,12 +408,7 @@ export default function ShoppingScreen() {
         </TouchableOpacity>
 
         {/* Add Item Modal */}
-        <Modal
-          visible={showItemModal}
-          onClose={() => setShowItemModal(false)}
-          title={t.shopping.addItem}
-          height="full"
-        >
+        <Modal visible={showItemModal} onClose={() => setShowItemModal(false)} title={t.shopping.addItem} height="full">
           <View className="flex-1">
             <Input
               label={t.shopping.itemName}
@@ -394,24 +437,16 @@ export default function ShoppingScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: insets.top + 24 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View className="flex-row justify-between items-start mb-6">
           <View>
-            <Text
-              className="text-4xl font-manrope-bold mb-1"
-              style={{ color: theme.text }}
-            >
+            <Text className="text-4xl font-manrope-bold mb-1" style={{ color: theme.text }}>
               {t.shopping.title}
             </Text>
-            <Text
-              className="text-base font-manrope"
-              style={{ color: theme.textSecondary }}
-            >
+            <Text className="text-base font-manrope" style={{ color: theme.textSecondary }}>
               {t.shopping.myLists}
             </Text>
           </View>
@@ -443,20 +478,14 @@ export default function ShoppingScreen() {
                   {getCategoryIcon(category)}
                 </View>
                 <View className="flex-1 justify-end">
-                  <Text className="text-xl font-manrope-bold text-[#1C1C1E] mb-1">
-                    {category.name}
-                  </Text>
+                  <Text className="text-xl font-manrope-bold text-[#1C1C1E] mb-1">{category.name}</Text>
                   <Text className="text-[13px] font-manrope-medium text-black/50">
                     {itemCount} {t.common.items}
                   </Text>
                 </View>
                 <View className="absolute bottom-[18px] right-[18px]">
                   <View className="w-8 h-8 rounded-full bg-black/10 justify-center items-center">
-                    <ArrowLeft
-                      size={16}
-                      color="rgba(0,0,0,0.3)"
-                      style={{ transform: [{ rotate: "180deg" }] }}
-                    />
+                    <ArrowLeft size={16} color="rgba(0,0,0,0.3)" style={{ transform: [{ rotate: "180deg" }] }} />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -494,11 +523,7 @@ export default function ShoppingScreen() {
           </View>
 
           {/* Title Input */}
-          <Input
-            placeholder={t.shopping.title_input}
-            value={newCategoryName}
-            onChangeText={setNewCategoryName}
-          />
+          <Input placeholder={t.shopping.title_input} value={newCategoryName} onChangeText={setNewCategoryName} />
 
           {/* Color Picker */}
           <View className="mb-6 gap-3">
@@ -553,11 +578,7 @@ export default function ShoppingScreen() {
             style={{ backgroundColor: theme.surface }}
             onPress={() => setShowCategoryModal(false)}
           >
-            <ArrowLeft
-              size={24}
-              color={theme.textSecondary}
-              style={{ transform: [{ rotate: "45deg" }] }}
-            />
+            <ArrowLeft size={24} color={theme.textSecondary} style={{ transform: [{ rotate: "45deg" }] }} />
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-1 h-14 rounded-full justify-center items-center"
@@ -571,16 +592,8 @@ export default function ShoppingScreen() {
       </Modal>
 
       {/* Delete Category Confirmation Modal */}
-      <Modal
-        visible={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        title={t.common.delete}
-        height="auto"
-      >
-        <Text
-          className="text-base font-manrope mb-6"
-          style={{ color: theme.textSecondary }}
-        >
+      <Modal visible={showDeleteModal} onClose={() => setShowDeleteModal(false)} title={t.common.delete} height="auto">
+        <Text className="text-base font-manrope mb-6" style={{ color: theme.textSecondary }}>
           {t.common.delete} &quot;{categoryToDelete?.name}&quot;?
         </Text>
         <View className="flex-row gap-3">

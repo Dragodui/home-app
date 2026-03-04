@@ -1,28 +1,16 @@
-import { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import {
-  ArrowLeft,
-  Shield,
-  Key,
-  Mail,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react-native";
-import { useTheme } from "@/stores/themeStore";
-import { useI18n } from "@/stores/i18nStore";
-import { useAuth } from "@/stores/authStore";
-import { authApi } from "@/lib/api";
-import Modal from "@/components/ui/modal";
-import Input from "@/components/ui/input";
-import Button from "@/components/ui/button";
+import { AlertCircle, ArrowLeft, CheckCircle, Key, Mail, Shield } from "lucide-react-native";
+import { useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/components/ui/alert";
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import Modal from "@/components/ui/modal";
+import { authApi } from "@/lib/api";
+import { useAuth } from "@/stores/authStore";
+import { useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
 export default function SecurityScreen() {
   const insets = useSafeAreaInsets();
@@ -58,10 +46,7 @@ export default function SecurityScreen() {
     try {
       await authApi.changePassword(currentPassword, newPassword);
 
-      alert(
-        t.common.success || "Success",
-        t.security.passwordChanged || "Password changed successfully"
-      );
+      alert(t.common.success || "Success", t.security.passwordChanged || "Password changed successfully");
       setShowPasswordModal(false);
       setCurrentPassword("");
       setNewPassword("");
@@ -73,7 +58,7 @@ export default function SecurityScreen() {
       setIsChangingPassword(false);
     }
   };
-  
+
   return (
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
@@ -123,7 +108,7 @@ export default function SecurityScreen() {
               {user?.emailVerified ? (
                 <View
                   className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-20"
-                  style={{ backgroundColor: theme.status.success + "20" }}
+                  style={{ backgroundColor: `${theme.status.success}20` }}
                 >
                   <CheckCircle size={16} color={theme.status.success} />
                   <Text className="text-xs font-manrope-semibold" style={{ color: theme.status.success }}>
@@ -133,7 +118,7 @@ export default function SecurityScreen() {
               ) : (
                 <View
                   className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-20"
-                  style={{ backgroundColor: theme.status.warning + "20" }}
+                  style={{ backgroundColor: `${theme.status.warning}20` }}
                 >
                   <AlertCircle size={16} color={theme.status.warning} />
                   <Text className="text-xs font-manrope-semibold" style={{ color: theme.status.warning }}>

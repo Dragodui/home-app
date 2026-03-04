@@ -1,29 +1,21 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-} from "react-native";
+import { Calendar, Check, Plus, Repeat, Trash, X } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Check, Plus, Calendar, Trash, Repeat, X } from "lucide-react-native";
+import { TasksSkeleton } from "@/components/skeletons";
+import { useAlert } from "@/components/ui/alert";
+import Button from "@/components/ui/button";
 import DatePicker from "@/components/ui/date-picker";
-
+import Input from "@/components/ui/input";
+import Modal from "@/components/ui/modal";
+import { userColors } from "@/constants/colors";
+import { taskApi, taskScheduleApi } from "@/lib/api";
+import type { Task, TaskAssignment } from "@/lib/types";
+import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
+import { interpolate, useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
-import { useI18n, interpolate } from "@/stores/i18nStore";
-import { taskApi, taskScheduleApi } from "@/lib/api";
-import { Task, TaskAssignment } from "@/lib/types";
-import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import { useAlert } from "@/components/ui/alert";
-import Modal from "@/components/ui/modal";
-import Input from "@/components/ui/input";
-import Button from "@/components/ui/button";
-import { userColors } from "@/constants/colors";
-import { TasksSkeleton } from "@/components/skeletons";
 
 type FilterType = "All" | "My" | "By Room";
 type RecurrenceType = "daily" | "weekly" | "monthly";
@@ -244,10 +236,14 @@ export default function TasksScreen() {
 
   const getRecurrenceLabel = (type: string) => {
     switch (type) {
-      case "daily": return t.tasks.schedule.daily;
-      case "weekly": return t.tasks.schedule.weekly;
-      case "monthly": return t.tasks.schedule.monthly;
-      default: return type;
+      case "daily":
+        return t.tasks.schedule.daily;
+      case "weekly":
+        return t.tasks.schedule.weekly;
+      case "monthly":
+        return t.tasks.schedule.monthly;
+      default:
+        return type;
     }
   };
 
@@ -279,7 +275,7 @@ export default function TasksScreen() {
   const getTaskDueText = (task: Task) => {
     if (task.dueDate) {
       const date = new Date(task.dueDate);
-      return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
     }
     return t.tasks.noDueDate;
   };
@@ -293,9 +289,9 @@ export default function TasksScreen() {
       assignment = task.assignments.find((a) => a.status === "completed");
     }
 
-    if (assignment && assignment.completeDate) {
+    if (assignment?.completeDate) {
       const date = new Date(assignment.completeDate);
-      return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
     }
     return "";
   };
@@ -312,11 +308,7 @@ export default function TasksScreen() {
     const hasSchedule = !!task.schedule;
 
     return (
-      <View
-        key={task.id}
-        className="rounded-24 p-5"
-        style={{ backgroundColor: theme.surface }}
-      >
+      <View key={task.id} className="rounded-24 p-5" style={{ backgroundColor: theme.surface }}>
         <View className="flex-row items-center gap-4">
           <TouchableOpacity
             className="flex-1 flex-row items-center gap-4"
@@ -345,7 +337,7 @@ export default function TasksScreen() {
                 {hasSchedule && (
                   <View
                     className="px-2 py-0.5 rounded-full flex-row items-center gap-1"
-                    style={{ backgroundColor: theme.accent.purple + "20" }}
+                    style={{ backgroundColor: `${theme.accent.purple}20` }}
                   >
                     <Repeat size={10} color={theme.accent.purple} />
                     <Text className="text-[10px] font-manrope-bold" style={{ color: theme.accent.purple }}>
@@ -355,14 +347,13 @@ export default function TasksScreen() {
                 )}
               </View>
               <View className="flex-row items-center flex-wrap gap-2">
-                <View
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: userColors[colorIndex] }}
-                />
+                <View className="w-2 h-2 rounded-full" style={{ backgroundColor: userColors[colorIndex] }} />
                 <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
                   {getTaskAssignee(task)}
                 </Text>
-                <Text className="text-[10px]" style={{ color: theme.textSecondary }}>•</Text>
+                <Text className="text-[10px]" style={{ color: theme.textSecondary }}>
+                  •
+                </Text>
                 <View className="flex-row items-center gap-1">
                   <Calendar size={12} color={theme.textSecondary} />
                   <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
@@ -371,7 +362,9 @@ export default function TasksScreen() {
                 </View>
                 {completed && completedDate && (
                   <>
-                    <Text className="text-[10px]" style={{ color: theme.textSecondary }}>•</Text>
+                    <Text className="text-[10px]" style={{ color: theme.textSecondary }}>
+                      •
+                    </Text>
                     <Text className="text-xs font-manrope-semibold" style={{ color: theme.status.success }}>
                       Done: {completedDate}
                     </Text>
@@ -450,11 +443,11 @@ export default function TasksScreen() {
 
         {/* Filter Tabs */}
         <View className="flex-row gap-2.5 mb-6">
-          {([
+          {[
             { key: "All" as FilterType, label: t.tasks.filters.all },
             { key: "My" as FilterType, label: t.tasks.filters.my },
             { key: "By Room" as FilterType, label: t.tasks.filters.byRoom },
-          ]).map((filter) => (
+          ].map((filter) => (
             <TouchableOpacity
               key={filter.key}
               className={`px-5 py-3 rounded-[12px] border ${
@@ -488,9 +481,7 @@ export default function TasksScreen() {
             </Text>
           </View>
         ) : (
-          <View className="gap-3">
-            {getFilteredTasks().map((task, index) => renderTaskItem(task, index))}
-          </View>
+          <View className="gap-3">{getFilteredTasks().map((task, index) => renderTaskItem(task, index))}</View>
         )}
       </ScrollView>
 
@@ -565,18 +556,12 @@ export default function TasksScreen() {
                 <View className="flex-row gap-2.5">
                   <TouchableOpacity
                     className="px-4.5 py-3 rounded-[12px]"
-                    style={[
-                      { backgroundColor: theme.surface },
-                      !selectedRoomId && { backgroundColor: theme.text },
-                    ]}
+                    style={[{ backgroundColor: theme.surface }, !selectedRoomId && { backgroundColor: theme.text }]}
                     onPress={() => setSelectedRoomId(null)}
                   >
                     <Text
                       className="text-sm font-manrope-semibold"
-                      style={[
-                        { color: theme.textSecondary },
-                        !selectedRoomId && { color: theme.background },
-                      ]}
+                      style={[{ color: theme.textSecondary }, !selectedRoomId && { color: theme.background }]}
                     >
                       {t.common.none}
                     </Text>
@@ -623,24 +608,16 @@ export default function TasksScreen() {
                       <TouchableOpacity
                         key={membership.userId}
                         className="px-4.5 py-3 rounded-[12px]"
-                        style={[
-                          { backgroundColor: theme.surface },
-                          isSelected && { backgroundColor: theme.text },
-                        ]}
+                        style={[{ backgroundColor: theme.surface }, isSelected && { backgroundColor: theme.text }]}
                         onPress={() =>
                           setSelectedUserIds((prev) =>
-                            isSelected
-                              ? prev.filter((id) => id !== membership.userId)
-                              : [...prev, membership.userId]
+                            isSelected ? prev.filter((id) => id !== membership.userId) : [...prev, membership.userId],
                           )
                         }
                       >
                         <Text
                           className="text-sm font-manrope-semibold"
-                          style={[
-                            { color: theme.textSecondary },
-                            isSelected && { color: theme.background },
-                          ]}
+                          style={[{ color: theme.textSecondary }, isSelected && { color: theme.background }]}
                         >
                           {membership.user?.name || `User ${membership.userId}`}
                         </Text>
@@ -692,10 +669,7 @@ export default function TasksScreen() {
                 >
                   <Text
                     className="text-sm font-manrope-bold"
-                    style={[
-                      { color: theme.textSecondary },
-                      scheduleRecurrence === type && { color: "#1C1C1E" },
-                    ]}
+                    style={[{ color: theme.textSecondary }, scheduleRecurrence === type && { color: "#1C1C1E" }]}
                   >
                     {getRecurrenceLabel(type)}
                   </Text>
@@ -713,14 +687,11 @@ export default function TasksScreen() {
               >
                 {t.tasks.schedule.rotationUsers}
               </Text>
-              <Text
-                className="text-xs font-manrope mb-3 ml-1"
-                style={{ color: theme.textMuted }}
-              >
+              <Text className="text-xs font-manrope mb-3 ml-1" style={{ color: theme.textMuted }}>
                 {t.tasks.schedule.rotationHint}
               </Text>
               <View className="gap-2">
-                {home.memberships.map((membership, idx) => {
+                {home.memberships.map((membership, _idx) => {
                   const isSelected = scheduleUserIds.includes(membership.userId);
                   const orderIndex = scheduleUserIds.indexOf(membership.userId);
                   return (
@@ -729,13 +700,15 @@ export default function TasksScreen() {
                       className="flex-row items-center px-4 py-3 rounded-[12px]"
                       style={[
                         { backgroundColor: theme.surface },
-                        isSelected && { backgroundColor: theme.accent.purple + "15", borderWidth: 1, borderColor: theme.accent.purple },
+                        isSelected && {
+                          backgroundColor: `${theme.accent.purple}15`,
+                          borderWidth: 1,
+                          borderColor: theme.accent.purple,
+                        },
                       ]}
                       onPress={() =>
                         setScheduleUserIds((prev) =>
-                          isSelected
-                            ? prev.filter((id) => id !== membership.userId)
-                            : [...prev, membership.userId]
+                          isSelected ? prev.filter((id) => id !== membership.userId) : [...prev, membership.userId],
                         )
                       }
                     >
@@ -755,18 +728,13 @@ export default function TasksScreen() {
                       >
                         {membership.user?.name || `User ${membership.userId}`}
                       </Text>
-                      {isSelected && (
-                        <X size={16} color={theme.textSecondary} />
-                      )}
+                      {isSelected && <X size={16} color={theme.textSecondary} />}
                     </TouchableOpacity>
                   );
                 })}
               </View>
               {scheduleUserIds.length > 0 && scheduleUserIds.length < 2 && (
-                <Text
-                  className="text-xs font-manrope mt-2 ml-1"
-                  style={{ color: theme.status.error }}
-                >
+                <Text className="text-xs font-manrope mt-2 ml-1" style={{ color: theme.status.error }}>
                   {t.tasks.schedule.selectUsers}
                 </Text>
               )}

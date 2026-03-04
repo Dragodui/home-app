@@ -1,9 +1,9 @@
-import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "zustand";
 import { homeApi, roomApi } from "@/lib/api";
-import { Home, Room, HomeMembership } from "@/lib/types";
+import type { Home, HomeMembership, Room } from "@/lib/types";
+import { type EventModule, wsManager } from "@/lib/websocket";
 import { useAuthStore } from "./authStore";
-import { wsManager, EventModule } from "@/lib/websocket";
 
 const CURRENT_HOME_KEY = "current_home_id";
 
@@ -14,13 +14,11 @@ interface HomeResult {
 
 function computeAdmin(selectedHome: Home | null, userId: number | undefined): boolean {
   if (!selectedHome?.memberships || !userId) return false;
-  const membership = selectedHome.memberships.find(
-    (m: HomeMembership) => m.userId === userId,
-  );
+  const membership = selectedHome.memberships.find((m: HomeMembership) => m.userId === userId);
   return membership?.role === "admin";
 }
 
-function deriveHome(homes: Home[], currentHomeId: number | null): Home | null {
+function _deriveHome(homes: Home[], currentHomeId: number | null): Home | null {
   if (!currentHomeId) return null;
   return homes.find((h) => h.id === currentHomeId) ?? null;
 }

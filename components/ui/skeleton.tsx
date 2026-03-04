@@ -1,5 +1,5 @@
-import { FC, useEffect, useRef } from "react";
-import { View, ViewStyle, Animated } from "react-native";
+import { type FC, useEffect, useRef } from "react";
+import { Animated, type ViewStyle } from "react-native";
 import { useTheme } from "@/stores/themeStore";
 
 interface SkeletonProps {
@@ -10,13 +10,7 @@ interface SkeletonProps {
   className?: string;
 }
 
-const Skeleton: FC<SkeletonProps> = ({
-  width = "100%",
-  height = 20,
-  borderRadius = 8,
-  style,
-  className,
-}) => {
+const Skeleton: FC<SkeletonProps> = ({ width = "100%", height = 20, borderRadius = 8, style, className }) => {
   const { theme } = useTheme();
   const opacity = useRef(new Animated.Value(0.3)).current;
 
@@ -33,7 +27,7 @@ const Skeleton: FC<SkeletonProps> = ({
           duration: 800,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
     animation.start();
     return () => animation.stop();

@@ -1,15 +1,15 @@
-import { FC, ReactNode } from "react";
+import { X } from "lucide-react-native";
+import type { FC, ReactNode } from "react";
 import {
-  View,
-  Text,
-  Modal as RNModal,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Platform,
+  Modal as RNModal,
   ScrollView,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
-import { X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/stores/themeStore";
 
@@ -21,13 +21,7 @@ interface ModalProps {
   height?: "auto" | "full" | number;
 }
 
-const Modal: FC<ModalProps> = ({
-  visible,
-  onClose,
-  title,
-  children,
-  height = "full",
-}) => {
+const Modal: FC<ModalProps> = ({ visible, onClose, title, children, height = "full" }) => {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
 
@@ -42,27 +36,17 @@ const Modal: FC<ModalProps> = ({
   };
 
   return (
-    <RNModal
-      visible={visible}
-      animationType="slide"
-      transparent
-      statusBarTranslucent
-    >
+    <RNModal visible={visible} animationType="slide" transparent statusBarTranslucent>
       <TouchableWithoutFeedback onPress={onClose}>
         <View
           className="absolute inset-0"
           style={{
-            backgroundColor: theme.isDark
-              ? "rgba(0, 0, 0, 0.8)"
-              : "rgba(0, 0, 0, 0.5)",
+            backgroundColor: theme.isDark ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.5)",
           }}
         />
       </TouchableWithoutFeedback>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1 justify-end"
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 justify-end">
         <View
           className="rounded-t-40 pt-8 px-6"
           style={[
@@ -75,10 +59,7 @@ const Modal: FC<ModalProps> = ({
         >
           <View className="flex-row justify-between items-center mb-6">
             {title && (
-              <Text
-                className="text-2xl font-manrope-bold"
-                style={{ color: theme.text }}
-              >
+              <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
                 {title}
               </Text>
             )}

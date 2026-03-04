@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@/stores/themeStore";
 import Skeleton from "@/components/ui/skeleton";
+import { useTheme } from "@/stores/themeStore";
 
 export default function ShoppingSkeleton() {
   const insets = useSafeAreaInsets();

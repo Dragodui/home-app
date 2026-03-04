@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@/stores/themeStore";
 import Skeleton from "@/components/ui/skeleton";
+import { useTheme } from "@/stores/themeStore";
 
 export default function PollsSkeleton() {
   const insets = useSafeAreaInsets();
@@ -15,11 +15,7 @@ export default function PollsSkeleton() {
 
         {/* Poll Cards */}
         {[1, 2].map((i) => (
-          <View
-            key={i}
-            className="rounded-3xl p-6 mb-4"
-            style={{ backgroundColor: theme.surface }}
-          >
+          <View key={i} className="rounded-3xl p-6 mb-4" style={{ backgroundColor: theme.surface }}>
             {/* Poll Header */}
             <View className="flex-row justify-between items-center mb-4">
               <Skeleton width={70} height={28} borderRadius={12} />

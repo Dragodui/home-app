@@ -1,24 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  ActivityIndicator,
-  FlatList,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Plus, Trash2, Power, Lightbulb, Fan, Tv } from "lucide-react-native";
-import { useHome } from "@/stores/homeStore";
-import { useTheme } from "@/stores/themeStore";
-import { useI18n, interpolate } from "@/stores/i18nStore";
-import Modal from "@/components/ui/modal";
-import Input from "@/components/ui/input";
-import Button from "@/components/ui/button";
-import { smarthomeApi, SmartDevice, HAState } from "@/lib/api";
+import { ArrowLeft, Fan, Lightbulb, Plus, Power, Trash2, Tv } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, Switch, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/components/ui/alert";
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import Modal from "@/components/ui/modal";
+import { type HAState, type SmartDevice, smarthomeApi } from "@/lib/api";
+import { useHome } from "@/stores/homeStore";
+import { useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
 export default function RoomDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -32,7 +24,7 @@ export default function RoomDetailScreen() {
   const [devices, setDevices] = useState<SmartDevice[]>([]);
   const [deviceStates, setDeviceStates] = useState<Record<string, HAState>>({});
   const [loading, setLoading] = useState(true);
-  
+
   // Add Device Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [discoveredDevices, setDiscoveredDevices] = useState<HAState[]>([]);
@@ -41,14 +33,14 @@ export default function RoomDetailScreen() {
   const [deviceName, setDeviceName] = useState("");
   const [addingDevice, setAddingDevice] = useState(false);
 
-  const roomId = parseInt(id);
+  const roomId = parseInt(id, 10);
 
   const fetchDevices = useCallback(async () => {
     if (!home) return;
     try {
       const result = await smarthomeApi.getDevicesByRoom(home.id, roomId);
       setDevices(result);
-      
+
       // Also fetch current states
       const states = await smarthomeApi.getAllStates(home.id);
       const stateMap: Record<string, HAState> = {};
@@ -59,7 +51,7 @@ export default function RoomDetailScreen() {
     } finally {
       setLoading(false);
     }
-  }, [home, roomId, t]);
+  }, [home, roomId]);
 
   useEffect(() => {
     fetchDevices();
@@ -71,7 +63,7 @@ export default function RoomDetailScreen() {
     try {
       const results = await smarthomeApi.discover(home.id);
       setDiscoveredDevices(results);
-    } catch (error) {
+    } catch (_error) {
       alert(t.common.error, "Failed to discover devices");
     } finally {
       setDiscovering(false);
@@ -92,9 +84,8 @@ export default function RoomDetailScreen() {
       setDeviceName("");
       setSelectedEntity(null);
       fetchDevices();
-    } catch (error) {
-        // @ts-ignore
-      alert(t.common.error, error.response?.data?.error || "Failed to add device");
+    } catch (err: any) {
+      alert(t.common.error, err.response?.data?.error || "Failed to add device");
     } finally {
       setAddingDevice(false);
     }
@@ -111,7 +102,7 @@ export default function RoomDetailScreen() {
           try {
             await smarthomeApi.deleteDevice(home.id, deviceId);
             fetchDevices();
-          } catch (error) {
+          } catch (_error) {
             alert(t.common.error, "Failed to delete device");
           }
         },
@@ -122,10 +113,10 @@ export default function RoomDetailScreen() {
   const handleControl = async (device: SmartDevice, state: boolean) => {
     if (!home) return;
     const service = state ? "turn_on" : "turn_off";
-    
+
     // Optimistic update
     const newState = { ...deviceStates[device.entityId], state: state ? "on" : "off" };
-    setDeviceStates(prev => ({ ...prev, [device.entityId]: newState }));
+    setDeviceStates((prev) => ({ ...prev, [device.entityId]: newState }));
 
     try {
       await smarthomeApi.controlDevice(home.id, device.id, service);
@@ -158,29 +149,28 @@ export default function RoomDetailScreen() {
     return (
       <View className="flex-row items-center p-4 rounded-20 mb-3" style={{ backgroundColor: theme.surface }}>
         <View className="w-10 h-10 justify-center items-center bg-black/5 rounded-12 mr-4">
-            {getIcon(item.type, 24, isOn ? theme.accent.yellow : theme.text)}
+          {getIcon(item.type, 24, isOn ? theme.accent.yellow : theme.text)}
         </View>
         <View className="flex-1">
-          <Text className="text-base font-manrope-bold" style={{ color: theme.text }}>{item.name}</Text>
+          <Text className="text-base font-manrope-bold" style={{ color: theme.text }}>
+            {item.name}
+          </Text>
           <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
             {state?.state || "Unknown"}
           </Text>
         </View>
-        
+
         <Switch
-            value={isOn}
-            onValueChange={(val) => handleControl(item, val)}
-            disabled={isOffline}
-            trackColor={{ false: theme.border, true: theme.accent.cyan }}
+          value={isOn}
+          onValueChange={(val) => handleControl(item, val)}
+          disabled={isOffline}
+          trackColor={{ false: theme.border, true: theme.accent.cyan }}
         />
 
         {isAdmin && (
-            <TouchableOpacity 
-                className="ml-3 p-2"
-                onPress={() => handleDeleteDevice(item.id, item.name)}
-            >
-                <Trash2 size={16} color={theme.accent.danger} />
-            </TouchableOpacity>
+          <TouchableOpacity className="ml-3 p-2" onPress={() => handleDeleteDevice(item.id, item.name)}>
+            <Trash2 size={16} color={theme.accent.danger} />
+          </TouchableOpacity>
         )}
       </View>
     );
@@ -190,19 +180,21 @@ export default function RoomDetailScreen() {
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 mb-6" style={{ paddingTop: insets.top + 16 }}>
-        <TouchableOpacity 
-            onPress={() => router.back()} 
-            className="w-12 h-12 rounded-16 justify-center items-center"
-            style={{ backgroundColor: theme.surface }}
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="w-12 h-12 rounded-16 justify-center items-center"
+          style={{ backgroundColor: theme.surface }}
         >
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>{name}</Text>
+        <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
+          {name}
+        </Text>
         {isAdmin ? (
           <TouchableOpacity
             onPress={() => {
-                setShowAddModal(true);
-                handleDiscover();
+              setShowAddModal(true);
+              handleDiscover();
             }}
             className="w-12 h-12 rounded-16 justify-center items-center"
             style={{ backgroundColor: theme.accent.yellow }}
@@ -217,74 +209,77 @@ export default function RoomDetailScreen() {
       {/* Content */}
       <View className="flex-1 px-6">
         {loading ? (
-            <ActivityIndicator size="large" color={theme.accent.cyan} />
+          <ActivityIndicator size="large" color={theme.accent.cyan} />
         ) : devices.length === 0 ? (
-            <View className="items-center mt-10">
-                <Text style={{ color: theme.textSecondary }}>No devices in this room</Text>
-            </View>
+          <View className="items-center mt-10">
+            <Text style={{ color: theme.textSecondary }}>No devices in this room</Text>
+          </View>
         ) : (
-            <FlatList
-                data={devices}
-                renderItem={renderDevice}
-                keyExtractor={item => item.id.toString()}
-                contentContainerStyle={{ paddingBottom: 40 }}
-            />
+          <FlatList
+            data={devices}
+            renderItem={renderDevice}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          />
         )}
       </View>
 
       {/* Add Device Modal */}
-      <Modal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        title="Add Device"
-        height="full"
-      >
+      <Modal visible={showAddModal} onClose={() => setShowAddModal(false)} title="Add Device" height="full">
         <View className="flex-1">
-            {selectedEntity ? (
-                 <View>
-                    <TouchableOpacity onPress={() => setSelectedEntity(null)} className="mb-4">
-                        <Text style={{ color: theme.accent.cyan }}>Back to list</Text>
+          {selectedEntity ? (
+            <View>
+              <TouchableOpacity onPress={() => setSelectedEntity(null)} className="mb-4">
+                <Text style={{ color: theme.accent.cyan }}>Back to list</Text>
+              </TouchableOpacity>
+              <Input
+                label="Device Name"
+                value={deviceName}
+                onChangeText={setDeviceName}
+                placeholder="e.g. Ceiling Light"
+              />
+              <Text className="mb-2" style={{ color: theme.textSecondary }}>
+                Entity: {selectedEntity}
+              </Text>
+              <Button
+                title={t.common.add || "Add"}
+                onPress={handleAddDevice}
+                loading={addingDevice}
+                variant="primary"
+              />
+            </View>
+          ) : (
+            <>
+              <Text className="mb-4" style={{ color: theme.textSecondary }}>
+                Select a device to add to {name}
+              </Text>
+              {discovering ? (
+                <ActivityIndicator color={theme.accent.cyan} />
+              ) : (
+                <FlatList
+                  data={discoveredDevices}
+                  keyExtractor={(item) => item.entityId}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      className="py-3 border-b"
+                      style={{ borderBottomColor: theme.border }}
+                      onPress={() => {
+                        setSelectedEntity(item.entityId);
+                        setDeviceName(item.attributes.friendlyName || item.entityId);
+                      }}
+                    >
+                      <Text className="font-bold" style={{ color: theme.text }}>
+                        {item.attributes.friendlyName || item.entityId}
+                      </Text>
+                      <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                        {item.entityId}
+                      </Text>
                     </TouchableOpacity>
-                    <Input
-                        label="Device Name"
-                        value={deviceName}
-                        onChangeText={setDeviceName}
-                        placeholder="e.g. Ceiling Light"
-                    />
-                    <Text className="mb-2" style={{ color: theme.textSecondary }}>Entity: {selectedEntity}</Text>
-                    <Button
-                        title={t.common.add || "Add"}
-                        onPress={handleAddDevice}
-                        loading={addingDevice}
-                        variant="primary"
-                    />
-                 </View>
-            ) : (
-                <>
-                    <Text className="mb-4" style={{ color: theme.textSecondary }}>Select a device to add to {name}</Text>
-                    {discovering ? (
-                        <ActivityIndicator color={theme.accent.cyan} />
-                    ) : (
-                        <FlatList
-                            data={discoveredDevices}
-                            keyExtractor={item => item.entityId}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    className="py-3 border-b"
-                                    style={{ borderBottomColor: theme.border }}
-                                    onPress={() => {
-                                        setSelectedEntity(item.entityId);
-                                        setDeviceName(item.attributes.friendlyName || item.entityId);
-                                    }}
-                                >
-                                    <Text className="font-bold" style={{ color: theme.text }}>{item.attributes.friendlyName || item.entityId}</Text>
-                                    <Text className="text-xs" style={{ color: theme.textSecondary }}>{item.entityId}</Text>
-                                </TouchableOpacity>
-                            )}
-                        />
-                    )}
-                </>
-            )}
+                  )}
+                />
+              )}
+            </>
+          )}
         </View>
       </Modal>
     </View>

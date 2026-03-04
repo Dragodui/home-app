@@ -1,36 +1,19 @@
 // template
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import {
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Modal, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function ModalScreen() {
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={true}
-      onRequestClose={() => router.back()}
-    >
+    <Modal animationType="fade" transparent={true} visible={true} onRequestClose={() => router.back()}>
       <Pressable style={styles.overlay} onPress={() => router.back()}>
         <View style={styles.modalContent}>
           <Text style={styles.title}>Modal</Text>
           <Text style={styles.description}>
-            This is an example modal with proper fade animation. You can edit it
-            in app/modal.tsx.
+            This is an example modal with proper fade animation. You can edit it in app/modal.tsx.
           </Text>
 
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => router.back()}
-          >
+          <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
         </View>

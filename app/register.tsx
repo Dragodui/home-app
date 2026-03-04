@@ -1,21 +1,14 @@
-import { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAuth } from "@/stores/authStore";
-import { useTheme } from "@/stores/themeStore";
-import { useI18n } from "@/stores/i18nStore";
-import Input from "@/components/ui/input";
-import Button from "@/components/ui/button";
-import { useGoogleAuth } from "@/lib/useGoogleAuth";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import { useGoogleAuth } from "@/lib/useGoogleAuth";
+import { useAuth } from "@/stores/authStore";
+import { useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -32,10 +25,6 @@ export default function RegisterScreen() {
   const [error, setError] = useState("");
 
   const { response, promptAsync, isReady } = useGoogleAuth();
-
-  useEffect(() => {
-    handleGoogleResponse();
-  }, [response]);
 
   const handleGoogleResponse = async () => {
     if (response?.type === "success") {
@@ -57,6 +46,10 @@ export default function RegisterScreen() {
       setError(t.auth.googleSignInCancelled);
     }
   };
+
+  useEffect(() => {
+    handleGoogleResponse();
+  }, [handleGoogleResponse]);
 
   const handleGoogleSignIn = async () => {
     if (!isReady) {
@@ -103,16 +96,10 @@ export default function RegisterScreen() {
       >
         {/* Header - matches PDF */}
         <View className="mb-12">
-          <Text
-            className="text-5xl font-manrope-extrabold mb-2"
-            style={{ color: theme.text }}
-          >
+          <Text className="text-5xl font-manrope-extrabold mb-2" style={{ color: theme.text }}>
             {t.auth.joinHome}
           </Text>
-          <Text
-            className="text-xl font-manrope"
-            style={{ color: theme.textSecondary }}
-          >
+          <Text className="text-xl font-manrope" style={{ color: theme.textSecondary }}>
             {t.auth.joinTagline}
           </Text>
         </View>
@@ -168,10 +155,7 @@ export default function RegisterScreen() {
 
           <View className="flex-row items-center my-5">
             <View className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
-            <Text
-              className="mx-4 text-sm font-manrope"
-              style={{ color: theme.textSecondary }}
-            >
+            <Text className="mx-4 text-sm font-manrope" style={{ color: theme.textSecondary }}>
               {t.common.or}
             </Text>
             <View className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
@@ -184,31 +168,19 @@ export default function RegisterScreen() {
             disabled={isLoading || isGoogleLoading || !isReady}
           >
             <Ionicons name="logo-google" size={20} color={theme.text} />
-            <Text
-              className="text-base font-manrope-semibold"
-              style={{ color: theme.text }}
-            >
+            <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
               {isGoogleLoading ? t.auth.signingIn : t.auth.continueWithGoogle}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Footer */}
-        <View
-          className="flex-row justify-center items-center pt-8"
-          style={{ paddingBottom: insets.bottom + 24 }}
-        >
-          <Text
-            className="text-sm font-manrope"
-            style={{ color: theme.textSecondary }}
-          >
+        <View className="flex-row justify-center items-center pt-8" style={{ paddingBottom: insets.bottom + 24 }}>
+          <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
             {t.auth.alreadyMember}{" "}
           </Text>
           <TouchableOpacity onPress={() => router.replace("/login")}>
-            <Text
-              className="text-sm font-manrope-bold underline"
-              style={{ color: theme.text }}
-            >
+            <Text className="text-sm font-manrope-bold underline" style={{ color: theme.text }}>
               {t.auth.logIn}
             </Text>
           </TouchableOpacity>

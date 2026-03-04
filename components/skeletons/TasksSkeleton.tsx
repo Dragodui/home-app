@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@/stores/themeStore";
 import Skeleton from "@/components/ui/skeleton";
+import { useTheme } from "@/stores/themeStore";
 
 export default function TasksSkeleton() {
   const insets = useSafeAreaInsets();
@@ -29,11 +29,7 @@ export default function TasksSkeleton() {
         {/* Task Items */}
         <View className="gap-3">
           {[1, 2, 3, 4, 5].map((i) => (
-            <View
-              key={i}
-              className="rounded-[24px] p-5"
-              style={{ backgroundColor: theme.surface }}
-            >
+            <View key={i} className="rounded-[24px] p-5" style={{ backgroundColor: theme.surface }}>
               <View className="flex-row items-center gap-4">
                 <Skeleton width={32} height={32} borderRadius={16} />
                 <View className="flex-1">

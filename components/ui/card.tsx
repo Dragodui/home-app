@@ -1,15 +1,8 @@
-import { FC, ReactNode } from "react";
-import { View, ViewStyle, TouchableOpacity } from "react-native";
+import type { FC, ReactNode } from "react";
+import { TouchableOpacity, View, type ViewStyle } from "react-native";
 import { useTheme } from "@/stores/themeStore";
 
-type CardVariant =
-  | "default"
-  | "surface"
-  | "yellow"
-  | "purple"
-  | "pink"
-  | "mint"
-  | "white";
+type CardVariant = "default" | "surface" | "yellow" | "purple" | "pink" | "mint" | "white";
 
 interface CardProps {
   children: ReactNode;
@@ -67,10 +60,7 @@ const Card: FC<CardProps> = ({
   }
 
   return (
-    <View
-      className={combinedClassName}
-      style={[{ padding, borderRadius }, style]}
-    >
+    <View className={combinedClassName} style={[{ padding, borderRadius }, style]}>
       {children}
     </View>
   );

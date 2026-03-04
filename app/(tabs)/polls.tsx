@@ -1,34 +1,25 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Switch,
-  Image
-} from "react-native";
-import DatePicker from "@/components/ui/date-picker";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Plus, Check, Users, X, Eye, EyeOff, Calendar, RotateCcw } from "lucide-react-native";
+import { Calendar, Check, Eye, EyeOff, Plus, RotateCcw, X } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Image, RefreshControl, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { PollsSkeleton } from "@/components/skeletons";
+import { useAlert } from "@/components/ui/alert";
+import Button from "@/components/ui/button";
+import DatePicker from "@/components/ui/date-picker";
+import Input from "@/components/ui/input";
+import Modal from "@/components/ui/modal";
+import { pollApi } from "@/lib/api";
+import type { Poll, PollOption } from "@/lib/types";
+import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
-import { useTheme } from "@/stores/themeStore";
 import { useI18n } from "@/stores/i18nStore";
-import { pollApi } from "@/lib/api";
-import { Poll, PollOption } from "@/lib/types";
-import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import { useAlert } from "@/components/ui/alert";
-import Modal from "@/components/ui/modal";
-import Input from "@/components/ui/input";
-import Button from "@/components/ui/button";
-import { PollsSkeleton } from "@/components/skeletons";
+import { useTheme } from "@/stores/themeStore";
 
 export default function PollsScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const _router = useRouter();
   const { user } = useAuth();
   const { home, isAdmin } = useHome();
   const { theme } = useTheme();
@@ -217,16 +208,11 @@ export default function PollsScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: insets.top + 24 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <Text
-          className="text-4xl font-manrope-bold mb-6"
-          style={{ color: theme.text }}
-        >
+        <Text className="text-4xl font-manrope-bold mb-6" style={{ color: theme.text }}>
           {t.polls.title}
         </Text>
 
@@ -243,31 +229,21 @@ export default function PollsScreen() {
             const userVote = getUserVote(poll);
 
             return (
-              <View
-                key={poll.id}
-                className="rounded-3xl p-6 mb-4"
-                style={{ backgroundColor: theme.accent.purple }}
-              >
+              <View key={poll.id} className="rounded-3xl p-6 mb-4" style={{ backgroundColor: theme.accent.purple }}>
                 {/* Poll Header */}
                 <View className="flex-row justify-between items-center mb-4">
                   <View className="bg-white/60 px-3 py-1.5 rounded-xl">
-                    <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">
-                      {getTimeRemaining(poll)}
-                    </Text>
+                    <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">{getTimeRemaining(poll)}</Text>
                   </View>
                   <View className="flex-row items-center gap-2">
                     <View className="bg-white/60 px-3 py-1.5 rounded-xl">
-                      <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">
-                        {poll.type}
-                      </Text>
+                      <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">{poll.type}</Text>
                     </View>
                   </View>
                 </View>
 
                 {/* Poll Question */}
-                <Text className="text-[22px] font-manrope-bold text-[#1C1C1E] leading-7 mb-5">
-                  {poll.question}
-                </Text>
+                <Text className="text-[22px] font-manrope-bold text-[#1C1C1E] leading-7 mb-5">{poll.question}</Text>
 
                 {/* Poll Options */}
                 <View className="gap-2.5">
@@ -278,24 +254,29 @@ export default function PollsScreen() {
                     return (
                       <TouchableOpacity
                         key={option.id}
-                        className={`rounded-xl p-4 flex-row justify-between items-center ${isSelected ? "bg-[#1C1C1E]" : "bg-white/60"
-                          }`}
+                        className={`rounded-xl p-4 flex-row justify-between items-center ${
+                          isSelected ? "bg-[#1C1C1E]" : "bg-white/60"
+                        }`}
                         onPress={() => !voted && handleVote(poll.id, option.id)}
-                        onLongPress={() => poll.type === "public" && (option.votes?.length ?? 0) > 0 && setVotersOption(option)}
+                        onLongPress={() =>
+                          poll.type === "public" && (option.votes?.length ?? 0) > 0 && setVotersOption(option)
+                        }
                         disabled={voted && poll.type !== "public"}
                         activeOpacity={voted ? 1 : 0.8}
                       >
                         <Text
-                          className={`text-[15px] font-manrope-semibold ${isSelected ? "text-white" : "text-[#1C1C1E]"
-                            }`}
+                          className={`text-[15px] font-manrope-semibold ${
+                            isSelected ? "text-white" : "text-[#1C1C1E]"
+                          }`}
                         >
                           {option.title}
                         </Text>
                         <View className="flex-row items-center gap-2">
                           {isSelected && <Check size={16} color="#FFFFFF" />}
                           <Text
-                            className={`text-[13px] font-manrope-medium ${isSelected ? "text-white/70" : "text-black/50"
-                              }`}
+                            className={`text-[13px] font-manrope-medium ${
+                              isSelected ? "text-white/70" : "text-black/50"
+                            }`}
                           >
                             {voteCount} {voteCount !== 1 ? t.polls.votes : t.polls.vote}
                           </Text>
@@ -521,11 +502,7 @@ export default function PollsScreen() {
             title={t.polls.createPoll}
             onPress={handleCreatePoll}
             loading={creating}
-            disabled={
-              !pollQuestion.trim() ||
-              pollOptions.filter((o) => o.trim()).length < 2 ||
-              creating
-            }
+            disabled={!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2 || creating}
             variant="purple"
           />
         </View>
@@ -540,18 +517,21 @@ export default function PollsScreen() {
         <View className="gap-3">
           {votersOption?.votes?.map((vote) => (
             <View key={vote.id} className="flex-row items-center gap-3 py-2">
-              {
-                vote.user?.avatar ? <Image source={{ uri: vote.user.avatar }}
+              {vote.user?.avatar ? (
+                <Image
+                  source={{ uri: vote.user.avatar }}
                   className="w-9 h-9 rounded-full justify-center items-center"
-                /> : <View
+                />
+              ) : (
+                <View
                   className="w-9 h-9 rounded-full justify-center items-center"
                   style={{ backgroundColor: theme.accent.purple }}
                 >
-
                   <Text className="text-sm font-manrope-bold text-[#1C1C1E]">
                     {(vote.user?.name ?? "?").charAt(0).toUpperCase()}
-                  </Text></View>
-              }
+                  </Text>
+                </View>
+              )}
 
               <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
                 {vote.user?.name ?? `User #${vote.userId}`}

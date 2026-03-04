@@ -1,32 +1,17 @@
-import { useState, useCallback, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import {
-  ArrowLeft,
-  User,
-  Shield,
-  Trash2,
-  Users,
-} from "lucide-react-native";
-import { useTheme } from "@/stores/themeStore";
-import { useI18n } from "@/stores/i18nStore";
-import { useHome } from "@/stores/homeStore";
-import { useAuth } from "@/stores/authStore";
-import { homeApi } from "@/lib/api";
-import { HomeMembership } from "@/lib/types";
-import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import { interpolate } from "@/stores/i18nStore";
-import { useAlert } from "@/components/ui/alert";
+import { ArrowLeft, Shield, Trash2, User, Users } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MembersSkeleton } from "@/components/skeletons";
+import { useAlert } from "@/components/ui/alert";
+import { homeApi } from "@/lib/api";
+import type { HomeMembership } from "@/lib/types";
+import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useAuth } from "@/stores/authStore";
+import { useHome } from "@/stores/homeStore";
+import { interpolate, useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
 export default function MembersScreen() {
   const insets = useSafeAreaInsets();
@@ -53,7 +38,7 @@ export default function MembersScreen() {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, [home, t]);
+  }, [home, t, alert]);
 
   useEffect(() => {
     loadMembers();
@@ -104,9 +89,7 @@ export default function MembersScreen() {
           paddingTop: insets.top + 16,
         }}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
       >
         {/* Header */}
         <View className="flex-row items-center mb-8">
@@ -117,10 +100,7 @@ export default function MembersScreen() {
           >
             <ArrowLeft size={22} color={theme.text} />
           </TouchableOpacity>
-          <Text
-            className="flex-1 text-2xl font-manrope-bold text-center"
-            style={{ color: theme.text }}
-          >
+          <Text className="flex-1 text-2xl font-manrope-bold text-center" style={{ color: theme.text }}>
             {t.members.title}
           </Text>
           <View className="w-12" />
@@ -133,10 +113,7 @@ export default function MembersScreen() {
           /* Empty State */
           <View className="flex-1 justify-center items-center py-20">
             <Users size={48} color={theme.textSecondary} />
-            <Text
-              className="text-base font-manrope-medium mt-4"
-              style={{ color: theme.textSecondary }}
-            >
+            <Text className="text-base font-manrope-medium mt-4" style={{ color: theme.textSecondary }}>
               {t.members.noMembers}
             </Text>
           </View>
@@ -159,10 +136,7 @@ export default function MembersScreen() {
                     style={{ backgroundColor: theme.background }}
                   >
                     {member.user?.avatar ? (
-                      <Image
-                        source={{ uri: member.user.avatar }}
-                        className="w-full h-full"
-                      />
+                      <Image source={{ uri: member.user.avatar }} className="w-full h-full" />
                     ) : (
                       <View className="w-full h-full justify-center items-center">
                         <User size={24} color={theme.textSecondary} />
@@ -173,25 +147,16 @@ export default function MembersScreen() {
                   {/* Info */}
                   <View className="flex-1">
                     <View className="flex-row items-center gap-2">
-                      <Text
-                        className="text-base font-manrope-semibold"
-                        style={{ color: theme.text }}
-                      >
+                      <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
                         {member.user?.name || "Unknown"}
                       </Text>
                       {isCurrentUser && (
-                        <Text
-                          className="text-xs font-manrope"
-                          style={{ color: theme.textSecondary }}
-                        >
+                        <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
                           (you)
                         </Text>
                       )}
                     </View>
-                    <Text
-                      className="text-sm font-manrope mt-0.5"
-                      style={{ color: theme.textSecondary }}
-                    >
+                    <Text className="text-sm font-manrope mt-0.5" style={{ color: theme.textSecondary }}>
                       {member.user?.email}
                     </Text>
                     <View className="flex-row items-center gap-2 mt-1.5">
@@ -199,9 +164,7 @@ export default function MembersScreen() {
                       <View
                         className="flex-row items-center gap-1 px-2.5 py-1 rounded-full"
                         style={{
-                          backgroundColor: isMemberAdmin
-                            ? theme.accent.yellow + "20"
-                            : theme.accent.purple + "20",
+                          backgroundColor: isMemberAdmin ? `${theme.accent.yellow}20` : `${theme.accent.purple}20`,
                         }}
                       >
                         {isMemberAdmin && <Shield size={12} color={theme.accent.yellow} />}
@@ -215,10 +178,7 @@ export default function MembersScreen() {
                         </Text>
                       </View>
                       {/* Join date */}
-                      <Text
-                        className="text-xs font-manrope"
-                        style={{ color: theme.textSecondary }}
-                      >
+                      <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
                         {interpolate(t.members.joined, { date: formatDate(member.joinedAt) })}
                       </Text>
                     </View>
@@ -228,7 +188,7 @@ export default function MembersScreen() {
                   {isAdmin && !isCurrentUser && !isMemberAdmin && (
                     <TouchableOpacity
                       className="w-10 h-10 rounded-14 justify-center items-center ml-2"
-                      style={{ backgroundColor: theme.accent.dangerLight + "20" }}
+                      style={{ backgroundColor: `${theme.accent.dangerLight}20` }}
                       onPress={() => handleRemoveMember(member)}
                     >
                       <Trash2 size={18} color={theme.accent.pink} />

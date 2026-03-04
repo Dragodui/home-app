@@ -1,10 +1,10 @@
-import en from './en';
-import pl from './pl';
-import be from './be';
-import uk from './uk';
-import de from './de';
-import fr from './fr';
-import it from './it';
+import be from "./be";
+import de from "./de";
+import en from "./en";
+import fr from "./fr";
+import it from "./it";
+import pl from "./pl";
+import uk from "./uk";
 
 export const translations = {
   en,
@@ -20,13 +20,13 @@ export type Language = keyof typeof translations;
 export type Translations = typeof en;
 
 export const languageNames: Record<Language, string> = {
-  en: 'English',
-  pl: 'Polski',
-  be: 'Беларуская',
-  uk: 'Українська',
-  de: 'Deutsch',
-  fr: 'Français',
-  it: 'Italiano',
+  en: "English",
+  pl: "Polski",
+  be: "Беларуская",
+  uk: "Українська",
+  de: "Deutsch",
+  fr: "Français",
+  it: "Italiano",
 };
 
-export const defaultLanguage: Language = 'en';
+export const defaultLanguage: Language = "en";

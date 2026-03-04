@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@/stores/themeStore";
 import Skeleton from "@/components/ui/skeleton";
+import { useTheme } from "@/stores/themeStore";
 
 export default function HomeSkeleton() {
   const insets = useSafeAreaInsets();
@@ -20,10 +20,7 @@ export default function HomeSkeleton() {
         </View>
 
         {/* Hero Card */}
-        <View
-          className="rounded-[32px] p-7 mb-4"
-          style={{ backgroundColor: theme.surface }}
-        >
+        <View className="rounded-[32px] p-7 mb-4" style={{ backgroundColor: theme.surface }}>
           <View className="flex-row justify-between items-start mb-4">
             <Skeleton width={60} height={12} borderRadius={4} />
             <Skeleton width={48} height={48} borderRadius={24} />
@@ -60,10 +57,7 @@ export default function HomeSkeleton() {
         </View>
 
         {/* Smart Home Card */}
-        <View
-          className="rounded-[28px] p-5 mb-4"
-          style={{ backgroundColor: theme.surface }}
-        >
+        <View className="rounded-[28px] p-5 mb-4" style={{ backgroundColor: theme.surface }}>
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-4">
               <Skeleton width={44} height={44} borderRadius={22} />
@@ -77,10 +71,7 @@ export default function HomeSkeleton() {
         </View>
 
         {/* Budget Card */}
-        <View
-          className="rounded-[32px] p-7"
-          style={{ backgroundColor: theme.surface }}
-        >
+        <View className="rounded-[32px] p-7" style={{ backgroundColor: theme.surface }}>
           <Skeleton width={100} height={12} borderRadius={4} style={{ marginBottom: 12 }} />
           <Skeleton width={120} height={44} borderRadius={10} style={{ marginBottom: 20 }} />
           <View className="flex-row justify-between items-center">

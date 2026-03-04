@@ -1,16 +1,16 @@
-import { FC, useState, useMemo } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { type FC, useMemo, useState } from "react";
 import {
-  View,
+  FlatList,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
+  Modal as RNModal,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  FlatList,
-  Modal as RNModal,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-  Pressable,
-  StyleSheet,
+  View,
 } from "react-native";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useTheme } from "@/stores/themeStore";
 import Button from "./button";
 
@@ -176,9 +176,7 @@ const DatePicker: FC<DatePickerProps> = ({
   }, [year, month]);
 
   const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
   const isToday = (d: Date) => isSameDay(d, new Date());
 
@@ -209,29 +207,19 @@ const DatePicker: FC<DatePickerProps> = ({
   };
 
   return (
-    <RNModal
-      visible={visible}
-      animationType="fade"
-      transparent
-      statusBarTranslucent
-      onRequestClose={onClose}
-    >
+    <RNModal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
       <View className="flex-1 justify-center items-center px-5">
-        
         {/* АБСОЛЮТНЫЙ ФОН ДЛЯ ЗАКРЫТИЯ ПО КЛИКУ */}
         <Pressable
           style={[
             StyleSheet.absoluteFill,
-            { backgroundColor: theme.isDark ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.5)" }
+            { backgroundColor: theme.isDark ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.5)" },
           ]}
           onPress={onClose}
         />
 
         {/* КАРТОЧКА БЕЗ TOUCHABLE ОБЕРТКИ */}
-        <View
-          className="w-full rounded-3xl p-6"
-          style={{ backgroundColor: theme.surface, maxWidth: 360 }}
-        >
+        <View className="w-full rounded-3xl p-6" style={{ backgroundColor: theme.surface, maxWidth: 360 }}>
           {/* Title */}
           <Text className="text-lg font-manrope-bold text-center mb-4" style={{ color: theme.text }}>
             {title}
@@ -298,10 +286,10 @@ const DatePicker: FC<DatePickerProps> = ({
                         color: disabled
                           ? theme.border
                           : selected
-                          ? "#FFFFFF"
-                          : d.current
-                          ? theme.text
-                          : theme.textSecondary,
+                            ? "#FFFFFF"
+                            : d.current
+                              ? theme.text
+                              : theme.textSecondary,
                       }}
                     >
                       {d.day}
@@ -316,13 +304,7 @@ const DatePicker: FC<DatePickerProps> = ({
           {mode === "datetime" && (
             <View className="mt-4 pt-4" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
               <View className="flex-row items-center justify-center gap-4">
-                
-                <InfiniteWheelPicker
-                  items={HOURS}
-                  value={selectedHour}
-                  onChange={setSelectedHour}
-                  theme={theme}
-                />
+                <InfiniteWheelPicker items={HOURS} value={selectedHour} onChange={setSelectedHour} theme={theme} />
 
                 <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
                   :
@@ -334,18 +316,12 @@ const DatePicker: FC<DatePickerProps> = ({
                   onChange={setSelectedMinute}
                   theme={theme}
                 />
-
               </View>
             </View>
           )}
 
           {/* Confirm button */}
-          <Button
-            title={confirmLabel}
-            onPress={handleConfirm}
-            variant="pink"
-            style={{ marginTop: 24 }}
-          />
+          <Button title={confirmLabel} onPress={handleConfirm} variant="pink" style={{ marginTop: 24 }} />
         </View>
       </View>
     </RNModal>

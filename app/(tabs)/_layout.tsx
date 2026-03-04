@@ -1,16 +1,9 @@
 import { Tabs } from "expo-router";
+import { ChartColumn, CheckCircle, DollarSign, Home, ShoppingBag, User } from "lucide-react-native";
 import { View } from "react-native";
-import {
-  Home,
-  CheckCircle,
-  ShoppingBag,
-  User,
-  ChartColumn,
-  DollarSign,
-} from "lucide-react-native";
-import { useTheme } from "@/stores/themeStore";
-import { useI18n } from "@/stores/i18nStore";
 import fonts from "@/constants/fonts";
+import { useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
 export default function TabLayout() {
   const { theme } = useTheme();
@@ -54,18 +47,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View
               className={`w-12 h-12 rounded-16 justify-center items-center ${
-                focused
-                  ? theme.isDark
-                    ? "bg-white"
-                    : "bg-accent-purple"
-                  : ""
+                focused ? (theme.isDark ? "bg-white" : "bg-accent-purple") : ""
               }`}
             >
-              <Home
-                size={22}
-                color={focused ? "#1C1C1E" : color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
+              <Home size={22} color={focused ? "#1C1C1E" : color} strokeWidth={focused ? 2.5 : 2} />
             </View>
           ),
         }}
@@ -77,18 +62,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View
               className={`w-12 h-12 rounded-16 justify-center items-center ${
-                focused
-                  ? theme.isDark
-                    ? "bg-white"
-                    : "bg-accent-purple"
-                  : ""
+                focused ? (theme.isDark ? "bg-white" : "bg-accent-purple") : ""
               }`}
             >
-              <CheckCircle
-                size={22}
-                color={focused ? "#1C1C1E" : color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
+              <CheckCircle size={22} color={focused ? "#1C1C1E" : color} strokeWidth={focused ? 2.5 : 2} />
             </View>
           ),
         }}
@@ -100,18 +77,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View
               className={`w-12 h-12 rounded-16 justify-center items-center ${
-                focused
-                  ? theme.isDark
-                    ? "bg-white"
-                    : "bg-accent-purple"
-                  : ""
+                focused ? (theme.isDark ? "bg-white" : "bg-accent-purple") : ""
               }`}
             >
-              <ShoppingBag
-                size={22}
-                color={focused ? "#1C1C1E" : color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
+              <ShoppingBag size={22} color={focused ? "#1C1C1E" : color} strokeWidth={focused ? 2.5 : 2} />
             </View>
           ),
         }}
@@ -123,18 +92,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View
               className={`w-12 h-12 rounded-16 justify-center items-center ${
-                focused
-                  ? theme.isDark
-                    ? "bg-white"
-                    : "bg-accent-purple"
-                  : ""
+                focused ? (theme.isDark ? "bg-white" : "bg-accent-purple") : ""
               }`}
             >
-              <DollarSign 
-                size={22}
-                color={focused ? "#1C1C1E" : color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
+              <DollarSign size={22} color={focused ? "#1C1C1E" : color} strokeWidth={focused ? 2.5 : 2} />
             </View>
           ),
         }}
@@ -146,18 +107,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View
               className={`w-12 h-12 rounded-16 justify-center items-center ${
-                focused
-                  ? theme.isDark
-                    ? "bg-white"
-                    : "bg-accent-purple"
-                  : ""
+                focused ? (theme.isDark ? "bg-white" : "bg-accent-purple") : ""
               }`}
             >
-              <ChartColumn
-                size={22}
-                color={focused ? "#1C1C1E" : color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
+              <ChartColumn size={22} color={focused ? "#1C1C1E" : color} strokeWidth={focused ? 2.5 : 2} />
             </View>
           ),
         }}
@@ -169,18 +122,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View
               className={`w-12 h-12 rounded-16 justify-center items-center ${
-                focused
-                  ? theme.isDark
-                    ? "bg-white"
-                    : "bg-accent-purple"
-                  : ""
+                focused ? (theme.isDark ? "bg-white" : "bg-accent-purple") : ""
               }`}
             >
-              <User
-                size={22}
-                color={focused ? "#1C1C1E" : color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
+              <User size={22} color={focused ? "#1C1C1E" : color} strokeWidth={focused ? 2.5 : 2} />
             </View>
           ),
         }}

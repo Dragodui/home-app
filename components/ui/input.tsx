@@ -1,6 +1,6 @@
-import { FC, useState } from "react";
-import { View, Text, TextInput, TextInputProps, TouchableOpacity } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
+import { type FC, useState } from "react";
+import { Text, TextInput, type TextInputProps, TouchableOpacity, View } from "react-native";
 import { useTheme } from "@/stores/themeStore";
 
 interface InputProps extends TextInputProps {
@@ -10,14 +10,7 @@ interface InputProps extends TextInputProps {
   className?: string;
 }
 
-const Input: FC<InputProps> = ({
-  label,
-  error,
-  style,
-  secureTextEntry,
-  className,
-  ...rest
-}) => {
+const Input: FC<InputProps> = ({ label, error, style, secureTextEntry, className, ...rest }) => {
   const { theme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -45,9 +38,7 @@ const Input: FC<InputProps> = ({
       )}
       <View className="relative">
         <TextInput
-          className={`h-16 rounded-20 px-6 text-base font-manrope-medium ${
-            isPassword ? "pr-14" : ""
-          }`}
+          className={`h-16 rounded-20 px-6 text-base font-manrope-medium ${isPassword ? "pr-14" : ""}`}
           style={[
             {
               backgroundColor: theme.inputBackground,
@@ -77,10 +68,7 @@ const Input: FC<InputProps> = ({
         )}
       </View>
       {error && (
-        <Text
-          className="text-xs ml-1 font-manrope-medium"
-          style={{ color: theme.status.error }}
-        >
+        <Text className="text-xs ml-1 font-manrope-medium" style={{ color: theme.status.error }}>
           {error}
         </Text>
       )}

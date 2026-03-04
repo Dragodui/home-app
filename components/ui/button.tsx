@@ -1,21 +1,8 @@
-import { FC } from "react";
-import {
-  TouchableOpacity,
-  Text,
-  ActivityIndicator,
-  ViewStyle,
-  TextStyle,
-} from "react-native";
+import type { FC } from "react";
+import { ActivityIndicator, Text, type TextStyle, TouchableOpacity, type ViewStyle } from "react-native";
 import { useTheme } from "@/stores/themeStore";
 
-type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "yellow"
-  | "purple"
-  | "pink"
-  | "outline"
-  | "danger";
+type ButtonVariant = "primary" | "secondary" | "yellow" | "purple" | "pink" | "outline" | "danger";
 
 interface ButtonProps {
   title: string;
@@ -53,9 +40,7 @@ const Button: FC<ButtonProps> = ({
       case "secondary":
         return theme.isDark ? "bg-surface-dark" : "bg-surface";
       case "outline":
-        return `bg-transparent border-2 border-dashed ${
-          theme.isDark ? "border-gray-700" : "border-gray-100"
-        }`;
+        return `bg-transparent border-2 border-dashed ${theme.isDark ? "border-gray-700" : "border-gray-100"}`;
       case "danger":
         return "bg-accent-danger-light";
       default:
@@ -104,10 +89,7 @@ const Button: FC<ButtonProps> = ({
       ) : (
         <>
           {icon}
-          <Text
-            className={`text-base font-manrope-bold ${getTextColorClass()}`}
-            style={textStyle}
-          >
+          <Text className={`text-base font-manrope-bold ${getTextColorClass()}`} style={textStyle}>
             {title}
           </Text>
         </>

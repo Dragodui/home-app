@@ -1,11 +1,5 @@
-import { createContext, FC, ReactNode, useCallback, useContext, useState } from "react";
-import {
-  View,
-  Text,
-  Modal as RNModal,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-} from "react-native";
+import { createContext, type FC, type ReactNode, useCallback, useContext, useState } from "react";
+import { Modal as RNModal, Text, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { useTheme } from "@/stores/themeStore";
 
 interface AlertButton {
@@ -46,24 +40,21 @@ export const AlertProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setState((s) => ({ ...s, visible: false }));
   }, []);
 
-  const alert = useCallback(
-    (title: string, message?: string, buttons?: AlertButton[]) => {
-      setState({
-        visible: true,
-        title,
-        message,
-        buttons: buttons && buttons.length > 0 ? buttons : [{ text: "OK" }],
-      });
-    },
-    []
-  );
+  const alert = useCallback((title: string, message?: string, buttons?: AlertButton[]) => {
+    setState({
+      visible: true,
+      title,
+      message,
+      buttons: buttons && buttons.length > 0 ? buttons : [{ text: "OK" }],
+    });
+  }, []);
 
   const handlePress = (button: AlertButton) => {
     close();
     setTimeout(() => button.onPress?.(), 200);
   };
 
-  const getButtonStyle = (style?: string, index?: number, total?: number) => {
+  const getButtonStyle = (style?: string, _index?: number, _total?: number) => {
     if (style === "destructive") {
       return {
         bg: theme.accent.pink,
@@ -86,48 +77,27 @@ export const AlertProvider: FC<{ children: ReactNode }> = ({ children }) => {
   return (
     <AlertContext.Provider value={{ alert }}>
       {children}
-      <RNModal
-        visible={state.visible}
-        animationType="fade"
-        transparent
-        statusBarTranslucent
-        onRequestClose={close}
-      >
+      <RNModal visible={state.visible} animationType="fade" transparent statusBarTranslucent onRequestClose={close}>
         <TouchableWithoutFeedback onPress={close}>
           <View
             className="flex-1 justify-center items-center px-8"
             style={{
-              backgroundColor: theme.isDark
-                ? "rgba(0, 0, 0, 0.8)"
-                : "rgba(0, 0, 0, 0.5)",
+              backgroundColor: theme.isDark ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.5)",
             }}
           >
             <TouchableWithoutFeedback>
-              <View
-                className="w-full rounded-3xl p-6"
-                style={{ backgroundColor: theme.surface, maxWidth: 340 }}
-              >
-                <Text
-                  className="text-lg font-manrope-bold text-center mb-2"
-                  style={{ color: theme.text }}
-                >
+              <View className="w-full rounded-3xl p-6" style={{ backgroundColor: theme.surface, maxWidth: 340 }}>
+                <Text className="text-lg font-manrope-bold text-center mb-2" style={{ color: theme.text }}>
                   {state.title}
                 </Text>
 
                 {state.message && (
-                  <Text
-                    className="text-sm font-manrope text-center mb-5"
-                    style={{ color: theme.textSecondary }}
-                  >
+                  <Text className="text-sm font-manrope text-center mb-5" style={{ color: theme.textSecondary }}>
                     {state.message}
                   </Text>
                 )}
 
-                <View
-                  className={
-                    state.buttons.length <= 2 ? "flex-row gap-3" : "gap-2.5"
-                  }
-                >
+                <View className={state.buttons.length <= 2 ? "flex-row gap-3" : "gap-2.5"}>
                   {state.buttons.map((btn, i) => {
                     const colors = getButtonStyle(btn.style, i, state.buttons.length);
                     return (
@@ -140,10 +110,7 @@ export const AlertProvider: FC<{ children: ReactNode }> = ({ children }) => {
                         onPress={() => handlePress(btn)}
                         activeOpacity={0.8}
                       >
-                        <Text
-                          className="text-sm font-manrope-semibold"
-                          style={{ color: colors.text }}
-                        >
+                        <Text className="text-sm font-manrope-semibold" style={{ color: colors.text }}>
                           {btn.text}
                         </Text>
                       </TouchableOpacity>

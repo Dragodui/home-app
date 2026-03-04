@@ -1,17 +1,12 @@
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { ArrowLeft, CheckCircle, Mail, XCircle } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  TouchableOpacity,
-} from "react-native";
-import { useRouter, useLocalSearchParams, Stack } from "expo-router";
+import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Button from "@/components/ui/button";
 import Colors from "@/constants/colors";
 import { useAuth } from "@/stores/authStore";
-import { useI18n, interpolate } from "@/stores/i18nStore";
-import { Mail, CheckCircle, XCircle, ArrowLeft } from "lucide-react-native";
+import { interpolate, useI18n } from "@/stores/i18nStore";
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
@@ -43,7 +38,7 @@ export default function VerifyEmailScreen() {
     };
 
     verify();
-  }, [token, verifyEmail]);
+  }, [token, verifyEmail, t.verify.verificationFailed]);
 
   const handleResend = async () => {
     if (!email) {
@@ -68,10 +63,7 @@ export default function VerifyEmailScreen() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <View
-          className="flex-1 bg-white px-8"
-          style={{ paddingTop: insets.top + 40 }}
-        >
+        <View className="flex-1 bg-white px-8" style={{ paddingTop: insets.top + 40 }}>
           <View className="flex-1 justify-center items-center pb-20">
             {loading ? (
               <ActivityIndicator size="large" color={Colors.accentPurple} />
@@ -91,9 +83,7 @@ export default function VerifyEmailScreen() {
                   {verified ? t.verify.emailVerified : t.verify.verificationFailed}
                 </Text>
                 <Text className="text-base font-manrope text-gray-500 text-center leading-6 mb-8 px-4">
-                  {verified
-                    ? t.verify.verifiedMessage
-                    : error || t.verify.linkExpired}
+                  {verified ? t.verify.verifiedMessage : error || t.verify.linkExpired}
                 </Text>
               </>
             )}
@@ -114,10 +104,7 @@ export default function VerifyEmailScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View
-        className="flex-1 bg-white px-8"
-        style={{ paddingTop: insets.top + 20 }}
-      >
+      <View className="flex-1 bg-white px-8" style={{ paddingTop: insets.top + 20 }}>
         <TouchableOpacity
           className="w-12 h-12 rounded-3xl bg-gray-50 justify-center items-center"
           onPress={() => router.back()}
@@ -133,20 +120,12 @@ export default function VerifyEmailScreen() {
             <Mail size={48} color={Colors.black} />
           </View>
 
-          <Text className="text-[28px] font-manrope-bold text-black mb-3 text-center">
-            {t.verify.title}
-          </Text>
+          <Text className="text-[28px] font-manrope-bold text-black mb-3 text-center">{t.verify.title}</Text>
           <Text className="text-base font-manrope text-gray-500 text-center leading-6 mb-8 px-4">
-            {sent
-              ? interpolate(t.verify.sentMessage, { email })
-              : interpolate(t.verify.checkInbox, { email })}
+            {sent ? interpolate(t.verify.sentMessage, { email }) : interpolate(t.verify.checkInbox, { email })}
           </Text>
 
-          {error ? (
-            <Text className="text-red-500 text-sm font-manrope-medium mb-4 text-center">
-              {error}
-            </Text>
-          ) : null}
+          {error ? <Text className="text-red-500 text-sm font-manrope-medium mb-4 text-center">{error}</Text> : null}
 
           {!sent && (
             <Button

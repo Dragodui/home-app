@@ -1,11 +1,11 @@
 import { useEffect } from "react";
-import { wsManager, EventModule } from "@/lib/websocket";
+import { type EventModule, wsManager } from "@/lib/websocket";
 
 export function useRealtimeRefresh(modules: EventModule[], callback: () => void) {
-  const modulesKey = modules.join(",");
+  const _modulesKey = modules.join(",");
 
   useEffect(() => {
     return wsManager.subscribe(modules, callback);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callback, modulesKey]);
+  }, [callback, modules]);
 }

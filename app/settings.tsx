@@ -1,31 +1,16 @@
-import { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import {
-  ArrowLeft,
-  Sun,
-  Moon,
-  Globe,
-  Trash2,
-  ChevronRight,
-  Wifi,
-  Tv,
-} from "lucide-react-native";
-import { useTheme } from "@/stores/themeStore";
-import { useI18n } from "@/stores/i18nStore";
-import { useHome } from "@/stores/homeStore";
-import Modal from "@/components/ui/modal";
+import { ArrowLeft, ChevronRight, Globe, Moon, Sun, Trash2, Tv, Wifi } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAlert } from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
+import Modal from "@/components/ui/modal";
 import { smarthomeApi } from "@/lib/api";
-import { useAlert } from "@/components/ui/alert";
+import { useHome } from "@/stores/homeStore";
+import { useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -64,7 +49,7 @@ export default function SettingsScreen() {
     if (showSmartHomeModal) {
       fetchHAStatus();
     }
-  }, [showSmartHomeModal]);
+  }, [showSmartHomeModal, fetchHAStatus]);
 
   const handleConnectHA = async () => {
     if (!home) return;
@@ -73,7 +58,7 @@ export default function SettingsScreen() {
       await smarthomeApi.connect(home.id, haUrl, haToken);
       await fetchHAStatus();
       alert(t.common.success || "Success", "Home Assistant connected successfully");
-    } catch (error) {
+    } catch (_error) {
       alert(t.common.error, "Failed to connect to Home Assistant");
     } finally {
       setHaLoading(false);
@@ -88,7 +73,7 @@ export default function SettingsScreen() {
       await fetchHAStatus();
       setHaToken("");
       alert(t.common.success || "Success", "Disconnected from Home Assistant");
-    } catch (error) {
+    } catch (_error) {
       alert(t.common.error, "Failed to disconnect");
     } finally {
       setHaLoading(false);
@@ -107,7 +92,7 @@ export default function SettingsScreen() {
       } else {
         alert(t.common.error, result.error || t.settings.leaveHomeFailed);
       }
-    } catch (error) {
+    } catch (_error) {
       alert(t.common.error, t.settings.leaveHomeFailed);
     } finally {
       setIsLeaving(false);
@@ -220,43 +205,43 @@ export default function SettingsScreen() {
             >
               {t.settings.homeSettings || "HOME SETTINGS"}
             </Text>
-            
-            {isAdmin && (
-                <>
-                  <TouchableOpacity
-                      className="flex-row items-center p-4 rounded-20 gap-3.5 mb-3"
-                      style={{ backgroundColor: theme.surface }}
-                      onPress={() => setShowSmartHomeModal(true)}
-                  >
-                      <View 
-                          className="w-11 h-11 rounded-14 justify-center items-center"
-                          style={{ backgroundColor: theme.accent.cyan }}
-                      >
-                          <Wifi size={20} color="#FFFFFF" />
-                      </View>
-                      <Text className="flex-1 text-base font-manrope-semibold" style={{ color: theme.text }}>
-                          Smart Home Connection
-                      </Text>
-                      <ChevronRight size={20} color={theme.textSecondary} />
-                  </TouchableOpacity>
 
-                  <TouchableOpacity
-                      className="flex-row items-center p-4 rounded-20 gap-3.5 mb-3"
-                      style={{ backgroundColor: theme.surface }}
-                      onPress={() => router.push("/smarthome")}
+            {isAdmin && (
+              <>
+                <TouchableOpacity
+                  className="flex-row items-center p-4 rounded-20 gap-3.5 mb-3"
+                  style={{ backgroundColor: theme.surface }}
+                  onPress={() => setShowSmartHomeModal(true)}
+                >
+                  <View
+                    className="w-11 h-11 rounded-14 justify-center items-center"
+                    style={{ backgroundColor: theme.accent.cyan }}
                   >
-                      <View 
-                          className="w-11 h-11 rounded-14 justify-center items-center"
-                          style={{ backgroundColor: theme.accent.cyan }}
-                      >
-                          <Tv size={20} color="#FFFFFF" />
-                      </View>
-                      <Text className="flex-1 text-base font-manrope-semibold" style={{ color: theme.text }}>
-                          Smart Home Dashboard
-                      </Text>
-                      <ChevronRight size={20} color={theme.textSecondary} />
-                  </TouchableOpacity>
-                </>
+                    <Wifi size={20} color="#FFFFFF" />
+                  </View>
+                  <Text className="flex-1 text-base font-manrope-semibold" style={{ color: theme.text }}>
+                    Smart Home Connection
+                  </Text>
+                  <ChevronRight size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="flex-row items-center p-4 rounded-20 gap-3.5 mb-3"
+                  style={{ backgroundColor: theme.surface }}
+                  onPress={() => router.push("/smarthome")}
+                >
+                  <View
+                    className="w-11 h-11 rounded-14 justify-center items-center"
+                    style={{ backgroundColor: theme.accent.cyan }}
+                  >
+                    <Tv size={20} color="#FFFFFF" />
+                  </View>
+                  <Text className="flex-1 text-base font-manrope-semibold" style={{ color: theme.text }}>
+                    Smart Home Dashboard
+                  </Text>
+                  <ChevronRight size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </>
             )}
 
             <View className="p-5 rounded-20" style={{ backgroundColor: theme.surface }}>
@@ -286,9 +271,7 @@ export default function SettingsScreen() {
             >
               <Trash2 size={20} color="#FFFFFF" />
               <Text className="text-base font-manrope-semibold text-white">
-                {isAdmin
-                  ? (t.settings.deleteHome || "Delete Home")
-                  : (t.settings.leaveHome || "Leave Home")}
+                {isAdmin ? t.settings.deleteHome || "Delete Home" : t.settings.leaveHome || "Leave Home"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -327,28 +310,22 @@ export default function SettingsScreen() {
       </Modal>
 
       {/* Smart Home Modal */}
-      <Modal
-        visible={showSmartHomeModal}
-        onClose={() => setShowSmartHomeModal(false)}
-        title="Smart Home"
-        height="full"
-      >
+      <Modal visible={showSmartHomeModal} onClose={() => setShowSmartHomeModal(false)} title="Smart Home" height="full">
         <View className="flex-1">
           {haLoading ? (
             <ActivityIndicator size="large" color={theme.accent.cyan} />
           ) : haStatus?.connected ? (
             <View>
               <View className="p-5 rounded-16 mb-5" style={{ backgroundColor: theme.surface }}>
-                <Text className="text-lg font-manrope-bold mb-2" style={{ color: theme.text }}>Status: Connected</Text>
-                <Text className="mb-2" style={{ color: theme.textSecondary }}>URL: {haStatus.url}</Text>
+                <Text className="text-lg font-manrope-bold mb-2" style={{ color: theme.text }}>
+                  Status: Connected
+                </Text>
+                <Text className="mb-2" style={{ color: theme.textSecondary }}>
+                  URL: {haStatus.url}
+                </Text>
                 {haStatus.error && <Text style={{ color: theme.accent.danger }}>Error: {haStatus.error}</Text>}
               </View>
-              <Button
-                title="Disconnect"
-                onPress={handleDisconnectHA}
-                variant="danger"
-                style={{ marginTop: 20 }}
-              />
+              <Button title="Disconnect" onPress={handleDisconnectHA} variant="danger" style={{ marginTop: 20 }} />
             </View>
           ) : (
             <View>
@@ -385,18 +362,18 @@ export default function SettingsScreen() {
       <Modal
         visible={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
-        title={isAdmin
-          ? (t.settings.deleteHomeConfirmTitle || "Delete Home?")
-          : (t.settings.leaveHomeConfirmTitle || "Leave Home?")}
+        title={
+          isAdmin
+            ? t.settings.deleteHomeConfirmTitle || "Delete Home?"
+            : t.settings.leaveHomeConfirmTitle || "Leave Home?"
+        }
       >
         <View className="pt-2.5">
-          <Text
-            className="text-15 font-manrope mb-6"
-            style={{ color: theme.textSecondary, lineHeight: 22 }}
-          >
+          <Text className="text-15 font-manrope mb-6" style={{ color: theme.textSecondary, lineHeight: 22 }}>
             {isAdmin
-              ? (t.settings.deleteHomeConfirmText || "This action cannot be undone. All data will be permanently deleted.")
-              : (t.settings.leaveHomeConfirmText || "You will no longer have access to this home.")}
+              ? t.settings.deleteHomeConfirmText ||
+                "This action cannot be undone. All data will be permanently deleted."
+              : t.settings.leaveHomeConfirmText || "You will no longer have access to this home."}
           </Text>
           <View className="flex-row gap-3">
             <Button
@@ -406,7 +383,7 @@ export default function SettingsScreen() {
               style={{ flex: 1 }}
             />
             <Button
-              title={isAdmin ? (t.common.delete || "Delete") : (t.settings.leave || "Leave")}
+              title={isAdmin ? t.common.delete || "Delete" : t.settings.leave || "Leave"}
               onPress={handleLeaveHome}
               variant="danger"
               loading={isLeaving}

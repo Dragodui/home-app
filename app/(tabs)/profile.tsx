@@ -1,43 +1,35 @@
-import { useState } from "react";
+import * as Clipboard from "expo-clipboard";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-} from "react-native";
-import {
-  LogOut,
-  Home as HomeIcon,
-  Settings,
   Bell,
-  Shield,
+  Check,
   ChevronRight,
-  User,
-  Users,
-  Sun,
-  Moon,
   Copy,
   Globe,
-  Zap,
-  Check,
+  Home as HomeIcon,
+  LogOut,
+  Moon,
   Plus,
+  Settings,
+  Shield,
+  Sun,
+  User,
+  Users,
+  Zap,
 } from "lucide-react-native";
-import * as Clipboard from "expo-clipboard";
+import { useState } from "react";
+import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useAlert } from "@/components/ui/alert";
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import Modal from "@/components/ui/modal";
+import { imageApi } from "@/lib/api";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
-import { useTheme } from "@/stores/themeStore";
-import Modal from "@/components/ui/modal";
-import Input from "@/components/ui/input";
-import Button from "@/components/ui/button";
-
-import * as ImagePicker from "expo-image-picker";
-import { imageApi } from "@/lib/api";
 import { useI18n } from "@/stores/i18nStore";
-import { useAlert } from "@/components/ui/alert";
+import { useTheme } from "@/stores/themeStore";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -78,7 +70,7 @@ export default function ProfileScreen() {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      // @ts-ignore - React Native FormData expects specific format
+      // @ts-expect-error - React Native FormData expects specific format
       formData.append("image", {
         uri,
         name: "avatar.jpg",
@@ -215,10 +207,7 @@ export default function ProfileScreen() {
                 style={isUploading ? { opacity: 0.5 } : undefined}
               />
             ) : (
-              <View
-                className="w-full h-full justify-center items-center"
-                style={{ backgroundColor: theme.surface }}
-              >
+              <View className="w-full h-full justify-center items-center" style={{ backgroundColor: theme.surface }}>
                 <User size={64} color={theme.textSecondary} />
               </View>
             )}
@@ -229,34 +218,22 @@ export default function ProfileScreen() {
             )}
           </TouchableOpacity>
 
-          <Text
-            className="text-[28px] font-manrope-bold mb-1"
-            style={{ color: theme.text }}
-          >
+          <Text className="text-[28px] font-manrope-bold mb-1" style={{ color: theme.text }}>
             {user?.name || "User"}
           </Text>
-          <Text
-            className="text-[16px] font-manrope mb-4"
-            style={{ color: theme.textSecondary }}
-          >
+          <Text className="text-[16px] font-manrope mb-4" style={{ color: theme.textSecondary }}>
             {getUsername()}
           </Text>
 
           {home && (
-            <View
-              className="px-4 py-2 rounded-xl"
-              style={{ backgroundColor: theme.surface }}
-            >
-              <Text
-                className="text-[13px] font-manrope-semibold"
-                style={{ color: theme.textSecondary }}
-              >
+            <View className="px-4 py-2 rounded-xl" style={{ backgroundColor: theme.surface }}>
+              <Text className="text-[13px] font-manrope-semibold" style={{ color: theme.textSecondary }}>
                 {isAdmin ? t.profile.homeAdmin : t.profile.member}
               </Text>
             </View>
           )}
 
-          {home && home.inviteCode && (
+          {home?.inviteCode && (
             <TouchableOpacity
               className="mt-4 px-5 py-3.5 rounded-2xl items-center"
               style={{ backgroundColor: theme.surface }}
@@ -273,10 +250,7 @@ export default function ProfileScreen() {
                 {t.profile.homeCode}
               </Text>
               <View className="flex-row items-center gap-2">
-                <Text
-                  className="text-[18px] font-manrope-bold tracking-widest"
-                  style={{ color: theme.text }}
-                >
+                <Text className="text-[18px] font-manrope-bold tracking-widest" style={{ color: theme.text }}>
                   {home.inviteCode}
                 </Text>
                 <Copy size={16} color={theme.textSecondary} />
@@ -303,10 +277,7 @@ export default function ProfileScreen() {
                 >
                   <Icon size={22} color="#1C1C1E" />
                 </View>
-                <Text
-                  className="flex-1 text-[16px] font-manrope-semibold"
-                  style={{ color: theme.text }}
-                >
+                <Text className="flex-1 text-[16px] font-manrope-semibold" style={{ color: theme.text }}>
                   {item.label}
                 </Text>
                 <ChevronRight size={20} color={theme.textSecondary} />
@@ -372,10 +343,7 @@ export default function ProfileScreen() {
             activeOpacity={0.7}
           >
             <View className="flex-row items-center gap-3">
-              <Text
-                className="text-[16px] font-manrope-semibold"
-                style={{ color: theme.text }}
-              >
+              <Text className="text-[16px] font-manrope-semibold" style={{ color: theme.text }}>
                 {languageNames[language]}
               </Text>
             </View>
@@ -453,9 +421,7 @@ export default function ProfileScreen() {
             onPress={leaveHome}
             activeOpacity={0.8}
           >
-            <Text className="text-[16px] font-manrope-bold text-white">
-              {t.auth.leaveHome}
-            </Text>
+            <Text className="text-[16px] font-manrope-bold text-white">{t.auth.leaveHome}</Text>
             <LogOut size={20} color="#FFFFFF" />
           </TouchableOpacity>
         )}
@@ -467,9 +433,7 @@ export default function ProfileScreen() {
           onPress={handleLogout}
           activeOpacity={0.8}
         >
-          <Text className="text-[16px] font-manrope-bold text-white">
-            {t.auth.logOut}
-          </Text>
+          <Text className="text-[16px] font-manrope-bold text-white">{t.auth.logOut}</Text>
           <LogOut size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </ScrollView>

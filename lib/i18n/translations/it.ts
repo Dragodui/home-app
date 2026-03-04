@@ -62,7 +62,8 @@ export default {
     verifiedMessage: "La tua e-mail è stata verificata con successo. Ora puoi accedere.",
     linkExpired: "Il link di verifica potrebbe essere scaduto.",
     sentMessage: "Un nuovo link di verifica è stato inviato a {email}",
-    checkInbox: "Abbiamo inviato un link di verifica a {email}. Controlla la tua casella di posta e clicca sul link per verificare.",
+    checkInbox:
+      "Abbiamo inviato un link di verifica a {email}. Controlla la tua casella di posta e clicca sul link per verificare.",
     resendEmail: "Reinvia e-mail di verifica",
     backToLogin: "Torna all'accesso",
     continueToLogin: "Continua all'accesso",
@@ -367,7 +368,7 @@ export default {
     roomNamePlaceholder: "es. Cucina, Soggiorno",
     createRoom: "Crea stanza",
     deleteRoom: "Elimina stanza",
-    deleteRoomConfirm: "Sei sicuro di voler eliminare \"{name}\"?",
+    deleteRoomConfirm: 'Sei sicuro di voler eliminare "{name}"?',
     noRooms: "Nessuna stanza ancora",
     noRoomsAdminHint: "Crea la tua prima stanza per organizzare le attività per posizione",
     noRoomsMemberHint: "Chiedi all'amministratore della casa di creare delle stanze",

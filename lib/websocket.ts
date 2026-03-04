@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/stores/authStore";
 
-const WS_URL = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/^https?/, "ws") + "/ws";
+const WS_URL = `${(process.env.EXPO_PUBLIC_API_URL ?? "").replace(/^https?/, "ws")}/ws`;
 
 export type EventModule =
   | "BILL_CATEGORY"
@@ -71,7 +71,7 @@ class WebSocketManager {
     }
 
     try {
-      const ws = new WebSocket(WS_URL + "?token=" + encodeURIComponent(token));
+      const ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`);
 
       ws.onopen = () => {
         console.log("[WS] Connected");

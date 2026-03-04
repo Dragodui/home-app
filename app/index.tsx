@@ -1,8 +1,8 @@
-import { useEffect } from "react";
 import { useRouter } from "expo-router";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { useAuth } from "@/stores/authStore";
+import { useEffect } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import Colors from "@/constants/colors";
+import { useAuth } from "@/stores/authStore";
 
 export default function IndexScreen() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function IndexScreen() {
         router.replace("/login");
       }
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, router.replace]);
 
   return (
     <View style={styles.container}>

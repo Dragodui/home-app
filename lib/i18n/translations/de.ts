@@ -62,7 +62,8 @@ export default {
     verifiedMessage: "Ihre E-Mail wurde erfolgreich bestätigt. Sie können sich jetzt anmelden.",
     linkExpired: "Der Bestätigungslink ist möglicherweise abgelaufen.",
     sentMessage: "Ein neuer Bestätigungslink wurde an {email} gesendet",
-    checkInbox: "Wir haben einen Bestätigungslink an {email} gesendet. Überprüfen Sie Ihren Posteingang und klicken Sie auf den Link zur Bestätigung.",
+    checkInbox:
+      "Wir haben einen Bestätigungslink an {email} gesendet. Überprüfen Sie Ihren Posteingang und klicken Sie auf den Link zur Bestätigung.",
     resendEmail: "Bestätigungs-E-Mail erneut senden",
     backToLogin: "Zurück zur Anmeldung",
     continueToLogin: "Zur Anmeldung",
@@ -367,7 +368,7 @@ export default {
     roomNamePlaceholder: "z.B. Küche, Wohnzimmer",
     createRoom: "Raum erstellen",
     deleteRoom: "Raum löschen",
-    deleteRoomConfirm: "Sind Sie sicher, dass Sie \"{name}\" löschen möchten?",
+    deleteRoomConfirm: 'Sind Sie sicher, dass Sie "{name}" löschen möchten?',
     noRooms: "Noch keine Räume",
     noRoomsAdminHint: "Erstellen Sie Ihren ersten Raum, um Aufgaben nach Ort zu organisieren",
     noRoomsMemberHint: "Bitten Sie Ihren Heim-Administrator, Räume zu erstellen",

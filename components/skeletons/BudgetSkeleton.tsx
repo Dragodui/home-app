@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@/stores/themeStore";
 import Skeleton from "@/components/ui/skeleton";
+import { useTheme } from "@/stores/themeStore";
 
 export default function BudgetSkeleton() {
   const insets = useSafeAreaInsets();
@@ -37,11 +37,7 @@ export default function BudgetSkeleton() {
         {/* Bill Items */}
         <View className="gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <View
-              key={i}
-              className="rounded-[24px] p-5"
-              style={{ backgroundColor: theme.surface }}
-            >
+            <View key={i} className="rounded-[24px] p-5" style={{ backgroundColor: theme.surface }}>
               <View className="flex-row items-center gap-4">
                 <Skeleton width={44} height={44} borderRadius={14} />
                 <View className="flex-1">

@@ -1,38 +1,38 @@
 import axios from "axios";
+import { deepCamelToSnake, deepSnakeToCamel } from "./caseConverter";
 import { secureStorage } from "./secureStorage";
-import { deepSnakeToCamel, deepCamelToSnake } from "./caseConverter";
-import {
-  User,
+import type {
+  AddDeviceRequest,
+  AuthResponse,
+  Bill,
+  BillCategory,
+  CreateBillForm,
+  CreateCategoryForm,
+  CreateItemForm,
+  CreatePollForm,
+  CreateScheduleForm,
+  CreateTaskForm,
+  HAState,
   Home,
   HomeMembership,
+  HomeNotification,
+  Notification,
+  OCRResult,
+  Poll,
   Room,
+  ShoppingCategory,
+  ShoppingItem,
+  SmartDevice,
   Task,
   TaskAssignment,
   TaskSchedule,
-  Bill,
-  BillCategory,
-  ShoppingCategory,
-  ShoppingItem,
-  Poll,
-  Notification,
-  HomeNotification,
-  AuthResponse,
-  CreateTaskForm,
-  CreateScheduleForm,
-  CreateBillForm,
-  CreatePollForm,
-  CreateCategoryForm,
-  CreateItemForm,
-  SmartDevice,
-  HAState,
-  AddDeviceRequest,
   UpdateDeviceRequest,
-  OCRResult,
+  User,
 } from "./types";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "";
 
-console.log(API_BASE_URL)
+console.log(API_BASE_URL);
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   headers: {
@@ -49,7 +49,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Request interceptor - convert camelCase to snake_case
@@ -68,7 +68,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Response interceptor - convert snake_case to camelCase
@@ -84,7 +84,7 @@ api.interceptors.response.use(
       error.response.data = deepSnakeToCamel(error.response.data);
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor - handle 401
@@ -101,7 +101,7 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 // ============ Auth API ============
@@ -113,7 +113,7 @@ export const authApi = {
 
   login: async (email: string, password: string): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>("/auth/login", { email, password });
-    console.log(response.data)
+    console.log(response.data);
     if (response.data.token) {
       await secureStorage.setItem("auth_token", response.data.token);
       await secureStorage.setItem("user", JSON.stringify(response.data.user));
@@ -308,24 +308,33 @@ export const taskApi = {
   },
 
   reassignRoom: async (homeId: number, taskId: number, roomId: number): Promise<{ message: string }> => {
-    const response = await api.patch<{ status: boolean; message: string }>(`/homes/${homeId}/tasks/${taskId}/reassign-room`, {
-      taskId,
-      roomId,
-    });
+    const response = await api.patch<{ status: boolean; message: string }>(
+      `/homes/${homeId}/tasks/${taskId}/reassign-room`,
+      {
+        taskId,
+        roomId,
+      },
+    );
     return { message: response.data.message };
   },
 
   markCompleted: async (homeId: number, taskId: number, assignmentId: number): Promise<{ message: string }> => {
-    const response = await api.patch<{ status: boolean; message: string }>(`/homes/${homeId}/tasks/${taskId}/mark-completed`, {
-      assignmentId,
-    });
+    const response = await api.patch<{ status: boolean; message: string }>(
+      `/homes/${homeId}/tasks/${taskId}/mark-completed`,
+      {
+        assignmentId,
+      },
+    );
     return { message: response.data.message };
   },
 
   markUncompleted: async (homeId: number, taskId: number, assignmentId: number): Promise<{ message: string }> => {
-    const response = await api.patch<{ status: boolean; message: string }>(`/homes/${homeId}/tasks/${taskId}/mark-uncompleted`, {
-      assignmentId,
-    });
+    const response = await api.patch<{ status: boolean; message: string }>(
+      `/homes/${homeId}/tasks/${taskId}/mark-uncompleted`,
+      {
+        assignmentId,
+      },
+    );
     return { message: response.data.message };
   },
 
@@ -337,18 +346,22 @@ export const taskApi = {
 
   deleteAssignment: async (homeId: number, taskId: number, assignmentId: number): Promise<{ message: string }> => {
     const response = await api.delete<{ status: boolean; message: string }>(
-      `/homes/${homeId}/tasks/${taskId}/assignments/${assignmentId}`
+      `/homes/${homeId}/tasks/${taskId}/assignments/${assignmentId}`,
     );
     return { message: response.data.message };
   },
 
   getUserAssignments: async (homeId: number, userId: number): Promise<TaskAssignment[]> => {
-    const response = await api.get<{ status: boolean; assignments: TaskAssignment[] }>(`/homes/${homeId}/users/${userId}/assignments`);
+    const response = await api.get<{ status: boolean; assignments: TaskAssignment[] }>(
+      `/homes/${homeId}/users/${userId}/assignments`,
+    );
     return response.data.assignments || [];
   },
 
   getClosestAssignment: async (homeId: number, userId: number): Promise<TaskAssignment | null> => {
-    const response = await api.get<{ status: boolean; assignment: TaskAssignment | null }>(`/homes/${homeId}/users/${userId}/assignments/closest`);
+    const response = await api.get<{ status: boolean; assignment: TaskAssignment | null }>(
+      `/homes/${homeId}/users/${userId}/assignments/closest`,
+    );
     return response.data.assignment;
   },
 };
@@ -356,7 +369,10 @@ export const taskApi = {
 // ============ Task Schedule API ============
 export const taskScheduleApi = {
   create: async (homeId: number, data: CreateScheduleForm): Promise<{ schedule: TaskSchedule }> => {
-    const response = await api.post<{ status: boolean; schedule: TaskSchedule }>(`/homes/${homeId}/tasks/schedules`, data);
+    const response = await api.post<{ status: boolean; schedule: TaskSchedule }>(
+      `/homes/${homeId}/tasks/schedules`,
+      data,
+    );
     return { schedule: response.data.schedule };
   },
 
@@ -366,12 +382,16 @@ export const taskScheduleApi = {
   },
 
   getByTaskId: async (homeId: number, taskId: number): Promise<TaskSchedule | null> => {
-    const response = await api.get<{ status: boolean; schedule: TaskSchedule | null }>(`/homes/${homeId}/tasks/${taskId}/schedule`);
+    const response = await api.get<{ status: boolean; schedule: TaskSchedule | null }>(
+      `/homes/${homeId}/tasks/${taskId}/schedule`,
+    );
     return response.data.schedule;
   },
 
   delete: async (homeId: number, scheduleId: number): Promise<{ message: string }> => {
-    const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/tasks/schedules/${scheduleId}`);
+    const response = await api.delete<{ status: boolean; message: string }>(
+      `/homes/${homeId}/tasks/schedules/${scheduleId}`,
+    );
     return { message: response.data.message };
   },
 };
@@ -404,13 +424,21 @@ export const billApi = {
     return { message: response.data.message };
   },
 
-  updateSplits: async (homeId: number, billId: number, splits: { userId: number; amount: number }[]): Promise<{ message: string }> => {
-    const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/bills/${billId}/splits`, { splits });
+  updateSplits: async (
+    homeId: number,
+    billId: number,
+    splits: { userId: number; amount: number }[],
+  ): Promise<{ message: string }> => {
+    const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/bills/${billId}/splits`, {
+      splits,
+    });
     return { message: response.data.message };
   },
 
   markSplitPaid: async (homeId: number, billId: number, splitId: number): Promise<{ message: string }> => {
-    const response = await api.patch<{ status: boolean; message: string }>(`/homes/${homeId}/bills/${billId}/splits/${splitId}/paid`);
+    const response = await api.patch<{ status: boolean; message: string }>(
+      `/homes/${homeId}/bills/${billId}/splits/${splitId}/paid`,
+    );
     return { message: response.data.message };
   },
 };
@@ -427,7 +455,9 @@ export const billCategoryApi = {
   },
 
   delete: async (homeId: number, categoryId: number): Promise<{ message: string }> => {
-    const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/bill_categories/${categoryId}`);
+    const response = await api.delete<{ status: boolean; message: string }>(
+      `/homes/${homeId}/bill_categories/${categoryId}`,
+    );
     return { message: response.data.message };
   },
 };
@@ -441,30 +471,41 @@ export const shoppingApi = {
   },
 
   getCategories: async (homeId: number): Promise<ShoppingCategory[]> => {
-    const response = await api.get<{ status: boolean; categories: ShoppingCategory[] }>(`/homes/${homeId}/shopping/categories/all`);
+    const response = await api.get<{ status: boolean; categories: ShoppingCategory[] }>(
+      `/homes/${homeId}/shopping/categories/all`,
+    );
     return response.data.categories || [];
   },
 
   getCategoryById: async (homeId: number, categoryId: number): Promise<ShoppingCategory> => {
-    const response = await api.get<{ status: boolean; category: ShoppingCategory }>(`/homes/${homeId}/shopping/categories/${categoryId}`);
+    const response = await api.get<{ status: boolean; category: ShoppingCategory }>(
+      `/homes/${homeId}/shopping/categories/${categoryId}`,
+    );
     return response.data.category;
   },
 
   getCategoryItems: async (homeId: number, categoryId: number): Promise<ShoppingItem[]> => {
-    const response = await api.get<{ status: boolean; items: ShoppingItem[] }>(`/homes/${homeId}/shopping/categories/${categoryId}/items`);
+    const response = await api.get<{ status: boolean; items: ShoppingItem[] }>(
+      `/homes/${homeId}/shopping/categories/${categoryId}/items`,
+    );
     return response.data.items || [];
   },
   deleteCategory: async (homeId: number, categoryId: number): Promise<{ message: string }> => {
-    const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/shopping/categories/${categoryId}`);
+    const response = await api.delete<{ status: boolean; message: string }>(
+      `/homes/${homeId}/shopping/categories/${categoryId}`,
+    );
     return { message: response.data.message };
   },
 
   editCategory: async (
     homeId: number,
     categoryId: number,
-    data: { name?: string; icon?: string }
+    data: { name?: string; icon?: string },
   ): Promise<{ message: string }> => {
-    const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/shopping/categories/${categoryId}`, data);
+    const response = await api.put<{ status: boolean; message: string }>(
+      `/homes/${homeId}/shopping/categories/${categoryId}`,
+      data,
+    );
     return { message: response.data.message };
   },
 
@@ -475,21 +516,28 @@ export const shoppingApi = {
   },
 
   getItemById: async (homeId: number, itemId: number): Promise<ShoppingItem> => {
-    const response = await api.get<{ status: boolean; item: ShoppingItem }>(`/homes/${homeId}/shopping/items/${itemId}`);
+    const response = await api.get<{ status: boolean; item: ShoppingItem }>(
+      `/homes/${homeId}/shopping/items/${itemId}`,
+    );
     return response.data.item;
   },
 
   deleteItem: async (homeId: number, itemId: number): Promise<{ message: string }> => {
-    const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/shopping/items/${itemId}`);
+    const response = await api.delete<{ status: boolean; message: string }>(
+      `/homes/${homeId}/shopping/items/${itemId}`,
+    );
     return { message: response.data.message };
   },
 
   editItem: async (
     homeId: number,
     itemId: number,
-    data: { name?: string; image?: string; link?: string; isBought?: boolean; boughtDate?: string }
+    data: { name?: string; image?: string; link?: string; isBought?: boolean; boughtDate?: string },
   ): Promise<{ message: string }> => {
-    const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/shopping/items/${itemId}`, data);
+    const response = await api.put<{ status: boolean; message: string }>(
+      `/homes/${homeId}/shopping/items/${itemId}`,
+      data,
+    );
     return { message: response.data.message };
   },
 
@@ -552,12 +600,16 @@ export const notificationApi = {
   },
 
   getHomeNotifications: async (homeId: number): Promise<HomeNotification[]> => {
-    const response = await api.get<{ status: boolean; notifications: HomeNotification[] }>(`/homes/${homeId}/notifications`);
+    const response = await api.get<{ status: boolean; notifications: HomeNotification[] }>(
+      `/homes/${homeId}/notifications`,
+    );
     return response.data.notifications || [];
   },
 
   markHomeNotificationAsRead: async (homeId: number, notificationId: number): Promise<{ message: string }> => {
-    const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/notifications/${notificationId}`);
+    const response = await api.delete<{ status: boolean; message: string }>(
+      `/homes/${homeId}/notifications/${notificationId}`,
+    );
     return { message: response.data.message };
   },
 };
@@ -565,7 +617,10 @@ export const notificationApi = {
 // ============ Smart Home API ============
 export const smarthomeApi = {
   connect: async (homeId: number, url: string, token: string): Promise<{ message: string }> => {
-    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/smarthome/connect`, { url, token });
+    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/smarthome/connect`, {
+      url,
+      token,
+    });
     return { message: response.data.message };
   },
 
@@ -574,10 +629,16 @@ export const smarthomeApi = {
     return { message: response.data.message };
   },
 
-  getStatus: async (homeId: number): Promise<{ connected: boolean; url?: string; isActive?: boolean; createdAt?: string; error?: string }> => {
-    const response = await api.get<{ connected: boolean; url?: string; isActive?: boolean; createdAt?: string; error?: string }>(
-      `/homes/${homeId}/smarthome/status`
-    );
+  getStatus: async (
+    homeId: number,
+  ): Promise<{ connected: boolean; url?: string; isActive?: boolean; createdAt?: string; error?: string }> => {
+    const response = await api.get<{
+      connected: boolean;
+      url?: string;
+      isActive?: boolean;
+      createdAt?: string;
+      error?: string;
+    }>(`/homes/${homeId}/smarthome/status`);
     return response.data;
   },
 
@@ -596,28 +657,44 @@ export const smarthomeApi = {
     return response.data.devices || [];
   },
 
-  getDevice: async (homeId: number, deviceId: number): Promise<{ device: SmartDevice; state?: HAState; error?: string }> => {
+  getDevice: async (
+    homeId: number,
+    deviceId: number,
+  ): Promise<{ device: SmartDevice; state?: HAState; error?: string }> => {
     const response = await api.get<{ status: boolean; device: SmartDevice; state?: HAState; error?: string }>(
-      `/homes/${homeId}/smarthome/devices/${deviceId}`
+      `/homes/${homeId}/smarthome/devices/${deviceId}`,
     );
     return { device: response.data.device, state: response.data.state, error: response.data.error };
   },
 
   updateDevice: async (homeId: number, deviceId: number, data: UpdateDeviceRequest): Promise<{ message: string }> => {
-    const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/smarthome/devices/${deviceId}`, data);
+    const response = await api.put<{ status: boolean; message: string }>(
+      `/homes/${homeId}/smarthome/devices/${deviceId}`,
+      data,
+    );
     return { message: response.data.message };
   },
 
   deleteDevice: async (homeId: number, deviceId: number): Promise<{ message: string }> => {
-    const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/smarthome/devices/${deviceId}`);
+    const response = await api.delete<{ status: boolean; message: string }>(
+      `/homes/${homeId}/smarthome/devices/${deviceId}`,
+    );
     return { message: response.data.message };
   },
 
-  controlDevice: async (homeId: number, deviceId: number, service: string, data?: Record<string, any>): Promise<{ message: string }> => {
-    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/smarthome/devices/${deviceId}/control`, {
-      service,
-      data,
-    });
+  controlDevice: async (
+    homeId: number,
+    deviceId: number,
+    service: string,
+    data?: Record<string, any>,
+  ): Promise<{ message: string }> => {
+    const response = await api.post<{ status: boolean; message: string }>(
+      `/homes/${homeId}/smarthome/devices/${deviceId}/control`,
+      {
+        service,
+        data,
+      },
+    );
     return { message: response.data.message };
   },
 
@@ -627,7 +704,9 @@ export const smarthomeApi = {
   },
 
   getDevicesByRoom: async (homeId: number, roomId: number): Promise<SmartDevice[]> => {
-    const response = await api.get<{ status: boolean; devices: SmartDevice[] }>(`/homes/${homeId}/rooms/${roomId}/devices`);
+    const response = await api.get<{ status: boolean; devices: SmartDevice[] }>(
+      `/homes/${homeId}/rooms/${roomId}/devices`,
+    );
     return response.data.devices || [];
   },
 };
@@ -648,7 +727,7 @@ export const imageApi = {
 export const ocrApi = {
   process: async (fileUri: string, fileName: string, mimeType: string, language?: string): Promise<OCRResult> => {
     const formData = new FormData();
-    // @ts-ignore - React Native FormData accepts object with uri/name/type
+    // @ts-expect-error - React Native FormData accepts object with uri/name/type
     formData.append("file", { uri: fileUri, name: fileName, type: mimeType });
     if (language) formData.append("language", language);
     const response = await api.post<OCRResult>("/ocr/process", formData, {
@@ -660,27 +739,27 @@ export const ocrApi = {
 
 // Re-export types for convenience
 export type {
-  User,
+  AddDeviceRequest,
+  Bill,
+  BillSplit,
+  ControlDeviceRequest,
+  HAState,
   Home,
+  HomeAssistantConfig,
   HomeMembership,
+  HomeNotification,
+  Notification,
+  OCRResult,
+  Poll,
+  PollOption,
   Room,
+  ShoppingCategory,
+  ShoppingItem,
+  SmartDevice,
   Task,
   TaskAssignment,
   TaskSchedule,
-  Bill,
-  BillSplit,
-  ShoppingCategory,
-  ShoppingItem,
-  Poll,
-  PollOption,
-  Vote,
-  Notification,
-  HomeNotification,
-  SmartDevice,
-  HomeAssistantConfig,
-  HAState,
-  AddDeviceRequest,
   UpdateDeviceRequest,
-  ControlDeviceRequest,
-  OCRResult,
+  User,
+  Vote,
 } from "./types";

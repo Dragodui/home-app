@@ -8,7 +8,9 @@
     "android": "npx expo start --android",
     "ios": "npx expo start --ios",
     "web": "npx expo start --web",
-    "lint": "expo lint"
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
   },
   "dependencies": {
     "@expo-google-fonts/manrope": "^0.4.2",
@@ -57,6 +59,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@biomejs/biome": "2.4.5",
     "@expo/ngrok": "^4.1.0",
     "@types/react": "~19.0.10",
     "eslint": "^9.31.0",
