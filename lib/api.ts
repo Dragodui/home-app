@@ -53,7 +53,7 @@ api.interceptors.request.use(
 
 // Response interceptor - handle 401
 // Only clear stored credentials when the token is definitively invalid or revoked.
-// Do NOT clear on every 401 — transient failures (CORS, network) would wipe auth state.
+// Do NOT clear on every 401 - transient failures (CORS, network) would wipe auth state.
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
