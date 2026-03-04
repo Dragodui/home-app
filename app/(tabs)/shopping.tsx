@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -111,6 +110,11 @@ export default function ShoppingScreen() {
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
   const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0].id);
   const [creatingCategory, setCreatingCategory] = useState(false);
+
+  // Delete category
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<ShoppingCategory | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState(false);
 
   // Create item modal
   const [showItemModal, setShowItemModal] = useState(false);
@@ -227,6 +231,29 @@ export default function ShoppingScreen() {
     }
   };
 
+  const openDeleteCategory = (category: ShoppingCategory) => {
+    setCategoryToDelete(category);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!home || !categoryToDelete) return;
+    setDeletingCategory(true);
+    try {
+      await shoppingApi.deleteCategory(home.id, categoryToDelete.id);
+      if (activeCategory?.id === categoryToDelete.id) {
+        setActiveCategory(null);
+      }
+      setShowDeleteModal(false);
+      setCategoryToDelete(null);
+      await loadShoppingData();
+    } catch (error) {
+      console.error("Error deleting category:", error);
+    } finally {
+      setDeletingCategory(false);
+    }
+  };
+
   const getCategoryIcon = (category: ShoppingCategory) => {
     return getIconComponent(category.icon || "utensils", 24, "#1C1C1E");
   };
@@ -267,6 +294,13 @@ export default function ShoppingScreen() {
             >
               {activeCategory.name}
             </Text>
+            <TouchableOpacity
+              className="w-12 h-12 rounded-2xl justify-center items-center mr-2"
+              style={{ backgroundColor: theme.surface }}
+              onPress={() => openDeleteCategory(activeCategory)}
+            >
+              <Trash2 size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
             <View
               className="w-14 h-14 rounded-[18px] justify-center items-center"
               style={{ backgroundColor: categoryColor }}
@@ -402,6 +436,7 @@ export default function ShoppingScreen() {
                 className="w-[47%] rounded-3xl p-[18px] justify-between"
                 style={{ backgroundColor: categoryColor, aspectRatio: 0.9 }}
                 onPress={() => setActiveCategory(category)}
+                onLongPress={() => openDeleteCategory(category)}
                 activeOpacity={0.9}
               >
                 <View className="w-10 h-10 rounded-xl bg-black/5 justify-center items-center">
@@ -431,7 +466,7 @@ export default function ShoppingScreen() {
           {/* Add New List Card - Dashed border */}
           <TouchableOpacity
             className="w-[47%] rounded-3xl border-2 border-dashed justify-center items-center"
-            style={{ borderColor: theme.textSecondary, aspectRatio: 0.9 }}
+            style={{ borderColor: theme.textSecondary, aspectRatio: 0.9, minHeight: 180 }}
             onPress={() => setShowCategoryModal(true)}
             activeOpacity={0.8}
           >
@@ -531,6 +566,42 @@ export default function ShoppingScreen() {
             disabled={!newCategoryName.trim() || creatingCategory}
           >
             <Check size={24} color={theme.background} />
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* Delete Category Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title={t.common.delete}
+        height="auto"
+      >
+        <Text
+          className="text-base font-manrope mb-6"
+          style={{ color: theme.textSecondary }}
+        >
+          {t.common.delete} &quot;{categoryToDelete?.name}&quot;?
+        </Text>
+        <View className="flex-row gap-3">
+          <TouchableOpacity
+            className="flex-1 h-14 rounded-full justify-center items-center"
+            style={{ backgroundColor: theme.background }}
+            onPress={() => setShowDeleteModal(false)}
+          >
+            <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
+              {t.common.cancel}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-1 h-14 rounded-full justify-center items-center"
+            style={{ backgroundColor: "#FF7476" }}
+            onPress={handleDeleteCategory}
+            disabled={deletingCategory}
+          >
+            <Text className="text-base font-manrope-semibold text-white">
+              {deletingCategory ? t.common.loading : t.common.delete}
+            </Text>
           </TouchableOpacity>
         </View>
       </Modal>
