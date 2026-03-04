@@ -187,7 +187,7 @@ export default function ShoppingScreen() {
     setCreatingItem(true);
     try {
       await shoppingApi.createItem(home.id, {
-        category_id: activeCategory.id,
+        categoryId: activeCategory.id,
         name: newItemName.trim(),
       });
 
@@ -210,7 +210,7 @@ export default function ShoppingScreen() {
         const updated = { ...prev };
         for (const catId in updated) {
           updated[catId] = updated[catId].map((item) =>
-            item.id === itemId ? { ...item, is_bought: !item.is_bought } : item
+            item.id === itemId ? { ...item, isBought: !item.isBought } : item
           );
         }
         return updated;
@@ -322,21 +322,21 @@ export default function ShoppingScreen() {
                   className="w-8 h-8 rounded-full border-2 justify-center items-center"
                   style={[
                     { borderColor: theme.textSecondary },
-                    item.is_bought && {
+                    item.isBought && {
                       backgroundColor: theme.accent.purple,
                       borderColor: theme.accent.purple,
                     },
                   ]}
                 >
-                  {item.is_bought && <Check size={16} color="#1C1C1E" strokeWidth={3} />}
+                  {item.isBought && <Check size={16} color="#1C1C1E" strokeWidth={3} />}
                 </View>
                 <Text
-                  className={`flex-1 text-lg font-manrope-semibold ${item.is_bought ? "line-through opacity-50" : ""}`}
+                  className={`flex-1 text-lg font-manrope-semibold ${item.isBought ? "line-through opacity-50" : ""}`}
                   style={{ color: theme.text }}
                 >
                   {item.name}
                 </Text>
-                {item.is_bought && (
+                {item.isBought && (
                   <TouchableOpacity
                     className="p-2"
                     onPress={() => handleDeleteItem(item.id)}

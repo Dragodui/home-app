@@ -15,7 +15,7 @@ interface HomeResult {
 function computeAdmin(selectedHome: Home | null, userId: number | undefined): boolean {
   if (!selectedHome?.memberships || !userId) return false;
   const membership = selectedHome.memberships.find(
-    (m: HomeMembership) => m.user_id === userId,
+    (m: HomeMembership) => m.userId === userId,
   );
   return membership?.role === "admin";
 }

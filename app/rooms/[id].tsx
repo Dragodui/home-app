@@ -52,7 +52,7 @@ export default function RoomDetailScreen() {
       // Also fetch current states
       const states = await smarthomeApi.getAllStates(home.id);
       const stateMap: Record<string, HAState> = {};
-      states.forEach((s) => (stateMap[s.entity_id] = s));
+      states.forEach((s) => (stateMap[s.entityId] = s));
       setDeviceStates(stateMap);
     } catch (error) {
       console.error("Failed to fetch devices:", error);
@@ -84,9 +84,9 @@ export default function RoomDetailScreen() {
     setAddingDevice(true);
     try {
       await smarthomeApi.addDevice(home.id, {
-        entity_id: selectedEntity,
+        entityId: selectedEntity,
         name: deviceName.trim(),
-        room_id: roomId,
+        roomId: roomId,
       });
       setShowAddModal(false);
       setDeviceName("");
@@ -124,8 +124,8 @@ export default function RoomDetailScreen() {
     const service = state ? "turn_on" : "turn_off";
     
     // Optimistic update
-    const newState = { ...deviceStates[device.entity_id], state: state ? "on" : "off" };
-    setDeviceStates(prev => ({ ...prev, [device.entity_id]: newState }));
+    const newState = { ...deviceStates[device.entityId], state: state ? "on" : "off" };
+    setDeviceStates(prev => ({ ...prev, [device.entityId]: newState }));
 
     try {
       await smarthomeApi.controlDevice(home.id, device.id, service);
@@ -151,7 +151,7 @@ export default function RoomDetailScreen() {
   };
 
   const renderDevice = ({ item }: { item: SmartDevice }) => {
-    const state = deviceStates[item.entity_id];
+    const state = deviceStates[item.entityId];
     const isOn = state?.state === "on";
     const isOffline = state?.state === "unavailable" || state?.state === "unknown";
 
@@ -267,18 +267,18 @@ export default function RoomDetailScreen() {
                     ) : (
                         <FlatList
                             data={discoveredDevices}
-                            keyExtractor={item => item.entity_id}
+                            keyExtractor={item => item.entityId}
                             renderItem={({ item }) => (
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     className="py-3 border-b"
                                     style={{ borderBottomColor: theme.border }}
                                     onPress={() => {
-                                        setSelectedEntity(item.entity_id);
-                                        setDeviceName(item.attributes.friendly_name || item.entity_id);
+                                        setSelectedEntity(item.entityId);
+                                        setDeviceName(item.attributes.friendlyName || item.entityId);
                                     }}
                                 >
-                                    <Text className="font-bold" style={{ color: theme.text }}>{item.attributes.friendly_name || item.entity_id}</Text>
-                                    <Text className="text-xs" style={{ color: theme.textSecondary }}>{item.entity_id}</Text>
+                                    <Text className="font-bold" style={{ color: theme.text }}>{item.attributes.friendlyName || item.entityId}</Text>
+                                    <Text className="text-xs" style={{ color: theme.textSecondary }}>{item.entityId}</Text>
                                 </TouchableOpacity>
                             )}
                         />

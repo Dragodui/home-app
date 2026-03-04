@@ -62,7 +62,7 @@ export default function MembersScreen() {
   useRealtimeRefresh(["HOME"], loadMembers);
 
   const handleRemoveMember = (member: HomeMembership) => {
-    if (member.user_id === user?.id) {
+    if (member.userId === user?.id) {
       alert(t.common.error, t.members.cannotRemoveSelf);
       return;
     }
@@ -73,7 +73,7 @@ export default function MembersScreen() {
         text: t.members.remove,
         style: "destructive",
         onPress: async () => {
-          const result = await removeMember(member.user_id);
+          const result = await removeMember(member.userId);
           if (result.success) {
             await loadMembers();
           } else {
@@ -144,7 +144,7 @@ export default function MembersScreen() {
           /* Member List */
           <View className="gap-3">
             {members.map((member) => {
-              const isCurrentUser = member.user_id === user?.id;
+              const isCurrentUser = member.userId === user?.id;
               const isMemberAdmin = member.role === "admin";
 
               return (
@@ -219,7 +219,7 @@ export default function MembersScreen() {
                         className="text-xs font-manrope"
                         style={{ color: theme.textSecondary }}
                       >
-                        {interpolate(t.members.joined, { date: formatDate(member.joined_at) })}
+                        {interpolate(t.members.joined, { date: formatDate(member.joinedAt) })}
                       </Text>
                     </View>
                   </View>

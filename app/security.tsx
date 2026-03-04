@@ -73,7 +73,7 @@ export default function SecurityScreen() {
       setIsChangingPassword(false);
     }
   };
-
+  
   return (
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
@@ -120,7 +120,7 @@ export default function SecurityScreen() {
                   {user?.email || "Not set"}
                 </Text>
               </View>
-              {user?.email_verified ? (
+              {user?.emailVerified ? (
                 <View
                   className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-20"
                   style={{ backgroundColor: theme.status.success + "20" }}

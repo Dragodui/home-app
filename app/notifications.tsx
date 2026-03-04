@@ -45,7 +45,7 @@ export default function NotificationsScreen() {
 
       // Sort by date (newest first)
       allNotifications.sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
       setNotifications(allNotifications);
@@ -70,9 +70,9 @@ export default function NotificationsScreen() {
 
   const markAsRead = async (notification: Notification | HomeNotification) => {
     try {
-      if ('home_id' in notification) {
+      if ('homeId' in notification) {
         // Home notification
-        await notificationApi.markHomeNotificationAsRead(notification.home_id, notification.id);
+        await notificationApi.markHomeNotificationAsRead(notification.homeId, notification.id);
       } else {
         // User notification
         await notificationApi.markAsRead(notification.id);
@@ -147,7 +147,7 @@ export default function NotificationsScreen() {
           <View className="gap-3">
             {notifications.map((notification) => (
               <View
-                key={`${notification.id}-${'home_id' in notification ? 'home' : 'user'}`}
+                key={`${notification.id}-${'homeId' in notification ? 'home' : 'user'}`}
                 className="p-4 rounded-16"
                 style={{
                   backgroundColor: theme.surface,
@@ -170,7 +170,7 @@ export default function NotificationsScreen() {
                       {notification.description}
                     </Text>
                     <Text className="text-13 font-manrope" style={{ color: theme.textSecondary }}>
-                      {formatDate(notification.created_at)}
+                      {formatDate(notification.createdAt)}
                     </Text>
                   </View>
                 </View>

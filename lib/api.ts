@@ -1,5 +1,6 @@
 import axios from "axios";
 import { secureStorage } from "./secureStorage";
+import { deepSnakeToCamel, deepCamelToSnake } from "./caseConverter";
 import {
   User,
   Home,
@@ -23,11 +24,9 @@ import {
   CreateCategoryForm,
   CreateItemForm,
   SmartDevice,
-  HomeAssistantConfig,
   HAState,
   AddDeviceRequest,
   UpdateDeviceRequest,
-  ControlDeviceRequest,
   OCRResult,
 } from "./types";
 
@@ -51,6 +50,41 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Request interceptor - convert camelCase to snake_case
+api.interceptors.request.use(
+  (config) => {
+    if (
+      config.data &&
+      typeof config.data === "object" &&
+      !(config.data instanceof FormData) &&
+      !(config.data instanceof URLSearchParams)
+    ) {
+      config.data = deepCamelToSnake(config.data);
+    }
+    if (config.params && typeof config.params === "object") {
+      config.params = deepCamelToSnake(config.params);
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor - convert snake_case to camelCase
+api.interceptors.response.use(
+  (response) => {
+    if (response.data && typeof response.data === "object") {
+      response.data = deepSnakeToCamel(response.data);
+    }
+    return response;
+  },
+  (error) => {
+    if (error.response?.data && typeof error.response.data === "object") {
+      error.response.data = deepSnakeToCamel(error.response.data);
+    }
+    return Promise.reject(error);
+  }
 );
 
 // Response interceptor - handle 401
@@ -79,6 +113,7 @@ export const authApi = {
 
   login: async (email: string, password: string): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>("/auth/login", { email, password });
+    console.log(response.data)
     if (response.data.token) {
       await secureStorage.setItem("auth_token", response.data.token);
       await secureStorage.setItem("user", JSON.stringify(response.data.user));
@@ -117,8 +152,8 @@ export const authApi = {
 
   changePassword: async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
     const response = await api.post<{ status: boolean; message: string }>("/auth/change-password", {
-      current_password: currentPassword,
-      new_password: newPassword,
+      currentPassword,
+      newPassword,
     });
     return { message: response.data.message };
   },
@@ -134,7 +169,7 @@ export const authApi = {
   },
 
   googleSignIn: async (accessToken: string): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>("/auth/google/mobile", { access_token: accessToken });
+    const response = await api.post<AuthResponse>("/auth/google/mobile", { accessToken });
     if (response.data.token) {
       await secureStorage.setItem("auth_token", response.data.token);
       await secureStorage.setItem("user", JSON.stringify(response.data.user));
@@ -220,7 +255,7 @@ export const homeApi = {
 // ============ Room API ============
 export const roomApi = {
   create: async (homeId: number, name: string): Promise<{ message: string }> => {
-    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/rooms`, { name, home_id: homeId });
+    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/rooms`, { name, homeId });
     return { message: response.data.message };
   },
 
@@ -264,9 +299,9 @@ export const taskApi = {
 
   assignUser: async (homeId: number, taskId: number, userId: number, date: string): Promise<{ message: string }> => {
     const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/tasks/${taskId}/assign`, {
-      task_id: taskId,
-      home_id: homeId,
-      user_id: userId,
+      taskId,
+      homeId,
+      userId,
       date,
     });
     return { message: response.data.message };
@@ -274,22 +309,22 @@ export const taskApi = {
 
   reassignRoom: async (homeId: number, taskId: number, roomId: number): Promise<{ message: string }> => {
     const response = await api.patch<{ status: boolean; message: string }>(`/homes/${homeId}/tasks/${taskId}/reassign-room`, {
-      task_id: taskId,
-      room_id: roomId,
+      taskId,
+      roomId,
     });
     return { message: response.data.message };
   },
 
   markCompleted: async (homeId: number, taskId: number, assignmentId: number): Promise<{ message: string }> => {
     const response = await api.patch<{ status: boolean; message: string }>(`/homes/${homeId}/tasks/${taskId}/mark-completed`, {
-      assignment_id: assignmentId,
+      assignmentId,
     });
     return { message: response.data.message };
   },
 
   markUncompleted: async (homeId: number, taskId: number, assignmentId: number): Promise<{ message: string }> => {
     const response = await api.patch<{ status: boolean; message: string }>(`/homes/${homeId}/tasks/${taskId}/mark-uncompleted`, {
-      assignment_id: assignmentId,
+      assignmentId,
     });
     return { message: response.data.message };
   },
@@ -343,13 +378,13 @@ export const taskScheduleApi = {
 
 // ============ Bill API ============
 export const billApi = {
-  create: async (homeId: number, data: CreateBillForm & { bill_category_id?: number }): Promise<{ message: string }> => {
+  create: async (homeId: number, data: CreateBillForm & { billCategoryId?: number }): Promise<{ message: string }> => {
     const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/bills`, data);
     return { message: response.data.message };
   },
 
   getByHomeId: async (homeId: number, categoryId?: number): Promise<Bill[]> => {
-    const params = categoryId != null ? { category_id: categoryId } : undefined;
+    const params = categoryId != null ? { categoryId } : undefined;
     const response = await api.get<{ status: boolean; bills: Bill[] }>(`/homes/${homeId}/bills`, { params });
     return response.data.bills || [];
   },
@@ -369,7 +404,7 @@ export const billApi = {
     return { message: response.data.message };
   },
 
-  updateSplits: async (homeId: number, billId: number, splits: { user_id: number; amount: number }[]): Promise<{ message: string }> => {
+  updateSplits: async (homeId: number, billId: number, splits: { userId: number; amount: number }[]): Promise<{ message: string }> => {
     const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/bills/${billId}/splits`, { splits });
     return { message: response.data.message };
   },
@@ -452,7 +487,7 @@ export const shoppingApi = {
   editItem: async (
     homeId: number,
     itemId: number,
-    data: { name?: string; image?: string; link?: string; is_bought?: boolean; bought_date?: string }
+    data: { name?: string; image?: string; link?: string; isBought?: boolean; boughtDate?: string }
   ): Promise<{ message: string }> => {
     const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/shopping/items/${itemId}`, data);
     return { message: response.data.message };
@@ -493,7 +528,7 @@ export const pollApi = {
 
   vote: async (homeId: number, pollId: number, optionId: number): Promise<{ message: string }> => {
     const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/polls/${pollId}/vote`, {
-      option_id: optionId,
+      optionId,
     });
     return { message: response.data.message };
   },
@@ -539,8 +574,8 @@ export const smarthomeApi = {
     return { message: response.data.message };
   },
 
-  getStatus: async (homeId: number): Promise<{ connected: boolean; url?: string; is_active?: boolean; created_at?: string; error?: string }> => {
-    const response = await api.get<{ connected: boolean; url?: string; is_active?: boolean; created_at?: string; error?: string }>(
+  getStatus: async (homeId: number): Promise<{ connected: boolean; url?: string; isActive?: boolean; createdAt?: string; error?: string }> => {
+    const response = await api.get<{ connected: boolean; url?: string; isActive?: boolean; createdAt?: string; error?: string }>(
       `/homes/${homeId}/smarthome/status`
     );
     return response.data;

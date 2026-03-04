@@ -222,12 +222,12 @@ export default function BudgetScreen() {
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthBills = (allBillsData || []).filter((b) => {
-          const bd = new Date(b.created_at);
+          const bd = new Date(b.createdAt);
           return bd.getMonth() === d.getMonth() && bd.getFullYear() === d.getFullYear();
         });
         months.push({
           month: monthNames[d.getMonth()],
-          total: monthBills.reduce((sum, b) => sum + b.total_amount, 0),
+          total: monthBills.reduce((sum, b) => sum + b.totalAmount, 0),
         });
       }
       setMonthlyTrends(months);
@@ -322,9 +322,9 @@ export default function BudgetScreen() {
     if (userIds.length === 0) return undefined;
     if (mode === "equal") {
       const perPerson = totalAmount / userIds.length;
-      return userIds.map(uid => ({ user_id: uid, amount: Math.round(perPerson * 100) / 100 }));
+      return userIds.map(uid => ({ userId: uid, amount: Math.round(perPerson * 100) / 100 }));
     }
-    return userIds.map(uid => ({ user_id: uid, amount: parseFloat(amounts[uid] || "0") }));
+    return userIds.map(uid => ({ userId: uid, amount: parseFloat(amounts[uid] || "0") }));
   };
 
   const handleCreateBill = async () => {
@@ -359,13 +359,13 @@ export default function BudgetScreen() {
 
       await billApi.create(home.id, {
         type: category?.name || "Expense",
-        bill_category_id: selectedCategoryId,
+        billCategoryId: selectedCategoryId,
         description: newBillDescription || undefined,
-        receipt_image: receiptImageUrl,
-        total_amount: totalAmount,
-        period_start: now.toISOString(),
-        period_end: endDate.toISOString(),
-        ocr_data: ocrResult || {},
+        receiptImage: receiptImageUrl,
+        totalAmount: totalAmount,
+        periodStart: now.toISOString(),
+        periodEnd: endDate.toISOString(),
+        ocrData: ocrResult || {},
         splits,
       });
 
@@ -405,7 +405,7 @@ export default function BudgetScreen() {
   const handleOpenEditSplits = (bill: Bill) => {
     setEditingBill(bill);
     const existingSplits = bill.splits ?? [];
-    const userIds = existingSplits.map(s => s.user_id);
+    const userIds = existingSplits.map(s => s.userId);
     setEditSplitUserIds(userIds);
 
     // Detect if existing splits are equal
@@ -418,7 +418,7 @@ export default function BudgetScreen() {
     }
 
     const amounts: Record<number, string> = {};
-    existingSplits.forEach(s => { amounts[s.user_id] = s.amount.toString(); });
+    existingSplits.forEach(s => { amounts[s.userId] = s.amount.toString(); });
     setEditManualAmounts(amounts);
     setShowEditSplitsModal(true);
   };
@@ -427,7 +427,7 @@ export default function BudgetScreen() {
     if (!home || !editingBill) return;
     setSavingSplits(true);
     try {
-      const splits = buildSplits(editSplitUserIds, editSplitMode, editManualAmounts, editingBill.total_amount) ?? [];
+      const splits = buildSplits(editSplitUserIds, editSplitMode, editManualAmounts, editingBill.totalAmount) ?? [];
       await billApi.updateSplits(home.id, editingBill.id, splits);
       setShowEditSplitsModal(false);
       setEditingBill(null);
@@ -536,13 +536,13 @@ export default function BudgetScreen() {
   };
 
   const getCategoryName = (bill: Bill) => {
-    if (bill.bill_category) return bill.bill_category.name;
-    const category = categories.find(c => c.id === bill.bill_category_id);
+    if (bill.billCategory) return bill.billCategory.name;
+    const category = categories.find(c => c.id === bill.billCategoryId);
     return category?.name || bill.type;
   };
 
   const getMemberName = (userId: number) => {
-    const m = members.find(m => m.user_id === userId);
+    const m = members.find(m => m.userId === userId);
     return m?.user?.name ?? `User #${userId}`;
   };
 
@@ -555,12 +555,12 @@ export default function BudgetScreen() {
   };
 
   const canEditBill = (bill: Bill) => {
-    return isAdmin || bill.uploaded_by === user?.id;
+    return isAdmin || bill.uploadedBy === user?.id;
   };
 
   const chartData = categories.map(cat => {
-    const catBills = bills.filter(b => b.bill_category_id === cat.id);
-    const total = catBills.reduce((sum, b) => sum + b.total_amount, 0);
+    const catBills = bills.filter(b => b.billCategoryId === cat.id);
+    const total = catBills.reduce((sum, b) => sum + b.totalAmount, 0);
     return {
       value: total,
       color: cat.color || theme.accent.yellow,
@@ -568,9 +568,9 @@ export default function BudgetScreen() {
     };
   }).filter(d => d.value > 0);
 
-  const uncategorizedBills = bills.filter(b => !b.bill_category_id);
+  const uncategorizedBills = bills.filter(b => !b.billCategoryId);
   if (uncategorizedBills.length > 0) {
-    const total = uncategorizedBills.reduce((sum, b) => sum + b.total_amount, 0);
+    const total = uncategorizedBills.reduce((sum, b) => sum + b.totalAmount, 0);
     chartData.push({
       value: total,
       color: theme.textSecondary,
@@ -578,12 +578,12 @@ export default function BudgetScreen() {
     });
   }
 
-  const totalSpend = bills.reduce((sum, b) => sum + b.total_amount, 0);
+  const totalSpend = bills.reduce((sum, b) => sum + b.totalAmount, 0);
 
   // Bills that have OCR data with actual content
   const receiptBills = bills.filter(b => {
-    if (!b.ocr_data) return false;
-    const data = b.ocr_data as Record<string, any>;
+    if (!b.ocrData) return false;
+    const data = b.ocrData as Record<string, any>;
     return data.vendor || data.total || (data.items && data.items.length > 0);
   });
 
@@ -605,20 +605,20 @@ export default function BudgetScreen() {
       {/* Member chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3" contentContainerStyle={{ gap: 8 }}>
         {members.map(m => {
-          const isSelected = selectedIds.includes(m.user_id);
+          const isSelected = selectedIds.includes(m.userId);
           return (
             <TouchableOpacity
-              key={m.user_id}
+              key={m.userId}
               className="px-3 py-2 rounded-xl border flex-row items-center gap-1.5"
               style={{
                 backgroundColor: isSelected ? theme.accent.pinkLight : theme.surface,
                 borderColor: isSelected ? theme.accent.pink : theme.border,
               }}
-              onPress={() => toggleSplitUser(m.user_id, selectedIds, setSelectedIds)}
+              onPress={() => toggleSplitUser(m.userId, selectedIds, setSelectedIds)}
             >
               {isSelected && <Check size={14} color={theme.accent.pink} />}
               <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
-                {m.user?.name ?? `User #${m.user_id}`}
+                {m.user?.name ?? `User #${m.userId}`}
               </Text>
             </TouchableOpacity>
           );
@@ -780,8 +780,8 @@ export default function BudgetScreen() {
           {bills.map((bill) => {
             const isExpanded = expandedBillId === bill.id;
             const splits = bill.splits ?? [];
-            const userSplit = splits.find(s => s.user_id === user?.id);
-            const uploaderName = bill.user?.name ?? getMemberName(bill.uploaded_by);
+            const userSplit = splits.find(s => s.userId === user?.id);
+            const uploaderName = bill.user?.name ?? getMemberName(bill.uploadedBy);
 
             return (
               <TouchableOpacity
@@ -792,18 +792,18 @@ export default function BudgetScreen() {
                 activeOpacity={0.7}
               >
                 <View className="flex-row items-center gap-3">
-                  <View className="w-10 h-10 rounded-full justify-center items-center" style={{ backgroundColor: getCategoryColor(bill.bill_category_id) }}>
+                  <View className="w-10 h-10 rounded-full justify-center items-center" style={{ backgroundColor: getCategoryColor(bill.billCategoryId) }}>
                     <DollarSign size={20} color="#1C1C1E" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-base font-manrope-semibold mb-0.5" style={{ color: theme.text }}>{getCategoryName(bill)}</Text>
                     <Text className="text-xs" style={{ color: theme.textSecondary }}>
-                      {uploaderName} · {new Date(bill.created_at).toLocaleDateString("pl-PL")}
+                      {uploaderName} · {new Date(bill.createdAt).toLocaleDateString("pl-PL")}
                     </Text>
                   </View>
                   <View className="items-end">
                     <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
-                      {bill.total_amount.toFixed(2)}
+                      {bill.totalAmount.toFixed(2)}
                     </Text>
                     {userSplit && (
                       <Text className="text-xs" style={{ color: userSplit.paid ? "#22C55E" : theme.accent.pink }}>
@@ -850,7 +850,7 @@ export default function BudgetScreen() {
                             style={{ backgroundColor: split.paid ? "#22C55E" : theme.accent.pink }}
                           />
                           <Text className="text-sm" style={{ color: theme.text }}>
-                            {split.user?.name ?? getMemberName(split.user_id)}
+                            {split.user?.name ?? getMemberName(split.userId)}
                           </Text>
                         </View>
                         <Text className="text-sm font-manrope-semibold mr-2" style={{ color: theme.text }}>
@@ -904,7 +904,7 @@ export default function BudgetScreen() {
             </Text>
             <View className="gap-3">
               {receiptBills.map((bill) => {
-                const data = bill.ocr_data as Record<string, any>;
+                const data = bill.ocrData as Record<string, any>;
                 const isExpanded = expandedReceiptId === bill.id;
                 const items = data.items || [];
 
@@ -925,12 +925,12 @@ export default function BudgetScreen() {
                           {data.vendor || getCategoryName(bill)}
                         </Text>
                         <Text className="text-xs" style={{ color: theme.textSecondary }}>
-                          {data.date || new Date(bill.created_at).toLocaleDateString("pl-PL")}
+                          {data.date || new Date(bill.createdAt).toLocaleDateString("pl-PL")}
                           {items.length > 0 && ` \u2022 ${items.length} ${t.budget.items.toLowerCase()}`}
                         </Text>
                       </View>
                       <Text className="text-lg font-manrope-bold mr-2" style={{ color: theme.text }}>
-                        {bill.total_amount.toFixed(2)}
+                        {bill.totalAmount.toFixed(2)}
                       </Text>
                       {isExpanded ? (
                         <ChevronUp size={18} color={theme.textSecondary} />
@@ -956,12 +956,12 @@ export default function BudgetScreen() {
                         ))}
                       </View>
                     )}
-                    {isExpanded && bill.receipt_image && (
+                    {isExpanded && bill.receiptImage && (
                       <TouchableOpacity
                         className="flex-row items-center justify-center gap-2 mt-3 py-2.5 rounded-xl"
                         style={{ backgroundColor: theme.background }}
                         onPress={() => {
-                          setReceiptImageUrl(bill.receipt_image!);
+                          setReceiptImageUrl(bill.receiptImage!);
                           setShowReceiptImageModal(true);
                         }}
                         activeOpacity={0.7}
@@ -1213,7 +1213,7 @@ export default function BudgetScreen() {
                   {getCategoryName(editingBill)}
                 </Text>
                 <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
-                  {editingBill.total_amount.toFixed(2)}
+                  {editingBill.totalAmount.toFixed(2)}
                 </Text>
               </View>
 
@@ -1221,7 +1221,7 @@ export default function BudgetScreen() {
                 editSplitUserIds, setEditSplitUserIds,
                 editSplitMode, setEditSplitMode,
                 editManualAmounts, setEditManualAmounts,
-                editingBill.total_amount,
+                editingBill.totalAmount,
               )}
 
               <Button

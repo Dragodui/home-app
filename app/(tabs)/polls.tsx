@@ -94,8 +94,8 @@ export default function PollsScreen() {
         question: pollQuestion.trim(),
         type: pollType,
         options: validOptions.map((opt) => ({ title: opt.trim() })),
-        allow_revote: allowRevote,
-        ends_at: hasEndDate ? endsAt.toISOString() : undefined,
+        allowRevote: allowRevote,
+        endsAt: hasEndDate ? endsAt.toISOString() : undefined,
       });
 
       setPollQuestion("");
@@ -159,13 +159,13 @@ export default function PollsScreen() {
 
   const hasUserVoted = (poll: Poll) => {
     if (!user || !poll.options) return false;
-    return poll.options.some((opt) => opt.votes?.some((v) => v.user_id === user.id));
+    return poll.options.some((opt) => opt.votes?.some((v) => v.userId === user.id));
   };
 
   const getUserVote = (poll: Poll): number | null => {
     if (!user || !poll.options) return null;
     for (const opt of poll.options) {
-      if (opt.votes?.some((v) => v.user_id === user.id)) {
+      if (opt.votes?.some((v) => v.userId === user.id)) {
         return opt.id;
       }
     }
@@ -173,12 +173,12 @@ export default function PollsScreen() {
   };
 
   const getTimeRemaining = (poll: Poll) => {
-    if (!poll.ends_at) {
+    if (!poll.endsAt) {
       return t.polls.noEndDate || "No end date";
     }
 
     const now = new Date();
-    const endDate = new Date(poll.ends_at);
+    const endDate = new Date(poll.endsAt);
     const diff = endDate.getTime() - now.getTime();
 
     if (diff <= 0) {
@@ -306,7 +306,7 @@ export default function PollsScreen() {
                 </View>
 
                 {/* Unvote button */}
-                {voted && poll.allow_revote && (
+                {voted && poll.allowRevote && (
                   <TouchableOpacity
                     className="flex-row items-center justify-center gap-2 py-3 mt-3 bg-white/60 rounded-xl"
                     onPress={() => handleUnvote(poll.id)}
@@ -554,7 +554,7 @@ export default function PollsScreen() {
               }
 
               <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
-                {vote.user?.name ?? `User #${vote.user_id}`}
+                {vote.user?.name ?? `User #${vote.userId}`}
               </Text>
             </View>
           ))}

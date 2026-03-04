@@ -256,12 +256,12 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          {home && home.invite_code && (
+          {home && home.inviteCode && (
             <TouchableOpacity
               className="mt-4 px-5 py-3.5 rounded-2xl items-center"
               style={{ backgroundColor: theme.surface }}
               onPress={async () => {
-                await Clipboard.setStringAsync(home.invite_code);
+                await Clipboard.setStringAsync(home.inviteCode);
                 alert(t.common.copied, t.profile.inviteCodeCopied);
               }}
               activeOpacity={0.7}
@@ -277,7 +277,7 @@ export default function ProfileScreen() {
                   className="text-[18px] font-manrope-bold tracking-widest"
                   style={{ color: theme.text }}
                 >
-                  {home.invite_code}
+                  {home.inviteCode}
                 </Text>
                 <Copy size={16} color={theme.textSecondary} />
               </View>

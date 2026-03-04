@@ -2,28 +2,28 @@
 export interface User {
   id: number;
   email: string;
-  email_verified: boolean;
+  emailVerified: boolean;
   name: string;
   avatar?: string;
-  created_at: string;
+  createdAt: string;
 }
 
 // Home/Household types
 export interface Home {
   id: number;
   name: string;
-  invite_code: string;
-  created_at: string;
+  inviteCode: string;
+  createdAt: string;
   memberships?: HomeMembership[];
 }
 
 export interface HomeMembership {
   id: number;
-  home_id: number;
-  user_id: number;
+  homeId: number;
+  userId: number;
   role: "admin" | "member";
-  joined_at: string;
-  created_at: string;
+  joinedAt: string;
+  createdAt: string;
   user?: User;
   home?: Home;
 }
@@ -31,22 +31,22 @@ export interface HomeMembership {
 // Room types
 export interface Room {
   id: number;
-  home_id: number;
+  homeId: number;
   name: string;
-  created_at: string;
+  createdAt: string;
   tasks?: Task[];
 }
 
 // Task types
 export interface Task {
   id: number;
-  home_id: number;
-  room_id?: number;
+  homeId: number;
+  roomId?: number;
   name: string;
   description: string;
-  schedule_type: string;
-  due_date?: string;
-  created_at: string;
+  scheduleType: string;
+  dueDate?: string;
+  createdAt: string;
   room?: Room;
   assignments?: TaskAssignment[];
   schedule?: TaskSchedule;
@@ -54,31 +54,31 @@ export interface Task {
 
 export interface TaskSchedule {
   id: number;
-  task_id: number;
-  recurrence_type: "daily" | "weekly" | "monthly";
-  rotation_user_ids: string; // JSON array of user IDs
-  current_rotation_index: number;
-  next_run_date: string;
-  is_active: boolean;
-  created_at: string;
+  taskId: number;
+  recurrenceType: "daily" | "weekly" | "monthly";
+  rotationUserIds: string;
+  currentRotationIndex: number;
+  nextRunDate: string;
+  isActive: boolean;
+  createdAt: string;
   task?: Task;
 }
 
 export interface CreateScheduleForm {
-  task_id: number;
-  home_id: number;
-  recurrence_type: "daily" | "weekly" | "monthly";
-  user_ids: number[];
+  taskId: number;
+  homeId: number;
+  recurrenceType: "daily" | "weekly" | "monthly";
+  userIds: number[];
 }
 
 export interface TaskAssignment {
   id: number;
-  task_id: number;
-  user_id: number;
+  taskId: number;
+  userId: number;
   status: "assigned" | "completed";
-  assigned_date: string;
-  complete_date?: string;
-  created_at: string;
+  assignedDate: string;
+  completeDate?: string;
+  createdAt: string;
   task?: Task;
   user?: User;
 }
@@ -86,8 +86,8 @@ export interface TaskAssignment {
 // Bill types
 export interface BillSplit {
   id: number;
-  bill_id: number;
-  user_id: number;
+  billId: number;
+  userId: number;
   amount: number;
   paid: boolean;
   user?: User;
@@ -95,20 +95,20 @@ export interface BillSplit {
 
 export interface Bill {
   id: number;
-  home_id: number;
+  homeId: number;
   type: string;
-  bill_category_id?: number;
-  bill_category?: BillCategory;
-  is_payed: boolean;
-  payment_date?: string;
-  total_amount: number;
-  period_start: string;
-  period_end: string;
-  uploaded_by: number;
+  billCategoryId?: number;
+  billCategory?: BillCategory;
+  isPayed: boolean;
+  paymentDate?: string;
+  totalAmount: number;
+  periodStart: string;
+  periodEnd: string;
+  uploadedBy: number;
   description?: string;
-  receipt_image?: string;
-  ocr_data?: Record<string, any>;
-  created_at: string;
+  receiptImage?: string;
+  ocrData?: Record<string, any>;
+  createdAt: string;
   user?: User;
   splits?: BillSplit[];
 }
@@ -116,61 +116,61 @@ export interface Bill {
 // Shopping types
 export interface ShoppingCategory {
   id: number;
-  home_id: number;
+  homeId: number;
   name: string;
   icon?: string;
   color: string;
-  created_at: string;
+  createdAt: string;
   items?: ShoppingItem[];
 }
 
 export interface ShoppingItem {
   id: number;
-  category_id: number;
+  categoryId: number;
   name: string;
-  added_by: number;
-  is_bought: boolean;
+  addedBy: number;
+  isBought: boolean;
   image?: string;
   link?: string;
-  bought_date?: string;
-  created_at: string;
+  boughtDate?: string;
+  createdAt: string;
   user?: User;
 }
 
 export interface BillCategory {
   id: number;
-  home_id: number;
+  homeId: number;
   name: string;
   color: string;
-  created_at: string;
+  createdAt: string;
 }
 
 // Poll types
 export interface Poll {
   id: number;
-  home_id: number;
+  homeId: number;
   question: string;
   type: "public" | "anonymous";
   status: "open" | "closed";
-  allow_revote: boolean;
-  ends_at?: string;
-  created_at: string;
+  allowRevote: boolean;
+  endsAt?: string;
+  createdAt: string;
   options?: PollOption[];
 }
 
 export interface PollOption {
   id: number;
-  poll_id: number;
+  pollId: number;
   title: string;
-  created_at: string;
+  createdAt: string;
   votes?: Vote[];
-  vote_count?: number;
+  voteCount?: number;
 }
 
 export interface Vote {
   id: number;
-  user_id: number;
-  option_id: number;
+  userId: number;
+  optionId: number;
   user?: User;
 }
 
@@ -181,18 +181,18 @@ export interface Notification {
   to: number;
   description: string;
   read: boolean;
-  created_at: string;
-  user_from?: User;
+  createdAt: string;
+  userFrom?: User;
 }
 
 export interface HomeNotification {
   id: number;
   from?: number;
-  home_id: number;
+  homeId: number;
   description: string;
   read: boolean;
-  created_at: string;
-  user_from?: User;
+  createdAt: string;
+  userFrom?: User;
 }
 
 // API Response types
@@ -230,30 +230,30 @@ export interface JoinHomeForm {
 export interface CreateTaskForm {
   name: string;
   description: string;
-  schedule_type: string;
-  due_date?: string;
-  home_id: number;
-  room_id?: number;
-  assign_user_ids?: number[];
+  scheduleType: string;
+  dueDate?: string;
+  homeId: number;
+  roomId?: number;
+  assignUserIds?: number[];
 }
 
 export interface CreateBillForm {
   type: string;
   description?: string;
-  receipt_image?: string;
-  total_amount: number;
-  period_start: string;
-  period_end: string;
-  ocr_data?: Record<string, any>;
-  splits?: { user_id: number; amount: number }[];
+  receiptImage?: string;
+  totalAmount: number;
+  periodStart: string;
+  periodEnd: string;
+  ocrData?: Record<string, any>;
+  splits?: { userId: number; amount: number }[];
 }
 
 export interface CreatePollForm {
   question: string;
   type: "public" | "anonymous";
   options: { title: string }[];
-  allow_revote: boolean;
-  ends_at?: string;
+  allowRevote: boolean;
+  endsAt?: string;
 }
 
 export interface CreateCategoryForm {
@@ -263,7 +263,7 @@ export interface CreateCategoryForm {
 }
 
 export interface CreateItemForm {
-  category_id: number;
+  categoryId: number;
   name: string;
   image?: string;
   link?: string;
@@ -272,30 +272,30 @@ export interface CreateItemForm {
 // Smart Home Types
 export interface SmartDevice {
   id: number;
-  home_id: number;
-  room_id?: number;
-  entity_id: string;
+  homeId: number;
+  roomId?: number;
+  entityId: string;
   name: string;
   type: string;
   icon?: string;
-  created_at: string;
+  createdAt: string;
   room?: Room;
 }
 
 export interface HomeAssistantConfig {
   id: number;
-  home_id: number;
+  homeId: number;
   url: string;
-  is_active: boolean;
-  created_at: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface HAState {
-  entity_id: string;
+  entityId: string;
   state: string;
   attributes: Record<string, any>;
-  last_changed: string;
-  last_updated: string;
+  lastChanged: string;
+  lastUpdated: string;
 }
 
 export interface ConnectHARequest {
@@ -304,15 +304,15 @@ export interface ConnectHARequest {
 }
 
 export interface AddDeviceRequest {
-  entity_id: string;
+  entityId: string;
   name: string;
-  room_id?: number;
+  roomId?: number;
   icon?: string;
 }
 
 export interface UpdateDeviceRequest {
   name?: string;
-  room_id?: number;
+  roomId?: number;
   icon?: string;
 }
 
@@ -330,6 +330,6 @@ export interface OCRResult {
     quantity: number;
     price: number;
   }[];
-  raw_text?: string;
+  rawText?: string;
   confidence?: number;
 }

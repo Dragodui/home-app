@@ -86,7 +86,7 @@ export default function SmartHomeDashboard() {
         ]);
         setDevices(devicesData);
         const stateMap: Record<string, HAState> = {};
-        statesData.forEach((s) => (stateMap[s.entity_id] = s));
+        statesData.forEach((s) => (stateMap[s.entityId] = s));
         setDeviceStates(stateMap);
       } catch (err) {
           console.log("Failed to fetch devices/states (likely not connected)");
@@ -110,8 +110,8 @@ export default function SmartHomeDashboard() {
     try {
       const results = await smarthomeApi.discover(home.id);
       // Filter out already added devices
-      const addedEntityIds = new Set(devices.map(d => d.entity_id));
-      const newDevices = results.filter(d => !addedEntityIds.has(d.entity_id));
+      const addedEntityIds = new Set(devices.map(d => d.entityId));
+      const newDevices = results.filter(d => !addedEntityIds.has(d.entityId));
       setDiscoveredDevices(newDevices);
     } catch (error) {
       console.error("Failed to discover devices", error);
@@ -126,9 +126,9 @@ export default function SmartHomeDashboard() {
     setAddingDevice(true);
     try {
       await smarthomeApi.addDevice(home.id, {
-        entity_id: selectedEntity,
+        entityId: selectedEntity,
         name: newDeviceName.trim(),
-        room_id: selectedRoomId,
+        roomId: selectedRoomId,
       });
       setShowAddModal(false);
       setNewDeviceName("");
@@ -150,7 +150,7 @@ export default function SmartHomeDashboard() {
     try {
       await smarthomeApi.updateDevice(home.id, editingDevice.id, {
         name: editName.trim(),
-        room_id: editRoomId,
+        roomId: editRoomId,
       });
       setShowEditModal(false);
       setEditingDevice(null);
@@ -186,8 +186,8 @@ export default function SmartHomeDashboard() {
     const service = state ? "turn_on" : "turn_off";
 
     // Optimistic update
-    const newState = { ...deviceStates[device.entity_id], state: state ? "on" : "off" };
-    setDeviceStates(prev => ({ ...prev, [device.entity_id]: newState }));
+    const newState = { ...deviceStates[device.entityId], state: state ? "on" : "off" };
+    setDeviceStates(prev => ({ ...prev, [device.entityId]: newState }));
 
     try {
       await smarthomeApi.controlDevice(home.id, device.id, service);
@@ -213,10 +213,10 @@ export default function SmartHomeDashboard() {
   };
 
   const renderDevice = ({ item }: { item: SmartDevice }) => {
-    const state = deviceStates[item.entity_id];
+    const state = deviceStates[item.entityId];
     const isOn = state?.state === "on";
     const isOffline = state?.state === "unavailable" || state?.state === "unknown";
-    const roomName = rooms.find(r => r.id === item.room_id)?.name || "No Room";
+    const roomName = rooms.find(r => r.id === item.roomId)?.name || "No Room";
 
     return (
       <View className="flex-row items-center p-4 rounded-20 mb-3" style={{ backgroundColor: theme.surface }}>
@@ -249,7 +249,7 @@ export default function SmartHomeDashboard() {
                     onPress={() => {
                         setEditingDevice(item);
                         setEditName(item.name);
-                        setEditRoomId(item.room_id);
+                        setEditRoomId(item.roomId);
                         setShowEditModal(true);
                     }}
                  >
@@ -431,18 +431,18 @@ export default function SmartHomeDashboard() {
               ) : (
                 <FlatList
                   data={discoveredDevices}
-                  keyExtractor={item => item.entity_id}
+                  keyExtractor={item => item.entityId}
                   renderItem={({ item }) => (
                     <TouchableOpacity
                       className="py-3 border-b"
                       style={{ borderBottomColor: theme.border }}
                       onPress={() => {
-                        setSelectedEntity(item.entity_id);
-                        setNewDeviceName(item.attributes.friendly_name || item.entity_id);
+                        setSelectedEntity(item.entityId);
+                        setNewDeviceName(item.attributes.friendlyName || item.entityId);
                       }}
                     >
-                      <Text className="font-bold" style={{ color: theme.text }}>{item.attributes.friendly_name || item.entity_id}</Text>
-                      <Text className="text-xs" style={{ color: theme.textSecondary }}>{item.entity_id}</Text>
+                      <Text className="font-bold" style={{ color: theme.text }}>{item.attributes.friendlyName || item.entityId}</Text>
+                      <Text className="text-xs" style={{ color: theme.textSecondary }}>{item.entityId}</Text>
                     </TouchableOpacity>
                   )}
                 />

@@ -165,7 +165,7 @@ export default function RoomsScreen() {
                     {room.name}
                   </Text>
                   <Text className="text-xs font-manrope" style={{ color: finalTextColor, opacity: 0.6 }}>
-                    {interpolate(t.rooms.added, { date: new Date(room.created_at).toLocaleDateString() })}
+                    {interpolate(t.rooms.added, { date: new Date(room.createdAt).toLocaleDateString() })}
                   </Text>
                   {isAdmin && (
                     <TouchableOpacity

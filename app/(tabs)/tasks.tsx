@@ -126,9 +126,9 @@ export default function TasksScreen() {
     const completed = isTaskCompleted(task);
 
     if (completed) {
-      let assignmentId = task.assignments?.find((a) => a.user_id === user.id)?.id;
+      let assignmentId = task.assignments?.find((a) => a.userId === user.id)?.id;
       if (!assignmentId) {
-        assignmentId = assignments.find((a) => a.task_id === task.id && a.user_id === user.id)?.id;
+        assignmentId = assignments.find((a) => a.taskId === task.id && a.userId === user.id)?.id;
       }
 
       if (assignmentId) {
@@ -167,11 +167,11 @@ export default function TasksScreen() {
       await taskApi.create(home.id, {
         name: newTaskName.trim(),
         description: newTaskDescription.trim(),
-        schedule_type: "once",
-        due_date: selectedDate ? selectedDate.toISOString() : undefined,
-        home_id: home.id,
-        room_id: selectedRoomId || undefined,
-        assign_user_ids: selectedUserIds.length > 0 ? selectedUserIds : undefined,
+        scheduleType: "once",
+        dueDate: selectedDate ? selectedDate.toISOString() : undefined,
+        homeId: home.id,
+        roomId: selectedRoomId || undefined,
+        assignUserIds: selectedUserIds.length > 0 ? selectedUserIds : undefined,
       });
 
       setNewTaskName("");
@@ -203,10 +203,10 @@ export default function TasksScreen() {
     setCreatingSchedule(true);
     try {
       await taskScheduleApi.create(home.id, {
-        task_id: scheduleTaskId,
-        home_id: home.id,
-        recurrence_type: scheduleRecurrence,
-        user_ids: scheduleUserIds,
+        taskId: scheduleTaskId,
+        homeId: home.id,
+        recurrenceType: scheduleRecurrence,
+        userIds: scheduleUserIds,
       });
 
       setShowScheduleModal(false);
@@ -253,7 +253,7 @@ export default function TasksScreen() {
 
   const getFilteredTasks = () => {
     if (activeFilter === "My") {
-      const myTaskIds = assignments.map((a) => a.task_id);
+      const myTaskIds = assignments.map((a) => a.taskId);
       return tasks.filter((t) => myTaskIds.includes(t.id));
     }
     return tasks;
@@ -261,11 +261,11 @@ export default function TasksScreen() {
 
   const isTaskCompleted = (task: Task) => {
     if (task.assignments && task.assignments.length > 0) {
-      const userAssignment = task.assignments.find((a) => a.user_id === user?.id);
+      const userAssignment = task.assignments.find((a) => a.userId === user?.id);
       if (userAssignment) return userAssignment.status === "completed";
       return task.assignments.some((a) => a.status === "completed");
     }
-    const assignment = assignments.find((a) => a.task_id === task.id);
+    const assignment = assignments.find((a) => a.taskId === task.id);
     return assignment?.status === "completed";
   };
 
@@ -277,31 +277,31 @@ export default function TasksScreen() {
   };
 
   const getTaskDueText = (task: Task) => {
-    if (task.due_date) {
-      const date = new Date(task.due_date);
+    if (task.dueDate) {
+      const date = new Date(task.dueDate);
       return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
     return t.tasks.noDueDate;
   };
 
   const getTaskCompletedDate = (task: Task) => {
-    let assignment = task.assignments?.find((a) => a.user_id === user?.id);
+    let assignment = task.assignments?.find((a) => a.userId === user?.id);
     if (!assignment) {
-      assignment = assignments.find((a) => a.task_id === task.id && a.user_id === user?.id);
+      assignment = assignments.find((a) => a.taskId === task.id && a.userId === user?.id);
     }
     if (!assignment && task.assignments) {
       assignment = task.assignments.find((a) => a.status === "completed");
     }
 
-    if (assignment && assignment.complete_date) {
-      const date = new Date(assignment.complete_date);
+    if (assignment && assignment.completeDate) {
+      const date = new Date(assignment.completeDate);
       return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
     return "";
   };
 
   const getMyTasksCount = () => {
-    const myTaskIds = assignments.map((a) => a.task_id);
+    const myTaskIds = assignments.map((a) => a.taskId);
     return tasks.filter((t) => myTaskIds.includes(t.id)).length;
   };
 
@@ -349,7 +349,7 @@ export default function TasksScreen() {
                   >
                     <Repeat size={10} color={theme.accent.purple} />
                     <Text className="text-[10px] font-manrope-bold" style={{ color: theme.accent.purple }}>
-                      {getRecurrenceLabel(task.schedule!.recurrence_type)}
+                      {getRecurrenceLabel(task.schedule!.recurrenceType)}
                     </Text>
                   </View>
                 )}
@@ -618,10 +618,10 @@ export default function TasksScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View className="flex-row gap-2.5">
                   {home.memberships.map((membership) => {
-                    const isSelected = selectedUserIds.includes(membership.user_id);
+                    const isSelected = selectedUserIds.includes(membership.userId);
                     return (
                       <TouchableOpacity
-                        key={membership.user_id}
+                        key={membership.userId}
                         className="px-4.5 py-3 rounded-[12px]"
                         style={[
                           { backgroundColor: theme.surface },
@@ -630,8 +630,8 @@ export default function TasksScreen() {
                         onPress={() =>
                           setSelectedUserIds((prev) =>
                             isSelected
-                              ? prev.filter((id) => id !== membership.user_id)
-                              : [...prev, membership.user_id]
+                              ? prev.filter((id) => id !== membership.userId)
+                              : [...prev, membership.userId]
                           )
                         }
                       >
@@ -642,7 +642,7 @@ export default function TasksScreen() {
                             isSelected && { color: theme.background },
                           ]}
                         >
-                          {membership.user?.name || `User ${membership.user_id}`}
+                          {membership.user?.name || `User ${membership.userId}`}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -721,11 +721,11 @@ export default function TasksScreen() {
               </Text>
               <View className="gap-2">
                 {home.memberships.map((membership, idx) => {
-                  const isSelected = scheduleUserIds.includes(membership.user_id);
-                  const orderIndex = scheduleUserIds.indexOf(membership.user_id);
+                  const isSelected = scheduleUserIds.includes(membership.userId);
+                  const orderIndex = scheduleUserIds.indexOf(membership.userId);
                   return (
                     <TouchableOpacity
-                      key={membership.user_id}
+                      key={membership.userId}
                       className="flex-row items-center px-4 py-3 rounded-[12px]"
                       style={[
                         { backgroundColor: theme.surface },
@@ -734,8 +734,8 @@ export default function TasksScreen() {
                       onPress={() =>
                         setScheduleUserIds((prev) =>
                           isSelected
-                            ? prev.filter((id) => id !== membership.user_id)
-                            : [...prev, membership.user_id]
+                            ? prev.filter((id) => id !== membership.userId)
+                            : [...prev, membership.userId]
                         )
                       }
                     >
@@ -753,7 +753,7 @@ export default function TasksScreen() {
                         className="text-sm font-manrope-semibold flex-1"
                         style={{ color: isSelected ? theme.text : theme.textSecondary }}
                       >
-                        {membership.user?.name || `User ${membership.user_id}`}
+                        {membership.user?.name || `User ${membership.userId}`}
                       </Text>
                       {isSelected && (
                         <X size={16} color={theme.textSecondary} />

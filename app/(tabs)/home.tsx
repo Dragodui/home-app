@@ -81,12 +81,12 @@ export default function HomeScreen() {
       const currentYear = now.getFullYear();
 
       const total = (billsData || []).reduce((sum, bill) => {
-        const billDate = new Date(bill.created_at);
+        const billDate = new Date(bill.createdAt);
         if (
           billDate.getMonth() === currentMonth &&
           billDate.getFullYear() === currentYear
         ) {
-          return sum + bill.total_amount;
+          return sum + bill.totalAmount;
         }
         return sum;
       }, 0);
@@ -296,7 +296,7 @@ export default function HomeScreen() {
               <View className="flex-row justify-between items-center">
                 <View className="bg-black/[0.08] px-4 py-3 rounded-14">
                   <Text className="text-sm font-manrope-semibold text-primary">
-                    {formatTaskTime(nextAssignment.assigned_date)}
+                    {formatTaskTime(nextAssignment.assignedDate)}
                   </Text>
                 </View>
                 <ArrowRight size={24} color="#1C1C1E" />
