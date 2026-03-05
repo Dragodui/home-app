@@ -127,6 +127,12 @@ export default function LoginScreen() {
             error={error || undefined}
           />
 
+          <TouchableOpacity onPress={() => router.push("/forgot-password")} className="self-end mt-1">
+            <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
+              {t.auth.forgotPassword || "Forgot Password?"}
+            </Text>
+          </TouchableOpacity>
+
           <Button
             title={t.auth.getStarted}
             onPress={handleLogin}

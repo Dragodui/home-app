@@ -6,14 +6,11 @@ import {
   Check,
   ChevronRight,
   Copy,
-  Globe,
   Home as HomeIcon,
   LogOut,
-  Moon,
   Plus,
   Settings,
   Shield,
-  Sun,
   User,
   Users,
   Zap,
@@ -36,13 +33,12 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout, updateUser } = useAuth();
   const { home, homes, isAdmin, createHome, joinHome, leaveHome, switchHome } = useHome();
-  const { theme, themeMode, setThemeMode } = useTheme();
-  const { t, language, setLanguage, languageNames, availableLanguages } = useI18n();
+  const { theme } = useTheme();
+  const { t } = useI18n();
   const { alert } = useAlert();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
-  const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [homeName, setHomeName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -286,71 +282,6 @@ export default function ProfileScreen() {
           })}
         </View>
 
-        {/* Theme Toggle */}
-        <View className="mb-8">
-          <Text
-            className="text-[12px] font-manrope-bold tracking-widest mb-3 ml-1"
-            style={{ color: theme.textSecondary }}
-          >
-            {t.profile.theme}
-          </Text>
-          <View className="flex-row gap-3">
-            <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center gap-2 py-4 rounded-2xl"
-              style={{
-                backgroundColor: themeMode === "light" ? theme.accent.yellow : theme.surface,
-              }}
-              onPress={() => setThemeMode("light")}
-            >
-              <Sun size={20} color={themeMode === "light" ? "#1C1C1E" : theme.textSecondary} />
-              <Text
-                className="text-[14px] font-manrope-semibold"
-                style={{ color: themeMode === "light" ? "#1C1C1E" : theme.textSecondary }}
-              >
-                {t.profile.light}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center gap-2 py-4 rounded-2xl"
-              style={{
-                backgroundColor: themeMode === "dark" ? theme.accent.purple : theme.surface,
-              }}
-              onPress={() => setThemeMode("dark")}
-            >
-              <Moon size={20} color={themeMode === "dark" ? "#1C1C1E" : theme.textSecondary} />
-              <Text
-                className="text-[14px] font-manrope-semibold"
-                style={{ color: themeMode === "dark" ? "#1C1C1E" : theme.textSecondary }}
-              >
-                {t.profile.dark}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Language Selector */}
-        <View className="mb-8">
-          <Text
-            className="text-[12px] font-manrope-bold tracking-widest mb-3 ml-1"
-            style={{ color: theme.textSecondary }}
-          >
-            <Globe size={12} color={theme.textSecondary} /> LANGUAGE
-          </Text>
-          <TouchableOpacity
-            className="flex-row items-center justify-between p-4 rounded-2xl"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => setShowLanguageModal(true)}
-            activeOpacity={0.7}
-          >
-            <View className="flex-row items-center gap-3">
-              <Text className="text-[16px] font-manrope-semibold" style={{ color: theme.text }}>
-                {languageNames[language]}
-              </Text>
-            </View>
-            <ChevronRight size={20} color={theme.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
         {/* My Homes */}
         <View className="mb-8">
           <Text
@@ -484,37 +415,6 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
-      {/* Language Modal */}
-      <Modal
-        visible={showLanguageModal}
-        onClose={() => setShowLanguageModal(false)}
-        title="Select Language"
-        height="full"
-      >
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          {availableLanguages.map((lang) => (
-            <TouchableOpacity
-              key={lang}
-              className="flex-row items-center p-[18px] rounded-2xl mb-2.5"
-              style={{
-                backgroundColor: language === lang ? theme.accent.purple : theme.surface,
-              }}
-              onPress={() => {
-                setLanguage(lang);
-                setShowLanguageModal(false);
-              }}
-              activeOpacity={0.7}
-            >
-              <Text
-                className="flex-1 text-[17px] font-manrope-semibold"
-                style={{ color: language === lang ? "#1C1C1E" : theme.text }}
-              >
-                {languageNames[lang]}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </Modal>
     </View>
   );
 }

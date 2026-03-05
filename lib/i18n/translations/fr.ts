@@ -51,6 +51,7 @@ export default {
     googleSignInNotReady: "La connexion Google n'est pas encore prête",
     googleSignInCancelled: "La connexion Google a été annulée ou a échoué",
     failedToGetUserInfo: "Impossible de récupérer les informations utilisateur de Google",
+    forgotPassword: "Mot de passe oublié ?",
     leaveHome: "Quitter le foyer",
   },
 
@@ -265,6 +266,9 @@ export default {
     ended: "Terminé",
     removeVote: "Retirer le vote",
     noVotesYet: "Pas encore de votes",
+    deletePoll: "Supprimer le sondage",
+    deletePollConfirm: "Êtes-vous sûr de vouloir supprimer ce sondage ?",
+    failedToDelete: "Impossible de supprimer le sondage",
   },
 
   // Settings

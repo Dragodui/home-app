@@ -51,6 +51,7 @@ export default {
     googleSignInNotReady: "Logowanie przez Google nie jest jeszcze gotowe",
     googleSignInCancelled: "Logowanie przez Google zostało anulowane lub nie powiodło się",
     failedToGetUserInfo: "Nie udało się pobrać informacji o użytkowniku z Google",
+    forgotPassword: "Zapomniałeś hasła?",
     leaveHome: "Opuść dom",
   },
 
@@ -265,6 +266,9 @@ export default {
     ended: "Zakończona",
     removeVote: "Cofnij głos",
     noVotesYet: "Brak głosów",
+    deletePoll: "Usuń ankietę",
+    deletePollConfirm: "Czy na pewno chcesz usunąć tę ankietę?",
+    failedToDelete: "Nie udało się usunąć ankiety",
   },
 
   // Settings

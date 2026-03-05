@@ -84,7 +84,7 @@ const DonutChart = ({
       </Svg>
       <View className="absolute justify-center items-center">
         <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
-          {total.toFixed(0)}
+          {total % 1 === 0 ? total.toFixed(0) : total.toFixed(2)}
         </Text>
         <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
           Total
@@ -149,7 +149,7 @@ const BarChart = ({
                 textAnchor="middle"
                 fontWeight="700"
               >
-                {item.total >= 1000 ? `${(item.total / 1000).toFixed(1)}k` : item.total.toFixed(0)}
+                {item.total >= 1000 ? `${(item.total / 1000).toFixed(1)}k` : item.total % 1 === 0 ? item.total.toFixed(0) : item.total.toFixed(2)}
               </SvgText>
             )}
           </React.Fragment>
@@ -189,7 +189,7 @@ export default function BudgetScreen() {
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [selectedFileType, setSelectedFileType] = useState<"image" | "pdf" | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState("eng");
+  const [selectedLanguage, setSelectedLanguage] = useState("");
   const [scanning, setScanning] = useState(false);
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
 
@@ -239,6 +239,7 @@ export default function BudgetScreen() {
   ];
 
   const LANGUAGES = [
+    { code: "", label: "Auto" },
     { code: "eng", label: "English" },
     { code: "pol", label: "Polski" },
     { code: "ukr", label: "Українська" },
@@ -539,6 +540,13 @@ export default function BudgetScreen() {
       console.error("File picker error:", error);
     }
   };
+
+  // Auto-process receipt when image is selected or language changes
+  useEffect(() => {
+    if (selectedImageUri && !ocrResult && !scanning) {
+      handleProcessReceipt();
+    }
+  }, [selectedImageUri, ocrResult]);
 
   // Step 2: Upload + process with OCR
   const handleProcessReceipt = async () => {
@@ -1147,9 +1155,20 @@ export default function BudgetScreen() {
                   </Text>
                 </TouchableOpacity>
 
-                {/* Step 2: Language selector + Process button (only if no result yet) */}
-                {!ocrResult && (
-                  <View>
+                {/* Auto-scanning indicator */}
+                {!ocrResult && scanning && (
+                  <Button
+                    title={t.budget.processing}
+                    onPress={() => {}}
+                    loading={true}
+                    disabled={true}
+                    variant="primary"
+                  />
+                )}
+
+                {/* Retry with different language (after result) */}
+                {ocrResult && (
+                  <View className="mb-2">
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
@@ -1159,7 +1178,10 @@ export default function BudgetScreen() {
                       {LANGUAGES.map((lang) => (
                         <TouchableOpacity
                           key={lang.code}
-                          onPress={() => setSelectedLanguage(lang.code)}
+                          onPress={() => {
+                            setSelectedLanguage(lang.code);
+                            setOcrResult(null);
+                          }}
                           className="px-3 py-1.5 rounded-full border"
                           style={{
                             backgroundColor: selectedLanguage === lang.code ? theme.text : "transparent",
@@ -1178,15 +1200,6 @@ export default function BudgetScreen() {
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
-
-                    <Button
-                      title={scanning ? t.budget.processing : t.budget.processReceipt}
-                      onPress={handleProcessReceipt}
-                      loading={scanning}
-                      disabled={scanning}
-                      variant="primary"
-                      icon={!scanning ? <ScanLine size={18} color={theme.isDark ? "#1C1C1E" : "#FFFFFF"} /> : undefined}
-                    />
                   </View>
                 )}
 
@@ -1284,6 +1297,13 @@ export default function BudgetScreen() {
                   <Text style={{ color: theme.text }}>{cat.name}</Text>
                 </TouchableOpacity>
               ))}
+              <TouchableOpacity
+                className="w-10 h-10 rounded-xl border border-dashed justify-center items-center"
+                style={{ borderColor: theme.textSecondary }}
+                onPress={() => setShowCategoryModal(true)}
+              >
+                <Plus size={18} color={theme.textSecondary} />
+              </TouchableOpacity>
             </View>
           </ScrollView>
 

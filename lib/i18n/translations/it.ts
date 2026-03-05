@@ -51,6 +51,7 @@ export default {
     googleSignInNotReady: "L'accesso con Google non è ancora pronto",
     googleSignInCancelled: "L'accesso con Google è stato annullato o è fallito",
     failedToGetUserInfo: "Impossibile ottenere le informazioni utente da Google",
+    forgotPassword: "Password dimenticata?",
     leaveHome: "Lascia casa",
   },
 
@@ -265,6 +266,9 @@ export default {
     ended: "Terminato",
     removeVote: "Rimuovi voto",
     noVotesYet: "Nessun voto ancora",
+    deletePoll: "Elimina sondaggio",
+    deletePollConfirm: "Sei sicuro di voler eliminare questo sondaggio?",
+    failedToDelete: "Impossibile eliminare il sondaggio",
   },
 
   // Settings

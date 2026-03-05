@@ -51,6 +51,7 @@ export default {
     googleSignInNotReady: "Google-Anmeldung ist noch nicht bereit",
     googleSignInCancelled: "Google-Anmeldung wurde abgebrochen oder ist fehlgeschlagen",
     failedToGetUserInfo: "Benutzerinformationen von Google konnten nicht abgerufen werden",
+    forgotPassword: "Passwort vergessen?",
     leaveHome: "Heim verlassen",
   },
 
@@ -265,6 +266,9 @@ export default {
     ended: "Beendet",
     removeVote: "Stimme entfernen",
     noVotesYet: "Noch keine Stimmen",
+    deletePoll: "Umfrage löschen",
+    deletePollConfirm: "Sind Sie sicher, dass Sie diese Umfrage löschen möchten?",
+    failedToDelete: "Umfrage konnte nicht gelöscht werden",
   },
 
   // Settings

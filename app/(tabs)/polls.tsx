@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { Calendar, Check, Eye, EyeOff, Plus, RotateCcw, X } from "lucide-react-native";
+import { Calendar, Check, Eye, EyeOff, Plus, RotateCcw, Trash2, X } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import { Image, RefreshControl, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -103,6 +103,35 @@ export default function PollsScreen() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const POLL_COLORS = [
+    theme.accent.purple,
+    theme.accent.yellow,
+    theme.accent.mint,
+    theme.accent.cyan,
+    theme.accent.pink,
+  ];
+
+  const handleDeletePoll = async (pollId: number) => {
+    if (!home) return;
+
+    alert(t.polls.deletePoll || "Delete Poll", t.polls.deletePollConfirm || "Are you sure you want to delete this poll?", [
+      { text: t.common.cancel, style: "cancel" },
+      {
+        text: t.common.delete || "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await pollApi.delete(home.id, pollId);
+            await loadPolls();
+          } catch (error) {
+            console.error("Error deleting poll:", error);
+            alert(t.common.error, t.polls.failedToDelete || "Failed to delete poll");
+          }
+        },
+      },
+    ]);
   };
 
   const handleUnvote = async (pollId: number) => {
@@ -212,9 +241,19 @@ export default function PollsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <Text className="text-4xl font-manrope-bold mb-6" style={{ color: theme.text }}>
-          {t.polls.title}
-        </Text>
+        <View className="flex-row items-center justify-between mb-6">
+          <Text className="text-4xl font-manrope-bold" style={{ color: theme.text }}>
+            {t.polls.title}
+          </Text>
+          <TouchableOpacity
+            className="w-12 h-12 rounded-16 justify-center items-center"
+            style={{ backgroundColor: theme.accent.purple }}
+            onPress={() => setShowCreateModal(true)}
+            activeOpacity={0.8}
+          >
+            <Plus size={24} color="#1C1C1E" />
+          </TouchableOpacity>
+        </View>
 
         {/* Poll Cards */}
         {polls.length === 0 ? (
@@ -224,18 +263,28 @@ export default function PollsScreen() {
             </Text>
           </View>
         ) : (
-          polls.map((poll) => {
+          polls.map((poll, index) => {
             const voted = hasUserVoted(poll);
             const userVote = getUserVote(poll);
+            const pollColor = POLL_COLORS[index % POLL_COLORS.length];
 
             return (
-              <View key={poll.id} className="rounded-3xl p-6 mb-4" style={{ backgroundColor: theme.accent.purple }}>
+              <View key={poll.id} className="rounded-3xl p-6 mb-4" style={{ backgroundColor: pollColor }}>
                 {/* Poll Header */}
                 <View className="flex-row justify-between items-center mb-4">
                   <View className="bg-white/60 px-3 py-1.5 rounded-xl">
                     <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">{getTimeRemaining(poll)}</Text>
                   </View>
                   <View className="flex-row items-center gap-2">
+                    {isAdmin && (
+                      <TouchableOpacity
+                        className="w-8 h-8 rounded-lg justify-center items-center"
+                        onPress={() => handleDeletePoll(poll.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Trash2 size={16} color="#1C1C1E" />
+                      </TouchableOpacity>
+                    )}
                     <View className="bg-white/60 px-3 py-1.5 rounded-xl">
                       <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">{poll.type}</Text>
                     </View>
@@ -304,18 +353,6 @@ export default function PollsScreen() {
           })
         )}
 
-        {/* Create New Poll Button */}
-        <TouchableOpacity
-          className="flex-row items-center justify-center gap-2.5 py-5 rounded-2xl border-2 border-dashed mt-2"
-          style={{ borderColor: theme.textSecondary }}
-          onPress={() => setShowCreateModal(true)}
-          activeOpacity={0.8}
-        >
-          <Plus size={24} color={theme.textSecondary} />
-          <Text className="text-base font-manrope-semibold" style={{ color: theme.textSecondary }}>
-            {t.polls.newPoll}
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
 
       {/* Create Poll Modal */}

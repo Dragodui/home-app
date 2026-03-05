@@ -166,7 +166,6 @@ export default function RoomsScreen() {
                   {isAdmin && (
                     <TouchableOpacity
                       className="absolute top-4 right-4 w-9 h-9 rounded-12 justify-center items-center"
-                      style={{ backgroundColor: "rgba(239, 68, 68, 0.1)" }}
                       onPress={() => handleDeleteRoom(room.id, room.name)}
                     >
                       <Trash2 size={18} color={theme.accent.danger} />

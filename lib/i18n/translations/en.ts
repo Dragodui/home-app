@@ -52,6 +52,7 @@ export default {
     googleSignInNotReady: "Google Sign-In is not ready yet",
     googleSignInCancelled: "Google Sign-In was cancelled or failed",
     failedToGetUserInfo: "Failed to get user info from Google",
+    forgotPassword: "Forgot Password?",
   },
 
   // Verification
@@ -264,6 +265,9 @@ export default {
     ended: "Ended",
     removeVote: "Remove Vote",
     noVotesYet: "No votes yet",
+    deletePoll: "Delete Poll",
+    deletePollConfirm: "Are you sure you want to delete this poll?",
+    failedToDelete: "Failed to delete poll",
   },
 
   // Settings

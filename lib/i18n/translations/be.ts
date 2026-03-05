@@ -51,6 +51,7 @@ export default {
     googleSignInNotReady: "Уваход праз Google яшчэ не гатовы",
     googleSignInCancelled: "Уваход праз Google быў скасаваны або не атрымаўся",
     failedToGetUserInfo: "Не атрымалася атрымаць інфармацыю пра карыстальніка з Google",
+    forgotPassword: "Забылі пароль?",
     leaveHome: "Пакінуць дом",
   },
 
@@ -265,6 +266,9 @@ export default {
     ended: "Скончана",
     removeVote: "Скасаваць голас",
     noVotesYet: "Яшчэ няма галасоў",
+    deletePoll: "Выдаліць апытанне",
+    deletePollConfirm: "Вы ўпэўнены, што хочаце выдаліць гэта апытанне?",
+    failedToDelete: "Не атрымалася выдаліць апытанне",
   },
 
   // Settings
