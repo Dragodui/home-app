@@ -381,12 +381,22 @@ export default function ShoppingScreen() {
                 >
                   {item.isBought && <Check size={16} color="#1C1C1E" strokeWidth={3} />}
                 </View>
-                <Text
-                  className={`flex-1 text-lg font-manrope-semibold ${item.isBought ? "line-through opacity-50" : ""}`}
-                  style={{ color: theme.text }}
-                >
-                  {item.name}
-                </Text>
+                <View className="flex-1">
+                  <Text
+                    className={`text-lg font-manrope-semibold ${item.isBought ? "line-through opacity-50" : ""}`}
+                    style={{ color: theme.text }}
+                  >
+                    {item.name}
+                  </Text>
+                  {item.user?.name && (
+                    <Text
+                      className={`text-xs font-manrope mt-0.5 ${item.isBought ? "opacity-50" : ""}`}
+                      style={{ color: theme.textSecondary }}
+                    >
+                      {t.shopping.addedByUser}: {item.user.name}
+                    </Text>
+                  )}
+                </View>
                 {item.isBought && (
                   <TouchableOpacity className="p-2" onPress={() => handleDeleteItem(item.id)}>
                     <Trash2 size={18} color={theme.textSecondary} />

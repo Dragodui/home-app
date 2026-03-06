@@ -154,6 +154,7 @@ export default {
     addItem: "Додати товар",
     itemName: "Назва товару",
     itemNamePlaceholder: "напр., Молоко",
+    addedByUser: "Додав",
     title_input: "Назва",
     categories: {
       food: "Їжа",
@@ -313,6 +314,11 @@ export default {
     failedToApprove: "Не вдалося прийняти учасника",
     failedToReject: "Не вдалося відхилити запит",
     pending: "Очікує",
+    makeAdmin: "Зробити адміном?",
+    makeAdminConfirm: "Ви впевнені, що хочете надати роль адміністратора цьому учаснику?",
+    removeAdmin: "Зняти адміна?",
+    removeAdminConfirm: "Ви впевнені, що хочете зняти роль адміністратора з цього учасника?",
+    failedToUpdateRole: "Не вдалося оновити роль учасника",
   },
 
   // Notifications

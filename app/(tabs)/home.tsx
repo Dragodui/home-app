@@ -105,19 +105,6 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    if (authLoading) return;
-
-    if (!isAuthenticated) {
-      router.replace("/login");
-      return;
-    }
-
-    loadDashboardData();
-  }, [authLoading, isAuthenticated, loadDashboardData, router]);
-
-  useRealtimeRefresh(["TASK", "POLL", "BILL", "BILL_CATEGORY", "NOTIFICATION", "HOME_NOTIFICATION"], loadDashboardData);
-
   if (authLoading || homeLoading || isLoading) {
     return <HomeSkeleton />;
   }

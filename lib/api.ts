@@ -265,6 +265,11 @@ export const homeApi = {
     const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/members/${userId}/reject`);
     return { message: response.data.message };
   },
+
+  updateMemberRole: async (homeId: number, userId: number, role: string): Promise<{ message: string }> => {
+    const response = await api.patch<{ status: boolean; message: string }>(`/homes/${homeId}/members/${userId}/role`, { role });
+    return { message: response.data.message };
+  },
 };
 
 // ============ Room API ============

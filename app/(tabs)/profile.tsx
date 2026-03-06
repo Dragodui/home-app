@@ -144,16 +144,12 @@ export default function ProfileScreen() {
       color: theme.accent.yellow,
       onPress: () => router.push("/rooms"),
     },
-    ...(isAdmin
-      ? [
-          {
-            icon: Users,
-            label: t.members.title,
-            color: theme.accent.mint,
-            onPress: () => router.push("/members"),
-          },
-        ]
-      : []),
+    {
+      icon: Users,
+      label: t.members.title,
+      color: theme.accent.mint,
+      onPress: () => router.push("/members"),
+    },
     {
       icon: Zap,
       label: "Smart Home",

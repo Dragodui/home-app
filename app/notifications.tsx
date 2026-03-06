@@ -146,7 +146,7 @@ export default function NotificationsScreen() {
               >
                 <View className="flex-row items-start gap-3">
                   <View
-                    className="w-10 h-10 rounded-12 justify-center items-center"
+                    className="w-10 h-10 rounded-xl justify-center items-center"
                     style={{ backgroundColor: theme.accent.purple }}
                   >
                     <Bell size={18} color="#1C1C1E" />

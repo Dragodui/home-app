@@ -267,7 +267,11 @@ export default function TasksScreen() {
 
   const getTaskAssignee = (task: Task) => {
     if (task.assignments && task.assignments.length > 0) {
-      return task.assignments[0].user?.name || t.tasks.assigned;
+      const firstName = task.assignments[0].user?.name || t.tasks.assigned;
+      if (task.assignments.length > 1) {
+        return `${firstName} +${task.assignments.length - 1}`;
+      }
+      return firstName;
     }
     return t.tasks.unassigned;
   };
@@ -345,11 +349,30 @@ export default function TasksScreen() {
                   </View>
                 )}
               </View>
+              {task.description ? (
+                <Text
+                  className={`text-sm font-manrope mb-1 ${completed ? "line-through opacity-50" : ""}`}
+                  style={{ color: theme.textSecondary }}
+                  numberOfLines={2}
+                >
+                  {task.description}
+                </Text>
+              ) : null}
               <View className="flex-row items-center flex-wrap gap-2">
                 <View className="w-2 h-2 rounded-full" style={{ backgroundColor: userColors[colorIndex] }} />
                 <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
                   {getTaskAssignee(task)}
                 </Text>
+                {task.room && (
+                  <>
+                    <Text className="text-[10px]" style={{ color: theme.textSecondary }}>
+                      •
+                    </Text>
+                    <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                      {task.room.name}
+                    </Text>
+                  </>
+                )}
                 <Text className="text-[10px]" style={{ color: theme.textSecondary }}>
                   •
                 </Text>

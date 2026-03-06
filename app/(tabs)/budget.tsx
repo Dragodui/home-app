@@ -736,20 +736,42 @@ export default function BudgetScreen() {
 
           {mode === "manual" && (
             <View className="gap-2">
-              {selectedIds.map((uid) => (
-                <View key={uid} className="flex-row items-center gap-3">
-                  <Text className="text-sm flex-1" style={{ color: theme.text }}>
-                    {getMemberName(uid)}
-                  </Text>
-                  <Input
-                    placeholder="0.00"
-                    value={amounts[uid] || ""}
-                    onChangeText={(v) => setAmounts({ ...amounts, [uid]: v })}
-                    keyboardType="numeric"
-                    style={{ width: 100 }}
-                  />
-                </View>
-              ))}
+              {selectedIds.map((uid, index) => {
+                const otherIds = selectedIds.filter((id) => id !== uid);
+                const otherSum = otherIds.reduce((sum, id) => sum + (parseFloat(amounts[id] || "0") || 0), 0);
+                const allOthersFilled = otherIds.length > 0 && otherIds.every((id) => amounts[id] && parseFloat(amounts[id]) > 0);
+                const isLastEmpty = !amounts[uid] && allOthersFilled && totalAmount > 0;
+                const autoValue = isLastEmpty ? Math.max(0, totalAmount - otherSum).toFixed(2) : "";
+
+                return (
+                  <View key={uid} className="flex-row items-center gap-3">
+                    <Text className="text-sm flex-1" style={{ color: theme.text }}>
+                      {getMemberName(uid)}
+                    </Text>
+                    <Input
+                      placeholder={autoValue || "0.00"}
+                      value={amounts[uid] || ""}
+                      onChangeText={(v) => {
+                        const newAmounts = { ...amounts, [uid]: v };
+                        // Auto-fill the last empty field
+                        const remaining = selectedIds.filter((id) => id !== uid && !newAmounts[id]);
+                        if (remaining.length === 1 && totalAmount > 0) {
+                          const filledSum = selectedIds
+                            .filter((id) => id !== remaining[0])
+                            .reduce((sum, id) => sum + (parseFloat(newAmounts[id] || "0") || 0), 0);
+                          const remainder = Math.max(0, totalAmount - filledSum);
+                          if (remainder > 0) {
+                            newAmounts[remaining[0]] = remainder.toFixed(2);
+                          }
+                        }
+                        setAmounts(newAmounts);
+                      }}
+                      keyboardType="numeric"
+                      style={{ width: 100 }}
+                    />
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
@@ -889,6 +911,16 @@ export default function BudgetScreen() {
                     <Text className="text-xs" style={{ color: theme.textSecondary }}>
                       {uploaderName} · {new Date(bill.createdAt).toLocaleDateString("pl-PL")}
                     </Text>
+                    {bill.description ? (
+                      <Text className="text-xs mt-0.5" style={{ color: theme.textSecondary }} numberOfLines={1}>
+                        {bill.description}
+                      </Text>
+                    ) : null}
+                    {bill.periodStart && bill.periodEnd && (
+                      <Text className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>
+                        {new Date(bill.periodStart).toLocaleDateString("pl-PL")} – {new Date(bill.periodEnd).toLocaleDateString("pl-PL")}
+                      </Text>
+                    )}
                   </View>
                   <View className="items-end">
                     <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>

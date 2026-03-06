@@ -93,6 +93,31 @@ export default function MembersScreen() {
     ]);
   };
 
+  const handleUpdateRole = (member: HomeMembership) => {
+    if (!home) return;
+    const isMemberAdmin = member.role === "admin";
+    const newRole = isMemberAdmin ? "member" : "admin";
+
+    alert(
+      isMemberAdmin ? t.members.removeAdmin : t.members.makeAdmin,
+      isMemberAdmin ? t.members.removeAdminConfirm : t.members.makeAdminConfirm,
+      [
+        { text: t.common.cancel, style: "cancel" },
+        {
+          text: isMemberAdmin ? t.members.remove : t.members.approve,
+          onPress: async () => {
+            try {
+              await homeApi.updateMemberRole(home.id, member.userId, newRole);
+              await loadMembers();
+            } catch {
+              alert(t.common.error, t.members.failedToUpdateRole);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleRejectMember = (member: HomeMembership) => {
     if (!home) return;
     alert(t.members.rejectMember, t.members.rejectConfirm, [
@@ -220,14 +245,25 @@ export default function MembersScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          isAdmin && !isCurrentUser && !isMemberAdmin && (
-            <TouchableOpacity
-              className="w-10 h-10 rounded-14 justify-center items-center ml-2"
-              style={{ backgroundColor: `${theme.accent.dangerLight}20` }}
-              onPress={() => handleRemoveMember(member)}
-            >
-              <Trash2 size={18} color={theme.accent.pink} />
-            </TouchableOpacity>
+          isAdmin && !isCurrentUser && (
+            <View className="flex-row gap-2 ml-2">
+              <TouchableOpacity
+                className="w-10 h-10 rounded-14 justify-center items-center"
+                style={{ backgroundColor: `${theme.accent.yellow}20` }}
+                onPress={() => handleUpdateRole(member)}
+              >
+                <Shield size={18} color={theme.accent.yellow} />
+              </TouchableOpacity>
+              {!isMemberAdmin && (
+                <TouchableOpacity
+                  className="w-10 h-10 rounded-14 justify-center items-center"
+                  style={{ backgroundColor: `${theme.accent.dangerLight}20` }}
+                  onPress={() => handleRemoveMember(member)}
+                >
+                  <Trash2 size={18} color={theme.accent.pink} />
+                </TouchableOpacity>
+              )}
+            </View>
           )
         )}
       </View>

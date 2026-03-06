@@ -153,6 +153,7 @@ export default {
     addItem: "Add Item",
     itemName: "Item Name",
     itemNamePlaceholder: "e.g., Milk",
+    addedByUser: "Added by",
     title_input: "Title",
     categories: {
       food: "Food",
@@ -312,6 +313,11 @@ export default {
     failedToApprove: "Failed to approve member",
     failedToReject: "Failed to reject member",
     pending: "Pending",
+    makeAdmin: "Make Admin?",
+    makeAdminConfirm: "Are you sure you want to give admin role to this member?",
+    removeAdmin: "Remove Admin?",
+    removeAdminConfirm: "Are you sure you want to remove admin role from this member?",
+    failedToUpdateRole: "Failed to update member role",
   },
 
   // Notifications

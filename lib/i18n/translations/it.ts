@@ -154,6 +154,7 @@ export default {
     addItem: "Aggiungi articolo",
     itemName: "Nome articolo",
     itemNamePlaceholder: "es. Latte",
+    addedByUser: "Aggiunto da",
     title_input: "Titolo",
     categories: {
       food: "Cibo",
@@ -313,6 +314,11 @@ export default {
     failedToApprove: "Impossibile approvare il membro",
     failedToReject: "Impossibile rifiutare la richiesta",
     pending: "In attesa",
+    makeAdmin: "Rendere admin?",
+    makeAdminConfirm: "Sei sicuro di voler dare il ruolo di amministratore a questo membro?",
+    removeAdmin: "Rimuovere admin?",
+    removeAdminConfirm: "Sei sicuro di voler rimuovere il ruolo di amministratore da questo membro?",
+    failedToUpdateRole: "Impossibile aggiornare il ruolo del membro",
   },
 
   // Notifications

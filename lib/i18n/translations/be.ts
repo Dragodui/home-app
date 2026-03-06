@@ -154,6 +154,7 @@ export default {
     addItem: "Дадаць тавар",
     itemName: "Назва тавару",
     itemNamePlaceholder: "напр., Малако",
+    addedByUser: "Дадаў",
     title_input: "Назва",
     categories: {
       food: "Ежа",
@@ -313,6 +314,11 @@ export default {
     failedToApprove: "Не ўдалося прыняць удзельніка",
     failedToReject: "Не ўдалося адхіліць запыт",
     pending: "Чакае",
+    makeAdmin: "Зрабіць адмінам?",
+    makeAdminConfirm: "Вы ўпэўнены, што хочаце даць ролю адміністратара гэтаму ўдзельніку?",
+    removeAdmin: "Зняць адміна?",
+    removeAdminConfirm: "Вы ўпэўнены, што хочаце зняць ролю адміністратара з гэтага ўдзельніка?",
+    failedToUpdateRole: "Не ўдалося абнавіць ролю ўдзельніка",
   },
 
   // Notifications
