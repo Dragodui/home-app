@@ -399,7 +399,7 @@ func TestSecurityHeaders(t *testing.T) {
 	assert.Equal(t, "DENY", headers.Get("X-Frame-Options"))
 	assert.Equal(t, "nosniff", headers.Get("X-Content-Type-Options"))
 	assert.Equal(t, "1; mode=block", headers.Get("X-XSS-Protection"))
-	assert.Equal(t, "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:;", headers.Get("Content-Security-Policy"))
+	assert.Equal(t, "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' data:;", headers.Get("Content-Security-Policy"))
 	assert.Equal(t, "max-age=31536000; includeSubDomains", headers.Get("Strict-Transport-Security"))
 	assert.Equal(t, "no-referrer", headers.Get("Referrer-Policy"))
 	assert.Equal(t, "require-corp", headers.Get("Cross-Origin-Embedder-Policy"))
