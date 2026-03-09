@@ -100,9 +100,8 @@ func Load() *Config {
 		AWSRegion:          getEnvRequired("AWS_REGION"),
 
 		// Admin credentials for /metrics and /swagger
-		// Defaults for development - CHANGE IN PRODUCTION!
-		AdminUsername: getEnv("ADMIN_USERNAME", "admin"),
-		AdminPassword: getEnv("ADMIN_PASSWORD", "changeme"),
+		AdminUsername: getEnvRequired("ADMIN_USERNAME"),
+		AdminPassword: getEnvRequired("ADMIN_PASSWORD"),
 
 		// Home Assistant token encryption (must be exactly 32 characters for AES-256)
 		HAEncryptionKey: getEnvRequired("HA_ENCRYPTION_KEY"),
@@ -111,9 +110,13 @@ func Load() *Config {
 		GeminiAPIKey: getEnv("GEMINI_API_KEY", ""),
 	}
 
-	// Fail in production if admin credentials are still default
-	if cfg.Mode != "dev" && (cfg.AdminUsername == "admin" && cfg.AdminPassword == "changeme") {
-		log.Fatal("SECURITY: ADMIN_USERNAME and ADMIN_PASSWORD must be changed from defaults in production")
+	// Validate security-critical config values
+	if len(cfg.JWTSecret) < 32 {
+		log.Fatal("SECURITY: JWT_SECRET must be at least 32 characters long")
+	}
+	
+	if len(cfg.HAEncryptionKey) != 32 {
+		log.Fatal("SECURITY: HA_ENCRYPTION_KEY must be exactly 32 characters for AES-256")
 	}
 
 	return cfg

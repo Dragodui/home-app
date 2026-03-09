@@ -79,12 +79,13 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := r.FormValue("name")
+	username := r.FormValue("username")
 	avatarURL := r.FormValue("avatar")
 
 	file, fileHeader, err := r.FormFile("avatar_file")
 	hasAvatarFile := err == nil
 
-	if name == "" && !hasAvatarFile && avatarURL == "" {
+	if name == "" && username == "" && !hasAvatarFile && avatarURL == "" {
 		utils.JSONError(w, "No fields to update", http.StatusBadRequest)
 		return
 	}
@@ -96,7 +97,19 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if username != "" {
+		if err := h.svc.UpdateUsername(r.Context(), userID, username); err != nil {
+			utils.JSONError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
 	if avatarURL != "" {
+		// !!! IDK
+		if err := utils.ValidateExternalURL(avatarURL); err != nil {
+			utils.JSONError(w, "Invalid avatar URL", http.StatusBadRequest)
+			return
+		}
 		if err := h.svc.UpdateUserAvatar(r.Context(), userID, avatarURL); err != nil {
 			utils.SafeError(w, err, "Failed to update avatar", http.StatusInternalServerError)
 			return

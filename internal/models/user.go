@@ -6,6 +6,7 @@ type RegisterInput struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
 	Name     string `json:"name" validate:"required,min=3"`
+	Username string `json:"username" validate:"required,min=3,max=32"`
 }
 
 type LoginInput struct {
@@ -27,6 +28,7 @@ type User struct {
 	ResetToken      *string    `json:"-"`
 	ResetExpiresAt  *time.Time `json:"-"`
 	Name            string     `gorm:"size:64;not null" json:"name"`
+	Username        string     `gorm:"size:32;uniqueIndex" json:"username"`
 	PasswordHash    string     `gorm:"not null" json:"-"`
 	Avatar          string     `json:"avatar"`
 	CreatedAt       time.Time  `gorm:"autoCreateTime" json:"created_at"`
@@ -37,7 +39,8 @@ type User struct {
 }
 
 type UpdateUserRequest struct {
-	Name string `json:"name"`
+	Name     string `json:"name"`
+	Username string `json:"username"`
 }
 
 type UpdateUserAvatarRequest struct {

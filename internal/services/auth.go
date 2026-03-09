@@ -35,7 +35,7 @@ type AuthService struct {
 }
 
 type IAuthService interface {
-	Register(ctx context.Context, email, password, name string) error
+	Register(ctx context.Context, email, password, name, username string) error
 	Login(ctx context.Context, email, password string) (string, *models.User, error)
 	Logout(ctx context.Context, tokenStr string) error
 	IsTokenBlacklisted(ctx context.Context, tokenStr string) bool
@@ -75,11 +75,21 @@ func (s *AuthService) IsTokenBlacklisted(ctx context.Context, tokenStr string) b
 	return err == nil && val > 0
 }
 
-func (s *AuthService) Register(ctx context.Context, email, password, name string) error {
+func (s *AuthService) Register(ctx context.Context, email, password, name, username string) error {
+	if !usernameRegex.MatchString(username) {
+		return errors.New("username must be 3-32 characters, start with a letter, and contain only lowercase letters, numbers, and underscores")
+	}
+
 	existing, _ := s.repo.FindByEmail(ctx, email)
 	if existing != nil {
 		metrics.AuthAttemptsTotal.WithLabelValues("register", "failure").Inc()
 		return errors.New("registration failed")
+	}
+
+	existingByUsername, _ := s.repo.FindByUsername(ctx, username)
+	if existingByUsername != nil {
+		metrics.AuthAttemptsTotal.WithLabelValues("register", "failure").Inc()
+		return errors.New("username is already taken")
 	}
 
 	hash, err := security.HashPassword(password)
@@ -91,6 +101,7 @@ func (s *AuthService) Register(ctx context.Context, email, password, name string
 	u := &models.User{
 		Email:        email,
 		Name:         name,
+		Username:     username,
 		PasswordHash: hash,
 	}
 

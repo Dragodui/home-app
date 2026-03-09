@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -48,7 +49,18 @@ type RealTimeEvent struct {
 	Data   any    `json:"data"`
 }
 
+// HomeChannel returns the Redis pub/sub channel name for a specific home.
+func HomeChannel(homeID int) string {
+	return fmt.Sprintf("home:%d:updates", homeID)
+}
+
+// SendEvent publishes an event to the given Redis channel.
 func SendEvent(ctx context.Context, cache *redis.Client, channel string, event *RealTimeEvent) {
 	payload, _ := json.Marshal(event)
 	cache.Publish(ctx, channel, payload)
+}
+
+// SendHomeEvent publishes an event scoped to a specific home.
+func SendHomeEvent(ctx context.Context, cache *redis.Client, homeID int, event *RealTimeEvent) {
+	SendEvent(ctx, cache, HomeChannel(homeID), event)
 }

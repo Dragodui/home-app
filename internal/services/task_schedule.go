@@ -90,7 +90,7 @@ func (s *TaskScheduleService) CreateSchedule(ctx context.Context, taskID, homeID
 	// Invalidate caches
 	s.invalidateTaskCaches(ctx, taskID, homeID)
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleTask,
 		Action: event.ActionUpdated,
 		Data:   map[string]interface{}{"schedule": schedule, "task_id": taskID},
@@ -188,7 +188,7 @@ func (s *TaskScheduleService) ProcessDueSchedules(ctx context.Context) error {
 		}
 
 		// Send real-time event
-		event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+		event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 			Module: event.ModuleTask,
 			Action: event.ActionAssigned,
 			Data:   map[string]interface{}{"task_id": schedule.TaskID, "user_id": nextUserID, "scheduled": true},

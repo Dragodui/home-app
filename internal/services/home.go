@@ -67,7 +67,7 @@ func (s *HomeService) CreateHome(ctx context.Context, name string, userID int) e
 	metrics.HomesTotal.Inc()
 	metrics.HomeOperationsTotal.WithLabelValues("create").Inc()
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, home.ID, &event.RealTimeEvent{
 		Module: event.ModuleHome,
 		Action: event.ActionCreated,
 		Data:   home,
@@ -91,7 +91,7 @@ func (s *HomeService) RegenerateInviteCode(ctx context.Context, homeID int) erro
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleHome,
 		Action: event.ActionUpdated,
 		Data:   map[string]int{"homeID": homeID},
@@ -137,7 +137,7 @@ func (s *HomeService) JoinHomeByCode(ctx context.Context, code string, userID in
 	fromID := userID
 	_ = s.notifSvc.CreateHomeNotification(ctx, &fromID, home.ID, "A user has requested to join the home")
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, home.ID, &event.RealTimeEvent{
 		Module: event.ModuleHome,
 		Action: event.ActionMemberJoined,
 		Data:   map[string]int{"homeID": home.ID, "userID": userID},
@@ -185,7 +185,7 @@ func (s *HomeService) DeleteHome(ctx context.Context, id int) error {
 		logger.Info.Printf("Failed to delete redis cache for key %s: %v", key, err)
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, id, &event.RealTimeEvent{
 		Module: event.ModuleHome,
 		Action: event.ActionDeleted,
 		Data:   map[string]int{"id": id},
@@ -215,7 +215,7 @@ func (s *HomeService) LeaveHome(ctx context.Context, homeID int, userID int) err
 	fromID := userID
 	_ = s.notifSvc.CreateHomeNotification(ctx, &fromID, homeID, "A member has left the home")
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleHome,
 		Action: event.ActionMemberLeft,
 		Data:   map[string]int{"homeID": homeID, "userID": userID},
@@ -251,7 +251,7 @@ func (s *HomeService) RemoveMember(ctx context.Context, homeID int, userID int, 
 	// Notify home that a member was removed
 	_ = s.notifSvc.CreateHomeNotification(ctx, &fromID, homeID, "A member has been removed from the home")
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleHome,
 		Action: event.ActionMemberRemoved,
 		Data:   map[string]int{"homeID": homeID, "userID": userID},
@@ -328,7 +328,7 @@ func (s *HomeService) ApproveMember(ctx context.Context, homeID int, userID int)
 	_ = s.notifSvc.Create(ctx, nil, userID, "Your request to join the home has been approved")
 	_ = s.notifSvc.CreateHomeNotification(ctx, nil, homeID, "A new member has been approved")
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleHome,
 		Action: event.ActionMemberJoined,
 		Data:   map[string]int{"homeID": homeID, "userID": userID},
@@ -363,16 +363,26 @@ func (s *HomeService) UpdateMemberRole(ctx context.Context, homeID int, userID i
 		return err
 	}
 
-	key := utils.GetHomeCacheKey(homeID)
-	if err := utils.DeleteFromCache(ctx, key, s.cache); err != nil {
-		logger.Info.Printf("Failed to delete redis cache for key %s: %v", key, err)
+	homeKey := utils.GetHomeCacheKey(homeID)
+	if err := utils.DeleteFromCache(ctx, homeKey, s.cache); err != nil {
+		logger.Info.Printf("Failed to delete redis cache for key %s: %v", homeKey, err)
+	}
+
+	userHomesKey := utils.GetUserHomesKey(userID)
+	if err := utils.DeleteFromCache(ctx, userHomesKey, s.cache); err != nil {
+		logger.Info.Printf("Failed to delete redis cache for key %s: %v", userHomesKey, err)
+	}
+
+	userHomeKey := utils.GetUserHomeKey(userID)
+	if err := utils.DeleteFromCache(ctx, userHomeKey, s.cache); err != nil {
+		logger.Info.Printf("Failed to delete redis cache for key %s: %v", userHomeKey, err)
 	}
 
 	metrics.HomeOperationsTotal.WithLabelValues("update_role").Inc()
 
 	_ = s.notifSvc.Create(ctx, nil, userID, "Your role has been updated to "+role)
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleHome,
 		Action: event.ActionUpdated,
 		Data:   map[string]interface{}{"homeID": homeID, "userID": userID, "role": role},

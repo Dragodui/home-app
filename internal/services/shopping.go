@@ -64,7 +64,7 @@ func (s *ShoppingService) CreateCategory(ctx context.Context, name string, icon 
 
 	metrics.ShoppingOperationsTotal.WithLabelValues("create_category").Inc()
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleShoppingCategory,
 		Action: event.ActionCreated,
 		Data:   category,
@@ -141,7 +141,7 @@ func (s *ShoppingService) DeleteCategory(ctx context.Context, categoryID, homeID
 
 	metrics.ShoppingOperationsTotal.WithLabelValues("delete_category").Inc()
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleShoppingCategory,
 		Action: event.ActionDeleted,
 		Data:   map[string]int{"id": categoryID},
@@ -187,7 +187,7 @@ func (s *ShoppingService) EditCategory(ctx context.Context, categoryID, homeID i
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleShoppingCategory,
 		Action: event.ActionUpdated,
 		Data:   category,
@@ -218,7 +218,13 @@ func (s *ShoppingService) CreateItem(ctx context.Context, categoryID int, userID
 	metrics.ShoppingItemsTotal.Inc()
 	metrics.ShoppingOperationsTotal.WithLabelValues("create_item").Inc()
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	category, _ := s.repo.FindCategoryByID(ctx, categoryID)
+	homeID := 0
+	if category != nil {
+		homeID = category.HomeID
+	}
+
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleShoppingItem,
 		Action: event.ActionCreated,
 		Data:   item,
@@ -258,7 +264,13 @@ func (s *ShoppingService) DeleteItem(ctx context.Context, itemID int) error {
 	metrics.ShoppingItemsTotal.Dec()
 	metrics.ShoppingOperationsTotal.WithLabelValues("delete_item").Inc()
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	category, _ := s.repo.FindCategoryByID(ctx, categoryID)
+	homeID := 0
+	if category != nil {
+		homeID = category.HomeID
+	}
+
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleShoppingItem,
 		Action: event.ActionDeleted,
 		Data:   item,
@@ -292,7 +304,13 @@ func (s *ShoppingService) MarkIsBought(ctx context.Context, itemID int) error {
 		logger.Info.Printf("Failed to fetch updated item %d for event: %v", itemID, err)
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	category, _ := s.repo.FindCategoryByID(ctx, categoryID)
+	homeID := 0
+	if category != nil {
+		homeID = category.HomeID
+	}
+
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleShoppingItem,
 		Action: event.ActionUpdated,
 		Data:   updatedItem,
@@ -345,7 +363,13 @@ func (s *ShoppingService) EditItem(ctx context.Context, itemID int, name, image,
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	editCategory, _ := s.repo.FindCategoryByID(ctx, item.CategoryID)
+	editHomeID := 0
+	if editCategory != nil {
+		editHomeID = editCategory.HomeID
+	}
+
+	event.SendHomeEvent(ctx, s.cache, editHomeID, &event.RealTimeEvent{
 		Module: event.ModuleShoppingItem,
 		Action: event.ActionUpdated,
 		Data:   item,

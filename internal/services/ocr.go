@@ -110,7 +110,21 @@ type geminiResponse struct {
 func (s *OCRService) analyzeWithGemini(ctx context.Context, imageData []byte, mimeType, language string) (*models.OCRResult, error) {
 	languageHint := "Detect the language automatically."
 	if language != "" {
-		languageHint = fmt.Sprintf("The text is likely in %s.", language)
+		// Whitelist allowed languages to prevent prompt injection
+		allowedLanguages := map[string]bool{
+			"english": true, "spanish": true, "french": true, "german": true,
+			"italian": true, "portuguese": true, "russian": true, "chinese": true,
+			"japanese": true, "korean": true, "arabic": true, "hindi": true,
+			"dutch": true, "polish": true, "swedish": true, "norwegian": true,
+			"danish": true, "finnish": true, "czech": true, "turkish": true,
+			"greek": true, "hebrew": true, "thai": true, "vietnamese": true,
+			"ukrainian": true, "romanian": true, "hungarian": true, "belarusian": true,
+		}
+		langLower := strings.ToLower(language)
+		if !allowedLanguages[langLower] {
+			return nil, fmt.Errorf("unsupported language: %s", language)
+		}
+		languageHint = fmt.Sprintf("The text is likely in %s.", langLower)
 	}
 
 	prompt := "Analyze this receipt/bill image. " + languageHint + "\n" +

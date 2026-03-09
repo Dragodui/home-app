@@ -13,6 +13,7 @@ type UserRepository interface {
 	Create(ctx context.Context, u *models.User) error
 	FindByID(ctx context.Context, id int) (*models.User, error)
 	FindByName(ctx context.Context, name string) (*models.User, error)
+	FindByUsername(ctx context.Context, username string) (*models.User, error)
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	SetVerifyToken(ctx context.Context, email, token string, expiresAt time.Time) error
 	VerifyEmail(ctx context.Context, token string) error
@@ -48,6 +49,16 @@ func (r *userRepo) FindByID(ctx context.Context, id int) (*models.User, error) {
 func (r *userRepo) FindByName(ctx context.Context, name string) (*models.User, error) {
 	var u models.User
 	err := r.db.WithContext(ctx).Where("name=?", name).First(&u).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+
+	return &u, err
+}
+
+func (r *userRepo) FindByUsername(ctx context.Context, username string) (*models.User, error) {
+	var u models.User
+	err := r.db.WithContext(ctx).Where("username=?", username).First(&u).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

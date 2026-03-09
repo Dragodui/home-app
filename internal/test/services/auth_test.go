@@ -22,6 +22,7 @@ type mockUserRepo struct {
 	CreateFunc           func(ctx context.Context, u *models.User) error
 	FindByIDFunc         func(ctx context.Context, id int) (*models.User, error)
 	FindByNameFunc       func(ctx context.Context, name string) (*models.User, error)
+	FindByUsernameFunc   func(ctx context.Context, username string) (*models.User, error)
 	FindByEmailFunc      func(ctx context.Context, email string) (*models.User, error)
 	SetVerifyTokenFunc   func(ctx context.Context, email, token string, expiresAt time.Time) error
 	VerifyEmailFunc      func(ctx context.Context, token string) error
@@ -49,6 +50,13 @@ func (m *mockUserRepo) FindByID(ctx context.Context, id int) (*models.User, erro
 func (m *mockUserRepo) FindByName(ctx context.Context, name string) (*models.User, error) {
 	if m.FindByNameFunc != nil {
 		return m.FindByNameFunc(ctx, name)
+	}
+	return nil, nil
+}
+
+func (m *mockUserRepo) FindByUsername(ctx context.Context, username string) (*models.User, error) {
+	if m.FindByUsernameFunc != nil {
+		return m.FindByUsernameFunc(ctx, username)
 	}
 	return nil, nil
 }
@@ -150,7 +158,7 @@ func TestAuthService_Register_Success(t *testing.T) {
 	}
 
 	svc, _ := setupAuthService(t, repo)
-	err := svc.Register(context.Background(), "test@example.com", "password123", "Test User")
+	err := svc.Register(context.Background(), "test@example.com", "password123", "Test User", "test_user")
 	assert.NoError(t, err)
 }
 
@@ -162,7 +170,7 @@ func TestAuthService_Register_UserExists(t *testing.T) {
 	}
 
 	svc, _ := setupAuthService(t, repo)
-	err := svc.Register(context.Background(), "existing@example.com", "password123", "Test User")
+	err := svc.Register(context.Background(), "existing@example.com", "password123", "Test User", "test_user")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "registration failed")
 }
@@ -180,7 +188,7 @@ func TestAuthService_Register_PasswordHashing(t *testing.T) {
 	}
 
 	svc, _ := setupAuthService(t, repo)
-	err := svc.Register(context.Background(), "test@example.com", "password123", "Test User")
+	err := svc.Register(context.Background(), "test@example.com", "password123", "Test User", "test_user")
 	require.NoError(t, err)
 
 	// Verify password is hashed (bcrypt)

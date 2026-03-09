@@ -105,7 +105,7 @@ func (s *BillService) CreateBill(ctx context.Context, billType string, billCateg
 	}
 	_ = s.notifSvc.CreateHomeNotification(ctx, &fromID, homeID, desc)
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleBill,
 		Action: event.ActionCreated,
 		Data:   bill,
@@ -139,6 +139,14 @@ func (s *BillService) GetBillsByHomeID(ctx context.Context, homeID int, category
 }
 
 func (s *BillService) Delete(ctx context.Context, id int) error {
+	bill, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if bill == nil {
+		return errors.New("bill not found")
+	}
+
 	if err := s.repo.Delete(ctx, id); err != nil {
 		return err
 	}
@@ -151,7 +159,7 @@ func (s *BillService) Delete(ctx context.Context, id int) error {
 		logger.Info.Printf("Failed to delete redis cache for key %s: %v", key, err)
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, bill.HomeID, &event.RealTimeEvent{
 		Module: event.ModuleBill,
 		Action: event.ActionDeleted,
 		Data:   map[string]int{"id": id},
@@ -188,7 +196,7 @@ func (s *BillService) MarkBillPayed(ctx context.Context, id int) error {
 		logger.Info.Printf("Failed to write to cache [%s]: %v", key, err)
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, bill.HomeID, &event.RealTimeEvent{
 		Module: event.ModuleBill,
 		Action: event.ActionMarkedPayed,
 		Data:   bill,
@@ -198,14 +206,15 @@ func (s *BillService) MarkBillPayed(ctx context.Context, id int) error {
 }
 
 func (s *BillService) UpdateSplits(ctx context.Context, billID int, splits []models.SplitInput) error {
+	bill, err := s.repo.FindByID(ctx, billID)
+	if err != nil {
+		return err
+	}
+	if bill == nil {
+		return errors.New("bill not found")
+	}
+
 	if len(splits) > 0 {
-		bill, err := s.repo.FindByID(ctx, billID)
-		if err != nil {
-			return err
-		}
-		if bill == nil {
-			return errors.New("bill not found")
-		}
 		if err := validateSplits(splits, bill.TotalAmount); err != nil {
 			return err
 		}
@@ -229,7 +238,7 @@ func (s *BillService) UpdateSplits(ctx context.Context, billID int, splits []mod
 		logger.Info.Printf("Failed to delete redis cache for key %s: %v", key, err)
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, bill.HomeID, &event.RealTimeEvent{
 		Module: event.ModuleBill,
 		Action: event.ActionUpdated,
 		Data:   map[string]int{"billID": billID},
@@ -243,11 +252,27 @@ func (s *BillService) GetSplitByID(ctx context.Context, splitID int) (*models.Bi
 }
 
 func (s *BillService) MarkSplitPaid(ctx context.Context, splitID int) error {
+	split, err := s.repo.FindSplitByID(ctx, splitID)
+	if err != nil {
+		return err
+	}
+	if split == nil {
+		return errors.New("split not found")
+	}
+
+	bill, err := s.repo.FindByID(ctx, split.BillID)
+	if err != nil {
+		return err
+	}
+	if bill == nil {
+		return errors.New("bill not found")
+	}
+
 	if err := s.repo.MarkSplitPaid(ctx, splitID); err != nil {
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, bill.HomeID, &event.RealTimeEvent{
 		Module: event.ModuleBill,
 		Action: event.ActionUpdated,
 		Data:   map[string]int{"splitID": splitID},

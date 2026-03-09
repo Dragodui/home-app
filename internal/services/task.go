@@ -85,7 +85,7 @@ func (s *TaskService) CreateTask(ctx context.Context, homeID int, roomID *int, n
 	metrics.TasksTotal.WithLabelValues("active").Inc()
 	metrics.TaskOperationsTotal.WithLabelValues("create").Inc()
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleTask,
 		Action: event.ActionCreated,
 		Data:   task,
@@ -170,7 +170,7 @@ func (s *TaskService) DeleteTask(ctx context.Context, taskID int) error {
 	metrics.TasksTotal.WithLabelValues("active").Dec()
 	metrics.TaskOperationsTotal.WithLabelValues("delete").Inc()
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, task.HomeID, &event.RealTimeEvent{
 		Module: event.ModuleTask,
 		Action: event.ActionDeleted,
 		Data:   task,
@@ -205,7 +205,7 @@ func (s *TaskService) AssignUser(ctx context.Context, taskID, userID, homeID int
 
 	metrics.TaskOperationsTotal.WithLabelValues("assign").Inc()
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleTask,
 		Action: event.ActionAssigned,
 		Data:   map[string]int{"taskID": taskID, "userID": userID},
@@ -300,7 +300,7 @@ func (s *TaskService) MarkAssignmentCompleted(ctx context.Context, assignmentID 
 
 	metrics.TaskOperationsTotal.WithLabelValues("complete").Inc()
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, assignment.Task.HomeID, &event.RealTimeEvent{
 		Module: event.ModuleTask,
 		Action: event.ActionCompleted,
 		Data:   assignment,
@@ -346,7 +346,7 @@ func (s *TaskService) MarkAssignmentUncompleted(ctx context.Context, assignmentI
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, assignment.Task.HomeID, &event.RealTimeEvent{
 		Module: event.ModuleTask,
 		Action: event.ActionUncompleted,
 		Data:   assignment,
@@ -402,7 +402,7 @@ func (s *TaskService) MarkTaskCompletedForUser(ctx context.Context, taskID, user
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleTask,
 		Action: event.ActionCompleted,
 		Data:   assignment,
@@ -441,7 +441,7 @@ func (s *TaskService) DeleteAssignment(ctx context.Context, assignmentID int) er
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, assignment.Task.HomeID, &event.RealTimeEvent{
 		Module: event.ModuleTask,
 		Action: event.ActionDeleted,
 		Data:   map[string]int{"assignmentID": assignmentID},
@@ -482,7 +482,7 @@ func (s *TaskService) ReassignRoom(ctx context.Context, taskID, roomID int) erro
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, task.HomeID, &event.RealTimeEvent{
 		Module: event.ModuleTask,
 		Action: event.ActionUpdated,
 		Data:   task,

@@ -46,7 +46,7 @@ func SetupRoutes(
 
 ) http.Handler {
 	// websockets handler for real time updates
-	wsHandler := ws.NewWSHandler(cfg)
+	wsHandler := ws.NewWSHandler(cfg, homeRepo)
 	// Rate limiter
 	rateLimiter := ratelimiter.NewIpRateLimiter()
 

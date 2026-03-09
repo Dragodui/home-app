@@ -99,7 +99,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		utils.JSONValidationErrors(w, err)
 		return
 	}
-	err := h.svc.Register(r.Context(), input.Email, input.Password, input.Name)
+	err := h.svc.Register(r.Context(), input.Email, input.Password, input.Name, input.Username)
 	if err != nil {
 		utils.SafeError(w, err, "Registration failed", http.StatusBadRequest)
 		return
@@ -254,6 +254,11 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 // @Router       /auth/forgot [post]
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
+	if email == "" || !utils.IsValidEmail(email) {
+		// Return same response to prevent email enumeration
+		utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Reset link was sent to your email"})
+		return
+	}
 	h.svc.SendResetPassword(r.Context(), email)
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Reset link was sent to your email"})
 }

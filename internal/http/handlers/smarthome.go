@@ -406,6 +406,29 @@ func (h *SmartHomeHandler) ControlDevice(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// Whitelist allowed Home Assistant services to prevent arbitrary service calls
+	allowedServices := map[string]bool{
+		"turn_on":         true,
+		"turn_off":        true,
+		"toggle":          true,
+		"set_temperature": true,
+		"set_hvac_mode":   true,
+		"set_fan_mode":    true,
+		"set_brightness":  true,
+		"set_color":       true,
+		"lock":            true,
+		"unlock":          true,
+		"open":            true,
+		"close":           true,
+		"stop":            true,
+		"set_position":    true,
+		"set_speed":       true,
+	}
+	if !allowedServices[req.Service] {
+		utils.JSONError(w, "Service not allowed: "+req.Service, http.StatusBadRequest)
+		return
+	}
+
 	// Get device to get entity_id
 	device, err := h.svc.GetDeviceByID(r.Context(), deviceID, homeID)
 	if err != nil {

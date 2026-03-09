@@ -18,6 +18,7 @@ type mockUserRepo struct {
 	FindByEmailFunc      func(ctx context.Context, email string) (*models.User, error)
 	FindByIDFunc         func(ctx context.Context, id int) (*models.User, error)
 	FindByNameFunc       func(ctx context.Context, name string) (*models.User, error)
+	FindByUsernameFunc   func(ctx context.Context, username string) (*models.User, error)
 	UpdateFunc           func(ctx context.Context, user *models.User, updates map[string]interface{}) error
 	SetVerifyTokenFunc   func(ctx context.Context, email, token string, exp time.Time) error
 	VerifyEmailFunc      func(ctx context.Context, token string) error
@@ -51,6 +52,13 @@ func (m *mockUserRepo) FindByID(ctx context.Context, id int) (*models.User, erro
 func (m *mockUserRepo) FindByName(ctx context.Context, name string) (*models.User, error) {
 	if m.FindByNameFunc != nil {
 		return m.FindByNameFunc(ctx, name)
+	}
+	return nil, nil
+}
+
+func (m *mockUserRepo) FindByUsername(ctx context.Context, username string) (*models.User, error) {
+	if m.FindByUsernameFunc != nil {
+		return m.FindByUsernameFunc(ctx, username)
 	}
 	return nil, nil
 }
@@ -124,6 +132,7 @@ func TestAuthService_Register(t *testing.T) {
 		email         string
 		password      string
 		userName      string
+		username      string
 		findByEmail   func(ctx context.Context, email string) (*models.User, error)
 		create        func(ctx context.Context, user *models.User) error
 		expectedError string
@@ -133,6 +142,7 @@ func TestAuthService_Register(t *testing.T) {
 			email:    "test@example.com",
 			password: "password123",
 			userName: "Test User",
+			username: "test_user",
 			findByEmail: func(ctx context.Context, email string) (*models.User, error) {
 				return nil, nil // User doesn't exist
 			},
@@ -149,6 +159,7 @@ func TestAuthService_Register(t *testing.T) {
 			email:    "existing@example.com",
 			password: "password123",
 			userName: "Test User",
+			username: "test_user",
 			findByEmail: func(ctx context.Context, email string) (*models.User, error) {
 				return &models.User{ID: 1, Email: email}, nil
 			},
@@ -160,6 +171,7 @@ func TestAuthService_Register(t *testing.T) {
 			email:    "test@example.com",
 			password: "password123",
 			userName: "Test User",
+			username: "test_user",
 			findByEmail: func(ctx context.Context, email string) (*models.User, error) {
 				return nil, nil
 			},
@@ -180,7 +192,7 @@ func TestAuthService_Register(t *testing.T) {
 
 			svc := services.NewAuthService(repo, testSecret, nil, time.Hour, "http://localhost", "http://localhost:8000", mailer)
 
-			err := svc.Register(context.Background(), tt.email, tt.password, tt.userName)
+			err := svc.Register(context.Background(), tt.email, tt.password, tt.userName, tt.username)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)

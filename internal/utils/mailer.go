@@ -52,6 +52,11 @@ func validateEmail(email string) error {
 	return nil
 }
 
+// IsValidEmail returns true if the email has a valid format.
+func IsValidEmail(email string) bool {
+	return validateEmail(email) == nil
+}
+
 type Mailer interface {
 	Send(to, subject, body string) error
 }

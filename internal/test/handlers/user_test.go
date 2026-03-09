@@ -22,6 +22,7 @@ import (
 type mockUserService struct {
 	GetUserByIDFunc      func(ctx context.Context, userID int) (*models.User, error)
 	UpdateUserFunc       func(ctx context.Context, userID int, name string) error
+	UpdateUsernameFunc   func(ctx context.Context, userID int, username string) error
 	UpdateUserAvatarFunc func(ctx context.Context, userID int, imagePath string) error
 }
 
@@ -35,6 +36,13 @@ func (m *mockUserService) GetUserByID(ctx context.Context, userID int) (*models.
 func (m *mockUserService) UpdateUser(ctx context.Context, userID int, name string) error {
 	if m.UpdateUserFunc != nil {
 		return m.UpdateUserFunc(ctx, userID, name)
+	}
+	return nil
+}
+
+func (m *mockUserService) UpdateUsername(ctx context.Context, userID int, username string) error {
+	if m.UpdateUsernameFunc != nil {
+		return m.UpdateUsernameFunc(ctx, userID, username)
 	}
 	return nil
 }

@@ -76,7 +76,7 @@ func (s *PollService) Create(ctx context.Context, homeID int, question, pollType
 	fromID := createdBy
 	_ = s.notifSvc.CreateHomeNotification(ctx, &fromID, homeID, "New poll created: "+question)
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModulePoll,
 		Action: event.ActionCreated,
 		Data:   poll,
@@ -126,7 +126,7 @@ func (s *PollService) ClosePoll(ctx context.Context, pollID, homeID int) error {
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModulePoll,
 		Action: event.ActionClosed,
 		Data:   map[string]int{"id": pollID},
@@ -153,7 +153,7 @@ func (s *PollService) Delete(ctx context.Context, pollID, homeID int) error {
 
 	metrics.PollsTotal.Dec()
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModulePoll,
 		Action: event.ActionDeleted,
 		Data:   map[string]int{"id": pollID},
@@ -198,7 +198,7 @@ func (s *PollService) Vote(ctx context.Context, userID, optionID, homeID int) er
 
 	metrics.PollVotesTotal.Inc()
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModulePoll,
 		Action: event.ActionVoted,
 		Data:   vote,
@@ -240,7 +240,7 @@ func (s *PollService) Unvote(ctx context.Context, userID, pollID, homeID int) er
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModulePoll,
 		Action: event.ActionUnvoted,
 		Data:   map[string]int{"userID": userID, "pollID": pollID},

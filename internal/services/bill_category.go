@@ -50,7 +50,7 @@ func (s *BillCategoryService) CreateCategory(ctx context.Context, homeID int, na
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleBillCategory,
 		Action: event.ActionCreated,
 		Data:   category,
@@ -106,7 +106,7 @@ func (s *BillCategoryService) UpdateCategory(ctx context.Context, categoryID int
 		return nil, err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, category.HomeID, &event.RealTimeEvent{
 		Module: event.ModuleBillCategory,
 		Action: event.ActionUpdated,
 		Data:   newCategory,
@@ -125,7 +125,7 @@ func (s *BillCategoryService) DeleteCategory(ctx context.Context, id int, homeID
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleBillCategory,
 		Action: event.ActionDeleted,
 		Data:   map[string]int{"id": id},

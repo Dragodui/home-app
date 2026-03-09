@@ -2,12 +2,16 @@ package ws
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/Dragodui/diploma-server/internal/config"
+	"github.com/Dragodui/diploma-server/internal/event"
+	"github.com/Dragodui/diploma-server/internal/repository"
 	"github.com/Dragodui/diploma-server/pkg/security"
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
@@ -16,17 +20,25 @@ import (
 const (
 	pingInterval = 30 * time.Second
 	pongTimeout  = 60 * time.Second
+	authTimeout  = 10 * time.Second
 )
+
+type clientInfo struct {
+	conn   *websocket.Conn
+	userID int
+	homeIDs []int
+}
 
 // handler for all ws connections
 type WSHandler struct {
 	Upgrader  websocket.Upgrader
-	Clients   map[*websocket.Conn]bool
+	Clients   map[*websocket.Conn]*clientInfo
 	Mu        sync.Mutex
 	jwtSecret []byte
+	homeRepo  repository.HomeRepository
 }
 
-func NewWSHandler(cfg *config.Config) *WSHandler {
+func NewWSHandler(cfg *config.Config, homeRepo repository.HomeRepository) *WSHandler {
 	return &WSHandler{
 		Upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
@@ -47,29 +59,20 @@ func NewWSHandler(cfg *config.Config) *WSHandler {
 				return false
 			},
 		},
-		Clients:   make(map[*websocket.Conn]bool),
+		Clients:   make(map[*websocket.Conn]*clientInfo),
 		jwtSecret: []byte(cfg.JWTSecret),
+		homeRepo:  homeRepo,
 	}
 }
 
+// authMessage is the first message the client must send after connecting.
+type authMessage struct {
+	Token string `json:"token"`
+}
+
 func (h *WSHandler) HandleWS(w http.ResponseWriter, r *http.Request, cache *redis.Client) {
-	// Authenticate: require a valid JWT token via query parameter
+	// Support both query parameter (legacy) and first-message auth
 	tokenStr := r.URL.Query().Get("token")
-	if tokenStr == "" {
-		http.Error(w, "missing token", http.StatusUnauthorized)
-		return
-	}
-
-	// Check if token has been revoked (logout)
-	if val, err := cache.Exists(r.Context(), "blacklist:"+tokenStr).Result(); err == nil && val > 0 {
-		http.Error(w, "token revoked", http.StatusUnauthorized)
-		return
-	}
-
-	if _, err := security.ParseToken(tokenStr, h.jwtSecret); err != nil {
-		http.Error(w, "invalid token", http.StatusUnauthorized)
-		return
-	}
 
 	conn, err := h.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -77,13 +80,70 @@ func (h *WSHandler) HandleWS(w http.ResponseWriter, r *http.Request, cache *redi
 		return
 	}
 
-	// lock to update connections list
+	if tokenStr == "" {
+		// First-message auth: read auth message within timeout
+		conn.SetReadDeadline(time.Now().Add(authTimeout))
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			conn.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "auth timeout"))
+			conn.Close()
+			return
+		}
+
+		var auth authMessage
+		if err := json.Unmarshal(msg, &auth); err != nil || auth.Token == "" {
+			conn.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "invalid auth message"))
+			conn.Close()
+			return
+		}
+		tokenStr = auth.Token
+	}
+
+	// Check if token has been revoked (logout)
+	if val, err := cache.Exists(r.Context(), "blacklist:"+tokenStr).Result(); err == nil && val > 0 {
+		conn.WriteMessage(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "token revoked"))
+		conn.Close()
+		return
+	}
+
+	claims, err := security.ParseToken(tokenStr, h.jwtSecret)
+	if err != nil {
+		conn.WriteMessage(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "invalid token"))
+		conn.Close()
+		return
+	}
+
+	// Look up user's homes for scoped subscriptions
+	homes, err := h.homeRepo.GetUserHomes(r.Context(), claims.UserID)
+	if err != nil {
+		log.Printf("Failed to get user homes for WS: %v", err)
+		conn.WriteMessage(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseInternalServerErr, "internal error"))
+		conn.Close()
+		return
+	}
+
+	homeIDs := make([]int, len(homes))
+	for i, home := range homes {
+		homeIDs[i] = int(home.ID)
+	}
+
+	client := &clientInfo{
+		conn:    conn,
+		userID:  claims.UserID,
+		homeIDs: homeIDs,
+	}
+
 	h.Mu.Lock()
-	h.Clients[conn] = true
+	h.Clients[conn] = client
 	h.Mu.Unlock()
 
 	go h.readPump(conn)
-	go h.subscribeToCache(conn, cache)
+	go h.subscribeToHomeChannels(client, cache)
 }
 
 // readPump reads from the connection to handle pong responses and detect disconnects.
@@ -105,13 +165,26 @@ func (h *WSHandler) readPump(conn *websocket.Conn) {
 	}
 }
 
-func (h *WSHandler) subscribeToCache(conn *websocket.Conn, cache *redis.Client) {
-	defer h.removeClient(conn)
+// subscribeToHomeChannels subscribes to Redis channels for all homes the user belongs to.
+func (h *WSHandler) subscribeToHomeChannels(client *clientInfo, cache *redis.Client) {
+	defer h.removeClient(client.conn)
 
-	pubsub := cache.Subscribe(context.Background(), "updates")
+	if len(client.homeIDs) == 0 {
+		// No homes — just keep connection alive for pings
+		select {}
+	}
+
+	// Build channel list from user's home memberships
+	channels := make([]string, len(client.homeIDs))
+	for i, homeID := range client.homeIDs {
+		channels[i] = event.HomeChannel(homeID)
+	}
+	// Also subscribe to user-specific updates channel
+	channels = append(channels, fmt.Sprintf("user:%d:updates", client.userID))
+
+	pubsub := cache.Subscribe(context.Background(), channels...)
 	defer pubsub.Close()
 
-	// start sending pings to keep the connection alive
 	ticker := time.NewTicker(pingInterval)
 	defer ticker.Stop()
 
@@ -123,12 +196,12 @@ func (h *WSHandler) subscribeToCache(conn *websocket.Conn, cache *redis.Client) 
 			if !ok {
 				return
 			}
-			if err := conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload)); err != nil {
+			if err := client.conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload)); err != nil {
 				log.Printf("Error writing WS message: %v", err)
 				return
 			}
 		case <-ticker.C:
-			if err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second)); err != nil {
+			if err := client.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second)); err != nil {
 				log.Printf("Ping failed: %v", err)
 				return
 			}

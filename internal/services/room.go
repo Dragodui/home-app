@@ -44,7 +44,7 @@ func (s *RoomService) CreateRoom(ctx context.Context, name string, homeID, creat
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleRoom,
 		Action: event.ActionCreated,
 		Data:   room,
@@ -119,7 +119,7 @@ func (s *RoomService) DeleteRoom(ctx context.Context, roomID int) error {
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleRoom,
 		Action: event.ActionDeleted,
 		Data:   room,

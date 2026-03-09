@@ -20,7 +20,7 @@ import (
 
 // Mock service
 type mockAuthService struct {
-	RegisterFunc              func(ctx context.Context, email, password, name string) error
+	RegisterFunc              func(ctx context.Context, email, password, name, username string) error
 	LoginFunc                 func(ctx context.Context, email, password string) (string, *models.User, error)
 	LogoutFunc                func(ctx context.Context, tokenStr string) error
 	IsTokenBlacklistedFunc    func(ctx context.Context, tokenStr string) bool
@@ -67,9 +67,9 @@ func (m *mockAuthService) GoogleSignIn(ctx context.Context, accessToken string) 
 	return "", nil, nil
 }
 
-func (m *mockAuthService) Register(ctx context.Context, email, password, name string) error {
+func (m *mockAuthService) Register(ctx context.Context, email, password, name, username string) error {
 	if m.RegisterFunc != nil {
-		return m.RegisterFunc(ctx, email, password, name)
+		return m.RegisterFunc(ctx, email, password, name, username)
 	}
 	return nil
 }
@@ -136,6 +136,7 @@ var (
 		Email:    "test@example.com",
 		Password: "password123",
 		Name:     "Test User",
+		Username: "test_user",
 	}
 	validLoginInput = models.LoginInput{
 		Email:    "test@example.com",
@@ -151,7 +152,7 @@ func TestAuthHandler_Register(t *testing.T) {
 	tests := []struct {
 		name                 string
 		body                 interface{}
-		registerFunc         func(ctx context.Context, email, password, name string) error
+		registerFunc         func(ctx context.Context, email, password, name, username string) error
 		sendVerificationFunc func(ctx context.Context, email string) error
 		expectedStatus       int
 		expectedBody         string
@@ -159,7 +160,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		{
 			name: "Success",
 			body: validRegisterInput,
-			registerFunc: func(ctx context.Context, email, password, name string) error {
+			registerFunc: func(ctx context.Context, email, password, name, username string) error {
 				assert.Equal(t, "test@example.com", email)
 				assert.Equal(t, "password123", password)
 				assert.Equal(t, "Test User", name)
@@ -191,7 +192,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		{
 			name: "User Already Exists",
 			body: validRegisterInput,
-			registerFunc: func(ctx context.Context, email, password, name string) error {
+			registerFunc: func(ctx context.Context, email, password, name, username string) error {
 				return errors.New("registration failed")
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -200,7 +201,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		{
 			name: "Send Verification Failed",
 			body: validRegisterInput,
-			registerFunc: func(ctx context.Context, email, password, name string) error {
+			registerFunc: func(ctx context.Context, email, password, name, username string) error {
 				return nil
 			},
 			sendVerificationFunc: func(ctx context.Context, email string) error {

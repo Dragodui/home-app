@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Dragodui/diploma-server/internal/event"
 	"github.com/Dragodui/diploma-server/internal/logger"
@@ -48,7 +49,7 @@ func (s *NotificationService) Create(ctx context.Context, from *int, to int, des
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendEvent(ctx, s.cache, fmt.Sprintf("user:%d:updates", to), &event.RealTimeEvent{
 		Module: event.ModuleNotification,
 		Action: event.ActionCreated,
 		Data:   notification,
@@ -86,7 +87,7 @@ func (s *NotificationService) MarkAsRead(ctx context.Context, notificationID, us
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendEvent(ctx, s.cache, fmt.Sprintf("user:%d:updates", userID), &event.RealTimeEvent{
 		Module: event.ModuleNotification,
 		Action: event.ActionMarkRead,
 		Data:   map[string]int{"id": notificationID},
@@ -110,7 +111,7 @@ func (s *NotificationService) CreateHomeNotification(ctx context.Context, from *
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleHomeNotification,
 		Action: event.ActionCreated,
 		Data:   notification,
@@ -148,7 +149,7 @@ func (s *NotificationService) MarkAsReadForHomeNotification(ctx context.Context,
 		return err
 	}
 
-	event.SendEvent(ctx, s.cache, "updates", &event.RealTimeEvent{
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleHomeNotification,
 		Action: event.ActionMarkRead,
 		Data:   map[string]int{"id": notificationID},
