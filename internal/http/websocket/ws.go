@@ -52,8 +52,14 @@ func NewWSHandler(cfg *config.Config, homeRepo repository.HomeRepository) *WSHan
 					return true
 				}
 
-				if origin == cfg.ClientURL || origin == "http://"+cfg.ClientURL || origin == "https://"+cfg.ClientURL {
-					return true
+				allowedOrigins := []string{cfg.ClientURL, "http://" + cfg.ClientURL, "https://" + cfg.ClientURL}
+				if cfg.WebURL != "" {
+					allowedOrigins = append(allowedOrigins, cfg.WebURL, "http://"+cfg.WebURL, "https://"+cfg.WebURL)
+				}
+				for _, allowed := range allowedOrigins {
+					if origin == allowed {
+						return true
+					}
 				}
 
 				return false
