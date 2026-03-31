@@ -16,7 +16,7 @@ import {
   Zap,
 } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { ActivityIndicator, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/components/ui/alert";
 import Button from "@/components/ui/button";
@@ -71,16 +71,26 @@ export default function ProfileScreen() {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      // @ts-expect-error - React Native FormData expects specific format
-      formData.append("image", {
-        uri,
-        name: "avatar.jpg",
-        type: "image/jpeg",
-      });
+      
+      // Web platform requires File/Blob, React Native requires object with uri
+      if (Platform.OS === "web") {
+        // Fetch the blob from the URI and create a File object
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        formData.append("image", blob, "avatar.jpg");
+      } else {
+        // React Native format
+        // @ts-expect-error - React Native FormData expects specific format
+        formData.append("image", {
+          uri,
+          name: "avatar.jpg",
+          type: "image/jpeg",
+        });
+      }
 
-      const response = await imageApi.upload(formData);
-      if (response.url) {
-        await updateUser({ avatar: response.url });
+      const result = await imageApi.upload(formData);
+      if (result.url) {
+        await updateUser({ avatar: result.url });
       }
     } catch (error) {
       console.error("Error uploading image:", error);

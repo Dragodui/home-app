@@ -79,6 +79,10 @@ export const accentColors = {
   mint: "#A8E6CF",
   mintDark: "#88C6AF",
 
+  // Green (success states, confirmations)
+  green: "#22C55E",
+  greenLight: "rgba(34, 197, 94, 0.2)",
+
   // Cyan/Teal (search buttons)
   cyan: "#7DD3E8",
 

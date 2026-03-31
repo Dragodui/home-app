@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Platform } from "react-native";
 import { deepCamelToSnake, deepSnakeToCamel } from "./caseConverter";
 import { secureStorage } from "./secureStorage";
 import type {
@@ -748,8 +749,17 @@ export const imageApi = {
 export const ocrApi = {
   process: async (fileUri: string, fileName: string, mimeType: string, language?: string): Promise<OCRResult> => {
     const formData = new FormData();
-    // @ts-expect-error - React Native FormData accepts object with uri/name/type
-    formData.append("file", { uri: fileUri, name: fileName, type: mimeType });
+    
+    // Web platform requires File/Blob, React Native requires object with uri
+    if (Platform.OS === "web") {
+      const response = await fetch(fileUri);
+      const blob = await response.blob();
+      formData.append("file", blob, fileName);
+    } else {
+      // @ts-expect-error - React Native FormData accepts object with uri/name/type
+      formData.append("file", { uri: fileUri, name: fileName, type: mimeType });
+    }
+    
     if (language) formData.append("language", language);
     const response = await api.post<OCRResult>("/ocr/process", formData, {
       headers: { "Content-Type": "multipart/form-data" },
