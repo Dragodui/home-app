@@ -187,9 +187,7 @@ export default function ShoppingScreen() {
 
       if (categoriesData && categoriesData.length > 0) {
         const results = await Promise.all(
-          categoriesData.map((category) =>
-            shoppingApi.getCategoryItems(home.id, category.id).catch(() => []),
-          ),
+          categoriesData.map((category) => shoppingApi.getCategoryItems(home.id, category.id).catch(() => [])),
         );
         const itemsData: Record<number, ShoppingItem[]> = {};
         categoriesData.forEach((category, i) => {

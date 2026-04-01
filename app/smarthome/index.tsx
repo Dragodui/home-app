@@ -62,9 +62,7 @@ export default function SmartHomeDashboard() {
       let status = { connected: false };
       try {
         status = await smarthomeApi.getStatus(home.id);
-      } catch (_) {
-
-      }
+      } catch (_) {}
       setHaStatus(status);
 
       // Fetch devices and states only if we might be connected, or just try anyway but handle errors

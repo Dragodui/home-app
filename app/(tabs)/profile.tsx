@@ -71,7 +71,7 @@ export default function ProfileScreen() {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      
+
       // Web platform requires File/Blob, React Native requires object with uri
       if (Platform.OS === "web") {
         // Fetch the blob from the URI and create a File object
@@ -254,7 +254,9 @@ export default function ProfileScreen() {
           {isEditingUsername ? (
             <View className="mb-4 items-center">
               <View className="flex-row items-center gap-2">
-                <Text className="text-[16px] font-manrope" style={{ color: theme.textSecondary }}>@</Text>
+                <Text className="text-[16px] font-manrope" style={{ color: theme.textSecondary }}>
+                  @
+                </Text>
                 <TextInput
                   ref={usernameInputRef}
                   className="text-[16px] font-manrope px-3 py-1.5 rounded-xl min-w-[150px]"

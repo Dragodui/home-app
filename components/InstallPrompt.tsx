@@ -9,8 +9,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
   const { theme } = useTheme();
@@ -21,48 +20,48 @@ export function InstallPrompt() {
     // Debug: Check PWA criteria
     const checkPWACriteria = async () => {
       const info: string[] = [];
-      
+
       // 1. Check HTTPS
       info.push(`Protocol: ${window.location.protocol}`);
-      
+
       // 2. Check manifest
       const manifestLink = document.querySelector('link[rel="manifest"]');
-      info.push(`Manifest: ${manifestLink ? '✓' : '✗'}`);
-      
+      info.push(`Manifest: ${manifestLink ? "✓" : "✗"}`);
+
       // 3. Check Service Worker
-      if ('serviceWorker' in navigator) {
+      if ("serviceWorker" in navigator) {
         const registration = await navigator.serviceWorker.getRegistration();
-        info.push(`SW: ${registration ? '✓ registered' : '✗ not registered'}`);
+        info.push(`SW: ${registration ? "✓ registered" : "✗ not registered"}`);
       } else {
-        info.push('SW: ✗ not supported');
+        info.push("SW: ✗ not supported");
       }
-      
+
       // 4. Check if already installed
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      info.push(`Standalone: ${isStandalone ? 'Yes (already installed)' : 'No'}`);
-      
-      setDebugInfo(info.join(' | '));
-      console.log('[PWA Debug]', info.join('\n'));
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+      info.push(`Standalone: ${isStandalone ? "Yes (already installed)" : "No"}`);
+
+      setDebugInfo(info.join(" | "));
+      console.log("[PWA Debug]", info.join("\n"));
     };
-    
+
     checkPWACriteria();
 
     const handler = (e: Event) => {
       e.preventDefault();
-      console.log('[PWA] beforeinstallprompt fired!');
+      console.log("[PWA] beforeinstallprompt fired!");
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setVisible(true);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
-    
+
     // Debug: Check if event might have fired before listener
     setTimeout(() => {
       if (!deferredPrompt) {
-        console.log('[PWA] No install prompt after 3s. Check criteria.');
+        console.log("[PWA] No install prompt after 3s. Check criteria.");
       }
     }, 3000);
-    
+
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
@@ -84,8 +83,8 @@ export function InstallPrompt() {
   };
 
   // Show debug info in development
-  if (process.env.NODE_ENV === 'development' && debugInfo) {
-    console.log('[PWA] Debug Info:', debugInfo);
+  if (process.env.NODE_ENV === "development" && debugInfo) {
+    console.log("[PWA] Debug Info:", debugInfo);
   }
 
   if (!visible) return null;
@@ -96,10 +95,7 @@ export function InstallPrompt() {
       style={{ elevation: 8, backgroundColor: theme.surface }}
     >
       <Download size={20} color={theme.accent.purple} />
-      <Text
-        className="ml-3 flex-1 text-sm font-semibold"
-        style={{ color: theme.text }}
-      >
+      <Text className="ml-3 flex-1 text-sm font-semibold" style={{ color: theme.text }}>
         Install app for a better experience
       </Text>
       <Pressable
