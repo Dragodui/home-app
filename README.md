@@ -1,4 +1,4 @@
-# Household Manager App Server
+# Household Manager App
 
 ## Tech Stack
 
