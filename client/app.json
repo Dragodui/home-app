@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Household manager app",
+    "slug": "household-manager-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "household-manager-app",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.rork.household-manager-app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "app.rork.household-assistant-api"
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.png",
+      "name": "Household Manager",
+      "shortName": "HomeManager",
+      "themeColor": "#1C1C1E",
+      "backgroundColor": "#FFFFFF",
+      "display": "standalone",
+      "output": "single"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://rork.com/"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
