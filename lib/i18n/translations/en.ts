@@ -237,6 +237,11 @@ export default {
     descriptionPlaceholder: "Add details...",
     monthlyTrend: "Monthly Trend",
     last6Months: "Last 6 months",
+    period: "Period",
+    month: "Month",
+    year: "Year",
+    allTime: "All time",
+    currentMonth: "Current month",
     viewReceipt: "View Receipt",
   },
 

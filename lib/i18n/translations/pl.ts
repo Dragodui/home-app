@@ -238,6 +238,11 @@ export default {
     descriptionPlaceholder: "Dodaj szczegóły...",
     monthlyTrend: "Trend miesięczny",
     last6Months: "Ostatnie 6 miesięcy",
+    period: "Okres",
+    month: "Miesiąc",
+    year: "Rok",
+    allTime: "Cały czas",
+    currentMonth: "Bieżący miesiąc",
     viewReceipt: "Zobacz paragon",
   },
 

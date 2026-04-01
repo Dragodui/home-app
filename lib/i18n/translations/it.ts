@@ -238,6 +238,11 @@ export default {
     descriptionPlaceholder: "Aggiungi dettagli...",
     monthlyTrend: "Tendenza mensile",
     last6Months: "Ultimi 6 mesi",
+    period: "Periodo",
+    month: "Mese",
+    year: "Anno",
+    allTime: "Sempre",
+    currentMonth: "Mese corrente",
     viewReceipt: "Vedi scontrino",
   },
 

@@ -84,7 +84,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 async function getAuthHeaders() {
   const token = await secureStorage.getItem("auth_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return token ? { Authorization: `Bearer ${token}` } : null;
 }
 
 async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<ApiResponse<T>> {

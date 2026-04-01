@@ -238,6 +238,11 @@ export default {
     descriptionPlaceholder: "Дадаць дэталі...",
     monthlyTrend: "Месячны трэнд",
     last6Months: "Апошнія 6 месяцаў",
+    period: "Перыяд",
+    month: "Месяц",
+    year: "Год",
+    allTime: "Увесь час",
+    currentMonth: "Бягучы месяц",
     viewReceipt: "Паглядзець чэк",
   },
 

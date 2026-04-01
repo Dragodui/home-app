@@ -4,6 +4,8 @@ import {
   Camera,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   DollarSign,
   Eye,
@@ -32,6 +34,60 @@ import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
+
+type BudgetPeriod = "month" | "year" | "all";
+
+function buildBudgetTrends(bills: Bill[], period: BudgetPeriod, cursor: Date) {
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  if (period === "year") {
+    return monthNames.map((month, index) => {
+      const monthBills = bills.filter((bill) => {
+        const billDate = new Date(bill.createdAt);
+        return billDate.getFullYear() === cursor.getFullYear() && billDate.getMonth() === index;
+      });
+
+      return {
+        month,
+        total: monthBills.reduce((sum, bill) => sum + bill.totalAmount, 0),
+      };
+    });
+  }
+
+  if (period === "all") {
+    const yearTotals = new Map<number, number>();
+
+    for (const bill of bills) {
+      const year = new Date(bill.createdAt).getFullYear();
+      yearTotals.set(year, (yearTotals.get(year) || 0) + bill.totalAmount);
+    }
+
+    return [...yearTotals.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([year, total]) => ({
+        month: String(year),
+        total,
+      }));
+  }
+
+  const endDate = cursor;
+  const months: { month: string; total: number }[] = [];
+
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date(endDate.getFullYear(), endDate.getMonth() - i, 1);
+    const monthBills = bills.filter((bill) => {
+      const billDate = new Date(bill.createdAt);
+      return billDate.getMonth() === date.getMonth() && billDate.getFullYear() === date.getFullYear();
+    });
+
+    months.push({
+      month: monthNames[date.getMonth()],
+      total: monthBills.reduce((sum, bill) => sum + bill.totalAmount, 0),
+    });
+  }
+
+  return months;
+}
 
 const DonutChart = ({
   data,
@@ -176,6 +232,8 @@ export default function BudgetScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [budgetPeriod, setBudgetPeriod] = useState<BudgetPeriod>("month");
+  const [periodCursor, setPeriodCursor] = useState(() => new Date());
   const [filterCategoryId, setFilterCategoryId] = useState<number | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -218,7 +276,6 @@ export default function BudgetScreen() {
 
   // Trend modal
   const [showTrendModal, setShowTrendModal] = useState(false);
-  const [monthlyTrends, setMonthlyTrends] = useState<{ month: string; total: number }[]>([]);
 
   // Receipt image viewer
   const [showReceiptImageModal, setShowReceiptImageModal] = useState(false);
@@ -265,23 +322,6 @@ export default function BudgetScreen() {
       ]);
       setAllBills(allBillsData || []);
       setCategories(categoriesData || []);
-
-      // Compute monthly trends (last 6 months)
-      const now = new Date();
-      const months: { month: string; total: number }[] = [];
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthBills = (allBillsData || []).filter((b) => {
-          const bd = new Date(b.createdAt);
-          return bd.getMonth() === d.getMonth() && bd.getFullYear() === d.getFullYear();
-        });
-        months.push({
-          month: monthNames[d.getMonth()],
-          total: monthBills.reduce((sum, b) => sum + b.totalAmount, 0),
-        });
-      }
-      setMonthlyTrends(months);
     } catch (error) {
       console.error("Error loading budget data:", error);
     } finally {
@@ -628,15 +668,23 @@ export default function BudgetScreen() {
     return isAdmin || bill.uploadedBy === user?.id;
   };
 
+  const periodBills = allBills.filter((bill) => {
+    const billDate = new Date(bill.createdAt);
+    if (budgetPeriod === "all") return true;
+    if (budgetPeriod === "year") return billDate.getFullYear() === periodCursor.getFullYear();
+    return billDate.getFullYear() === periodCursor.getFullYear() && billDate.getMonth() === periodCursor.getMonth();
+  });
+
   const visibleBills =
-    filterCategoryId === null ? allBills : allBills.filter((bill) => bill.billCategoryId === filterCategoryId);
+    filterCategoryId === null ? periodBills : periodBills.filter((bill) => bill.billCategoryId === filterCategoryId);
 
   const totalSpend = visibleBills.reduce((sum, b) => sum + b.totalAmount, 0);
+  const monthlyTrends = buildBudgetTrends(allBills, budgetPeriod, periodCursor);
   const chartData =
     filterCategoryId === null
       ? categories
           .map((cat) => {
-            const catBills = allBills.filter((b) => b.billCategoryId === cat.id);
+            const catBills = periodBills.filter((b) => b.billCategoryId === cat.id);
             const total = catBills.reduce((sum, b) => sum + b.totalAmount, 0);
             return {
               value: total,
@@ -658,7 +706,7 @@ export default function BudgetScreen() {
             : [];
         })();
 
-  const uncategorizedBills = filterCategoryId === null ? allBills.filter((b) => !b.billCategoryId) : [];
+  const uncategorizedBills = filterCategoryId === null ? periodBills.filter((b) => !b.billCategoryId) : [];
   if (uncategorizedBills.length > 0) {
     const total = uncategorizedBills.reduce((sum, b) => sum + b.totalAmount, 0);
     chartData.push({
@@ -810,6 +858,26 @@ export default function BudgetScreen() {
     </View>
   );
 
+  const shiftPeriod = (direction: number) => {
+    setPeriodCursor((current) => {
+      const next = new Date(current);
+      if (budgetPeriod === "year") {
+        next.setFullYear(next.getFullYear() + direction);
+      } else if (budgetPeriod === "month") {
+        next.setMonth(next.getMonth() + direction);
+      }
+      return next;
+    });
+  };
+
+  const canNavigatePeriod = budgetPeriod !== "all";
+  const periodTitle =
+    budgetPeriod === "month"
+      ? t.budget.currentMonth
+      : budgetPeriod === "year"
+        ? String(periodCursor.getFullYear())
+        : t.budget.allTime;
+
   if (isLoading) {
     return <BudgetSkeleton />;
   }
@@ -863,6 +931,99 @@ export default function BudgetScreen() {
             </Text>
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity
+          className="flex-row items-center justify-center gap-2 py-3 mb-4 rounded-2xl"
+          style={{ backgroundColor: theme.surface }}
+          onPress={() => {
+            setBudgetPeriod("month");
+            setPeriodCursor(new Date());
+          }}
+          activeOpacity={0.7}
+        >
+          <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+            {t.budget.currentMonth}
+          </Text>
+        </TouchableOpacity>
+
+        <View className="mb-6 rounded-3xl p-4" style={{ backgroundColor: theme.surface }}>
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-xs font-manrope-bold uppercase" style={{ color: theme.textSecondary }}>
+              {t.budget.period}
+            </Text>
+          </View>
+
+          <View className="flex-row gap-2 mb-3">
+            <TouchableOpacity
+              className="flex-1 py-2.5 rounded-2xl items-center"
+              style={{
+                backgroundColor: budgetPeriod === "month" ? theme.text : theme.background,
+              }}
+              onPress={() => setBudgetPeriod("month")}
+            >
+              <Text
+                className="text-sm font-manrope-semibold"
+                style={{ color: budgetPeriod === "month" ? theme.background : theme.text }}
+              >
+                {t.budget.month}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 py-2.5 rounded-2xl items-center"
+              style={{
+                backgroundColor: budgetPeriod === "year" ? theme.text : theme.background,
+              }}
+              onPress={() => setBudgetPeriod("year")}
+            >
+              <Text
+                className="text-sm font-manrope-semibold"
+                style={{ color: budgetPeriod === "year" ? theme.background : theme.text }}
+              >
+                {t.budget.year}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 py-2.5 rounded-2xl items-center"
+              style={{
+                backgroundColor: budgetPeriod === "all" ? theme.text : theme.background,
+              }}
+              onPress={() => setBudgetPeriod("all")}
+            >
+              <Text
+                className="text-sm font-manrope-semibold"
+                style={{ color: budgetPeriod === "all" ? theme.background : theme.text }}
+              >
+                {t.budget.allTime}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="flex-row items-center justify-between">
+            <TouchableOpacity
+              className="w-11 h-11 rounded-full items-center justify-center"
+              style={{ backgroundColor: canNavigatePeriod ? theme.background : theme.surface }}
+              onPress={() => shiftPeriod(-1)}
+              disabled={!canNavigatePeriod}
+            >
+              <ChevronLeft size={20} color={canNavigatePeriod ? theme.text : theme.textSecondary} />
+            </TouchableOpacity>
+            <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
+              {budgetPeriod === "month"
+                ? new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(periodCursor)
+                : budgetPeriod === "year"
+                  ? String(periodCursor.getFullYear())
+                  : t.budget.allTime}
+            </Text>
+            <TouchableOpacity
+              className="w-11 h-11 rounded-full items-center justify-center"
+              style={{ backgroundColor: canNavigatePeriod ? theme.background : theme.surface }}
+              onPress={() => shiftPeriod(1)}
+              disabled={!canNavigatePeriod}
+            >
+              <ChevronRight size={20} color={canNavigatePeriod ? theme.text : theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <View className="mb-6">
           <Text className="text-sm font-manrope-bold uppercase mb-3" style={{ color: theme.textSecondary }}>
@@ -1508,7 +1669,7 @@ export default function BudgetScreen() {
       >
         <View className="pt-2.5">
           <Text className="text-sm font-manrope mb-4" style={{ color: theme.textSecondary }}>
-            {t.budget.last6Months}
+            {periodTitle}
           </Text>
           <View className="items-center mb-6">
             <BarChart data={monthlyTrends} width={320} height={220} theme={theme} />

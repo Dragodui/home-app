@@ -238,6 +238,11 @@ export default {
     descriptionPlaceholder: "Додайте деталі...",
     monthlyTrend: "Місячний тренд",
     last6Months: "Останні 6 місяців",
+    period: "Період",
+    month: "Місяць",
+    year: "Рік",
+    allTime: "За весь час",
+    currentMonth: "Поточний місяць",
     viewReceipt: "Переглянути чек",
   },
 
