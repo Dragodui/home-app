@@ -121,7 +121,7 @@ func NewServer() (*Server, error) {
 	pollSvc := services.NewPollService(pollRepo, cacheClient, notificationSvc)
 	userService := services.NewUserService(userRepo, cacheClient)
 
-	imageService, err := services.NewImageService(cfg.AWSS3Bucket, cfg.AWSRegion)
+	imageService, err := services.NewImageService(cfg.R2S3Bucket, cfg.R2Region, cfg.R2AccountID, cfg.R2AccessKeyID, cfg.R2SecretAccessKey, cfg.R2PublicUrl)
 	if err != nil {
 		log.Fatalf("error running S3: %s", err.Error())
 	}

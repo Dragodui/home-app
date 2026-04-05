@@ -18,6 +18,7 @@ import (
 	"github.com/Dragodui/diploma-server/internal/metrics"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
@@ -34,10 +35,11 @@ var (
 )
 
 type ImageService struct {
-	s3Client   *s3.Client
-	uploader   *manager.Uploader
-	bucketName string
-	region     string
+	s3Client      *s3.Client
+	uploader      *manager.Uploader
+	bucketName    string
+	region        string
+	publicBaseURL string
 }
 
 type IImageService interface {
@@ -46,27 +48,30 @@ type IImageService interface {
 	Delete(ctx context.Context, imageURL string) error
 }
 
-func NewImageService(bucketName, region string) (*ImageService, error) {
-	if bucketName == "" || region == "" {
-		return nil, fmt.Errorf("bucket name and region are required")
+func NewImageService(bucketName, region, accountID, accessKey, secretKey, publicBaseURL string) (*ImageService, error) {
+	if bucketName == "" || accountID == "" {
+		return nil, fmt.Errorf("bucket name and accountID are required")
 	}
-
-	cfg, err := awsconfig.LoadDefaultConfig(context.TODO(), awsconfig.WithRegion(region))
+	r2Endpoint := fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID)
+	cfg, err := awsconfig.LoadDefaultConfig(context.TODO(), awsconfig.WithRegion(region), awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")))
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to load AWS SDK config: %w", err)
 	}
 
-	client := s3.NewFromConfig(cfg)
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(r2Endpoint)
+	})
 	uploader := manager.NewUploader(client)
 
 	log.Printf("S3 configured: bucket=%s, region=%s", bucketName, region)
 
 	return &ImageService{
-		s3Client:   client,
-		uploader:   uploader,
-		bucketName: bucketName,
-		region:     region,
+		s3Client:      client,
+		uploader:      uploader,
+		bucketName:    bucketName,
+		region:        region,
+		publicBaseURL: strings.TrimSuffix(publicBaseURL, "/"),
 	}, nil
 }
 func (s *ImageService) Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error) {
@@ -148,8 +153,7 @@ func (s *ImageService) Upload(ctx context.Context, file multipart.File, header *
 	metrics.S3UploadsTotal.WithLabelValues("success").Inc()
 	metrics.S3UploadSizeBytes.Observe(float64(header.Size))
 
-	publicURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s",
-		s.bucketName, s.region, newName)
+	publicURL := fmt.Sprintf("%s/%s", s.publicBaseURL, newName)
 
 	log.Printf("Uploaded to S3: %s (Size: %d bytes, Dimensions: %dx%d, Type: %s, ETag: %s)",
 		newName, header.Size, width, height, detectedContentType, *result.ETag)
