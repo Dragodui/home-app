@@ -12,14 +12,14 @@ import { useTheme } from "@/stores/themeStore";
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { token, email: paramEmail } = useLocalSearchParams<{ token?: string; email?: string }>();
+  const { token, email: paramEmail, status } = useLocalSearchParams<{ token?: string; email?: string; status?: string }>();
   const { verifyEmail, resendVerification } = useAuth();
   const { t } = useI18n();
   const { theme } = useTheme();
 
   const [loading, setLoading] = useState(false);
-  const [verified, setVerified] = useState(false);
-  const [error, setError] = useState("");
+  const [verified, setVerified] = useState(status === "success");
+  const [error, setError] = useState(status === "error" ? t.verify.verificationFailed : "");
   const [sent, setSent] = useState(false);
   const email = paramEmail || "";
   const appState = useRef(AppState.currentState);
@@ -82,8 +82,8 @@ export default function VerifyEmailScreen() {
     }
   };
 
-  // Token-based verification result
-  if (token) {
+  // Token-based verification result OR status from redirect
+  if (token || status) {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
