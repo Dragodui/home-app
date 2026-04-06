@@ -36,12 +36,13 @@ type Config struct {
 	// Brevo API
 	BrevoAPIKey string
 
-	// AWS
-	AWSRegion          string
-	AWSS3Bucket        string
-	AWSAccessKeyID     string
-	AWSSecretAccessKey string
-
+	// R2
+	R2Region    string
+	R2S3Bucket  string
+	R2AccessKeyID string
+	R2SecretAccessKey string
+	R2PublicUrl string
+	R2AccountID string
 	// ADMIN (for /metrics and /swagger)
 	AdminUsername string
 	AdminPassword string
@@ -85,7 +86,7 @@ func Load() *Config {
 		ServerURL:    getEnvRequired("SERVER_URL"),
 
 		RedisADDR:     getEnvRequired("REDIS_ADDR"),
-		RedisPassword: getEnvRequired("REDIS_PASSWORD"),
+		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 		RedisTLS:      redisTLS,
 
 		SMTPHost: getEnv("SMTP_HOST", ""),
@@ -96,10 +97,14 @@ func Load() *Config {
 
 		BrevoAPIKey: getEnvRequired("BREVO_API_KEY"),
 
-		AWSAccessKeyID:     getEnvRequired("AWS_ACCESS_KEY"),
-		AWSSecretAccessKey: getEnvRequired("AWS_SECRET_ACCESS_KEY"),
-		AWSS3Bucket:        getEnvRequired("AWS_S3_BUCKET"),
-		AWSRegion:          getEnvRequired("AWS_REGION"),
+		R2AccessKeyID:       getEnvRequired("R2_ACCESS_KEY_ID"),
+		R2SecretAccessKey: getEnvRequired("R2_SECRET_ACCESS_KEY"),
+		R2S3Bucket:        getEnvRequired("R2_S3_BUCKET"),
+		R2Region:          getEnv("R2_REGION", "auto"),
+
+		// r2
+		R2PublicUrl: getEnvRequired("R2_PUBLIC_URL"),
+		R2AccountID: getEnvRequired("R2_ACCOUNT_ID"),
 
 		// Admin credentials for /metrics and /swagger
 		AdminUsername: getEnvRequired("ADMIN_USERNAME"),
@@ -116,7 +121,7 @@ func Load() *Config {
 	if len(cfg.JWTSecret) < 32 {
 		log.Fatal("SECURITY: JWT_SECRET must be at least 32 characters long")
 	}
-	
+
 	if len(cfg.HAEncryptionKey) != 32 {
 		log.Fatal("SECURITY: HA_ENCRYPTION_KEY must be exactly 32 characters for AES-256")
 	}

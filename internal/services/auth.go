@@ -281,6 +281,7 @@ func (s *AuthService) SendVerificationEmail(ctx context.Context, email string) e
 	if err := s.repo.SetVerifyToken(ctx, email, tok, exp); err != nil {
 		return err
 	}
+	
 	link := fmt.Sprintf(s.serverURL+"/api/auth/verify?token=%s", tok)
 	body := fmt.Sprintf("Verify email: <a href=\"%s\">%s</a>", link, link)
 	return s.mail.Send(email, "Verify your email", body)

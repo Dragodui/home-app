@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import { authApi, getApiErrorMessage, getApiErrorStatus } from "@/lib/api";
+import { authApi, getApiErrorMessage, getApiErrorStatus, userApi } from "@/lib/api";
 import { secureStorage } from "@/lib/secureStorage";
 import type { User } from "@/lib/types";
 
