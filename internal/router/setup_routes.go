@@ -56,9 +56,11 @@ func SetupRoutes(
 	// CORS middleware
 	r.Use(cors.Handler(cors.Options{
 		AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
-		AllowedMethods:   []string{"GET", "POST", "DELETE", "PATCH", "PUT"},
+		AllowedMethods:   []string{"GET", "POST", "DELETE", "PATCH", "PUT", "OPTIONS"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		ExposedHeaders:   []string{"Content-Length"},
 		AllowCredentials: true,
+		MaxAge:           300,
 	}))
 	// Security headers middleware
 	r.Use(middleware.SecurityHeaders)
