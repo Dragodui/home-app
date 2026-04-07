@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/stores/authStore";
 
-const WS_URL = `${(process.env.EXPO_PUBLIC_API_URL ?? "").replace(/^https?/, "ws")}/ws`;
+const WS_URL = `${(process.env.EXPO_PUBLIC_API_URL ?? "").replace(/^http/, "ws")}/ws`;
 
 export type EventModule =
   | "BILL_CATEGORY"
