@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
-import { Download, X } from "lucide-react-native";
+import { Download, Share, X } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "@/stores/themeStore";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -8,14 +9,48 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+const IOS_PROMPT_DISMISSED_KEY = "ios-pwa-prompt-dismissed";
+
+function isIOSSafari(): boolean {
+  if (typeof window === "undefined") return false;
+  const ua = window.navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isWebkit = /WebKit/.test(ua);
+  const isChrome = /CriOS/.test(ua);
+  const isFirefox = /FxiOS/.test(ua);
+  return isIOS && isWebkit && !isChrome && !isFirefox;
+}
+
+function isStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as any).standalone === true
+  );
+}
+
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
+  const [showIOSPrompt, setShowIOSPrompt] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
   const { theme } = useTheme();
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
+
+    // Check if already installed
+    if (isStandalone()) return;
+
+    // iOS Safari-specific prompt
+    if (isIOSSafari()) {
+      AsyncStorage.getItem(IOS_PROMPT_DISMISSED_KEY).then((dismissed) => {
+        if (!dismissed) {
+          setShowIOSPrompt(true);
+        }
+      });
+      return;
+    }
 
     // Debug: Check PWA criteria
     const checkPWACriteria = async () => {
@@ -37,8 +72,7 @@ export function InstallPrompt() {
       }
 
       // 4. Check if already installed
-      const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
-      info.push(`Standalone: ${isStandalone ? "Yes (already installed)" : "No"}`);
+      info.push(`Standalone: ${isStandalone() ? "Yes (already installed)" : "No"}`);
 
       setDebugInfo(info.join(" | "));
       console.log("[PWA Debug]", info.join("\n"));
@@ -82,9 +116,38 @@ export function InstallPrompt() {
     setDeferredPrompt(null);
   };
 
+  const handleIOSDismiss = async () => {
+    await AsyncStorage.setItem(IOS_PROMPT_DISMISSED_KEY, "true");
+    setShowIOSPrompt(false);
+  };
+
   // Show debug info in development
   if (process.env.NODE_ENV === "development" && debugInfo) {
     console.log("[PWA] Debug Info:", debugInfo);
+  }
+
+  // iOS Safari prompt
+  if (showIOSPrompt) {
+    return (
+      <View
+        className="absolute bottom-6 left-4 right-4 z-50 rounded-2xl p-4 shadow-lg"
+        style={{ elevation: 8, backgroundColor: theme.surface }}
+      >
+        <View className="flex-row items-center">
+          <Share size={20} color={theme.accent.purple} />
+          <Text className="ml-3 flex-1 text-sm font-semibold" style={{ color: theme.text }}>
+            Install this app on your iPhone
+          </Text>
+          <Pressable onPress={handleIOSDismiss} className="p-1">
+            <X size={18} color={theme.textSecondary} />
+          </Pressable>
+        </View>
+        <Text className="mt-2 text-xs" style={{ color: theme.textSecondary }}>
+          Tap the <Text style={{ fontWeight: "600" }}>Share</Text> button, then{" "}
+          <Text style={{ fontWeight: "600" }}>"Add to Home Screen"</Text>
+        </Text>
+      </View>
+    );
   }
 
   if (!visible) return null;
