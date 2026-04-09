@@ -10,7 +10,6 @@ services:
       - .env.prod
     depends_on:
       - redis
-      - db
     ports:
       - "8000:8000"
     networks:
@@ -23,20 +22,6 @@ services:
     restart: always
     networks:
       - app-network
-
-  db:
-    image: postgres:15
-    container_name: postgres-db-prod
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: mydb
-    volumes:
-      - pgdata-prod:/var/lib/postgresql/data
-    networks:
-      - app-network
-
   prometheus:
     image: prom/prometheus:v2.47.0
     container_name: prometheus-prod

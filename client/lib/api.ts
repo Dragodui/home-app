@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { emitAuthSessionExpired } from "./authSession";
 import { deepCamelToSnake, deepSnakeToCamel } from "./caseConverter";
 import { secureStorage } from "./secureStorage";
 import type {
@@ -84,12 +85,16 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 async function getAuthHeaders() {
   const token = await secureStorage.getItem("auth_token");
-  return token ? { Authorization: `Bearer ${token}` } : null;
+  return {
+    token,
+    headers: token ? { Authorization: `Bearer ${token}` } : null,
+  };
 }
 
 async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<ApiResponse<T>> {
+  const { token, headers: authHeaders } = await getAuthHeaders();
   const headers: Record<string, string> = {
-    ...(await getAuthHeaders()),
+    ...(authHeaders ?? {}),
     ...(options.headers ?? {}),
   };
 
@@ -128,9 +133,10 @@ async function request<T>(path: string, options: ApiRequestOptions = {}): Promis
     : (null as unknown);
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 && token) {
       await secureStorage.removeItem("auth_token");
       await secureStorage.removeItem("user");
+      emitAuthSessionExpired();
     }
 
     const error = new Error(`Request failed with status ${response.status}`) as ApiError;

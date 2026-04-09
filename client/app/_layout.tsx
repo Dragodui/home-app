@@ -11,13 +11,13 @@ import {
   useFonts,
 } from "@expo-google-fonts/manrope";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { AlertProvider } from "@/components/ui/alert";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { AlertProvider } from "@/components/ui/alert";
 import { wsManager } from "@/lib/websocket";
 import { useAuthStore } from "@/stores/authStore";
 import { useHomeStore } from "@/stores/homeStore";
@@ -82,11 +82,37 @@ function AppContent() {
   return (
     <GestureHandlerRootView className={`flex-1 ${theme.isDark ? "bg-background-dark" : "bg-background"}`}>
       <AlertProvider>
+        <AuthGate />
         <RootLayoutNav />
         <InstallPrompt />
       </AlertProvider>
     </GestureHandlerRootView>
   );
+}
+
+const AUTH_ROUTES = new Set(["/login", "/register", "/verify", "/forgot-password", "/reset-password"]);
+
+function AuthGate() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isAuthenticated, isLoading } = useAuthStore();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const isAuthRoute = AUTH_ROUTES.has(pathname);
+
+    if (!isAuthenticated && !isAuthRoute) {
+      router.replace("/login");
+      return;
+    }
+
+    if (isAuthenticated && isAuthRoute) {
+      router.replace("/(tabs)/home");
+    }
+  }, [isAuthenticated, isLoading, pathname, router]);
+
+  return null;
 }
 
 export default function RootLayout() {

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { authApi, getApiErrorMessage, getApiErrorStatus, userApi } from "@/lib/api";
+import { onAuthSessionExpired } from "@/lib/authSession";
 import { secureStorage } from "@/lib/secureStorage";
 import type { User } from "@/lib/types";
 
@@ -174,6 +175,15 @@ export const useAuthStore = create<AuthState>()(
     },
   })),
 );
+
+onAuthSessionExpired(() => {
+  useAuthStore.setState({
+    user: null,
+    token: null,
+    isLoading: false,
+    isAuthenticated: false,
+  });
+});
 
 // Convenience hook matching existing API
 export function useAuth() {
