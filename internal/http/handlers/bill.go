@@ -226,6 +226,52 @@ func (h *BillHandler) MarkPayed(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Updated successfully"})
 }
 
+func (h *BillHandler) Update(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	billID, err := strconv.Atoi(chi.URLParam(r, "bill_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid bill ID", http.StatusBadRequest)
+		return
+	}
+
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	bill, err := h.svc.GetBillByID(r.Context(), billID)
+	if err != nil {
+		utils.SafeError(w, err, "Failed to find bill", http.StatusInternalServerError)
+		return
+	}
+	if bill.UploadedBy != userID {
+		isAdmin, _ := h.homeRepo.IsAdmin(r.Context(), homeID, userID)
+		if !isAdmin {
+			utils.JSONError(w, "forbidden", http.StatusForbidden)
+			return
+		}
+	}
+
+	var req models.UpdateBillRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.UpdateBill(r.Context(), billID, req.BillType, req.BillCategoryID, req.Description, req.ReceiptImage, req.TotalAmount, req.Start, req.End, req.OCRData); err != nil {
+		utils.SafeError(w, err, "Failed to update bill", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Updated successfully"})
+}
+
 // UpdateSplits godoc
 // @Summary      Update bill splits
 // @Description  Update how a bill is split between users (uploader or admin only)

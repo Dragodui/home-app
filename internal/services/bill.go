@@ -27,6 +27,7 @@ type IBillService interface {
 		ocrData datatypes.JSON, homeID, uploadedBy int, splits []models.SplitInput) error
 	GetBillByID(ctx context.Context, id int) (*models.Bill, error)
 	GetBillsByHomeID(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error)
+	UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error
 	Delete(ctx context.Context, id int) error
 	MarkBillPayed(ctx context.Context, id int) error
 	UpdateSplits(ctx context.Context, billID int, splits []models.SplitInput) error
@@ -163,6 +164,58 @@ func (s *BillService) Delete(ctx context.Context, id int) error {
 		Module: event.ModuleBill,
 		Action: event.ActionDeleted,
 		Data:   map[string]int{"id": id},
+	})
+
+	return nil
+}
+
+func (s *BillService) UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error {
+	bill, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if bill == nil {
+		return errors.New("bill not found")
+	}
+
+	if billType != nil {
+		bill.Type = *billType
+	}
+	if billCategoryID != nil {
+		bill.BillCategoryID = billCategoryID
+	}
+	if description != nil {
+		bill.Description = *description
+	}
+	if receiptImage != nil {
+		bill.ReceiptImage = receiptImage
+	}
+	if totalAmount != nil {
+		bill.TotalAmount = *totalAmount
+	}
+	if start != nil {
+		bill.Start = *start
+	}
+	if end != nil {
+		bill.End = *end
+	}
+	if ocrData != nil {
+		bill.OCRData = *ocrData
+	}
+
+	if err := s.repo.Update(ctx, bill); err != nil {
+		return err
+	}
+
+	key := utils.GetBillKey(id)
+	if err := utils.DeleteFromCache(ctx, key, s.cache); err != nil {
+		logger.Info.Printf("Failed to delete redis cache for key %s: %v", key, err)
+	}
+
+	event.SendHomeEvent(ctx, s.cache, bill.HomeID, &event.RealTimeEvent{
+		Module: event.ModuleBill,
+		Action: event.ActionUpdated,
+		Data:   bill,
 	})
 
 	return nil

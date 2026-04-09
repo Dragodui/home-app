@@ -31,6 +31,7 @@ type HomeRepository interface {
 	GetUserHome(ctx context.Context, userID int) (*models.Home, error)
 	GetUserHomes(ctx context.Context, userID int) ([]models.Home, error)
 	UpdateMemberRole(ctx context.Context, homeID int, userID int, role string) error
+	UpdateCurrency(ctx context.Context, homeID int, currency string) error
 }
 
 type homeRepo struct {
@@ -288,6 +289,19 @@ func (r *homeRepo) UpdateMemberRole(ctx context.Context, homeID int, userID int,
 	}
 	if result.RowsAffected == 0 {
 		return errors.New("member not found")
+	}
+	return nil
+}
+
+func (r *homeRepo) UpdateCurrency(ctx context.Context, homeID int, currency string) error {
+	result := r.db.WithContext(ctx).Model(&models.Home{}).
+		Where("id = ?", homeID).
+		Update("currency", currency)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("home not found")
 	}
 	return nil
 }

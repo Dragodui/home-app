@@ -9,6 +9,7 @@ import {
   Car,
   Carrot,
   Check,
+  ChevronRight,
   Coffee,
   Cookie,
   Dog,
@@ -20,7 +21,6 @@ import {
   Pill,
   Plus,
   Scissors,
-  Search,
   Shirt,
   ShoppingCart,
   Sparkles,
@@ -33,9 +33,11 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ShoppingSkeleton } from "@/components/skeletons";
+import { useAlert } from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
+import Colors from "@/constants/colors";
 import { shoppingApi } from "@/lib/api";
 import type { ShoppingCategory, ShoppingItem } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
@@ -151,6 +153,7 @@ export default function ShoppingScreen() {
   const { home } = useHome();
   const { theme } = useTheme();
   const { t } = useI18n();
+  const { alert } = useAlert();
 
   const [categories, setCategories] = useState<ShoppingCategory[]>([]);
   const [items, setItems] = useState<Record<number, ShoppingItem[]>>({});
@@ -164,16 +167,23 @@ export default function ShoppingScreen() {
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
   const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0].id);
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [showCategoryActionsModal, setShowCategoryActionsModal] = useState(false);
+  const [selectedCategoryForActions, setSelectedCategoryForActions] = useState<ShoppingCategory | null>(null);
 
   // Delete category
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<ShoppingCategory | null>(null);
   const [deletingCategory, setDeletingCategory] = useState(false);
 
   // Create item modal
   const [showItemModal, setShowItemModal] = useState(false);
   const [newItemName, setNewItemName] = useState("");
+  const [pendingItemNames, setPendingItemNames] = useState<string[]>([]);
   const [creatingItem, setCreatingItem] = useState(false);
+  const [selectedItemForActions, setSelectedItemForActions] = useState<ShoppingItem | null>(null);
+  const [showItemActionsModal, setShowItemActionsModal] = useState(false);
+  const [showEditItemModal, setShowEditItemModal] = useState(false);
+  const [editItemName, setEditItemName] = useState("");
+  const [savingItemEdit, setSavingItemEdit] = useState(false);
 
   const loadShoppingData = useCallback(async () => {
     if (!home) {
@@ -219,16 +229,25 @@ export default function ShoppingScreen() {
 
     setCreatingCategory(true);
     try {
-      await shoppingApi.createCategory(home.id, {
-        name: newCategoryName.trim(),
-        icon: selectedIcon,
-        color: selectedColor,
-      });
+      if (editingCategoryId) {
+        await shoppingApi.editCategory(home.id, editingCategoryId, {
+          name: newCategoryName.trim(),
+          icon: selectedIcon,
+          color: selectedColor,
+        });
+      } else {
+        await shoppingApi.createCategory(home.id, {
+          name: newCategoryName.trim(),
+          icon: selectedIcon,
+          color: selectedColor,
+        });
+      }
 
       setNewCategoryName("");
       setSelectedIcon(ICON_OPTIONS[0].id);
       setSelectedColor(COLOR_OPTIONS[0]);
       setShowCategoryModal(false);
+      setEditingCategoryId(null);
       await loadShoppingData();
     } catch (error) {
       console.error("Error creating category:", error);
@@ -237,17 +256,57 @@ export default function ShoppingScreen() {
     }
   };
 
+  const openCategoryActions = (category: ShoppingCategory) => {
+    setSelectedCategoryForActions(category);
+    setShowCategoryActionsModal(true);
+  };
+
+  const openEditCategory = (category: ShoppingCategory) => {
+    setEditingCategoryId(category.id);
+    setNewCategoryName(category.name || "");
+    setSelectedIcon(category.icon || ICON_OPTIONS[0].id);
+    setSelectedColor(category.color || COLOR_OPTIONS[0]);
+    setShowCategoryModal(true);
+  };
+
+  const openItemModal = () => {
+    setNewItemName("");
+    setPendingItemNames([]);
+    setShowItemModal(true);
+  };
+
+  const closeItemModal = () => {
+    setShowItemModal(false);
+    setNewItemName("");
+    setPendingItemNames([]);
+  };
+
+  const handleAddPendingItem = () => {
+    const name = newItemName.trim();
+    if (!name) return;
+    setPendingItemNames((prev) => [...prev, name]);
+    setNewItemName("");
+  };
+
   const handleCreateItem = async () => {
-    if (!home || !activeCategory || !newItemName.trim()) return;
+    if (!home || !activeCategory) return;
+
+    const itemsToCreate = [...pendingItemNames];
+    const currentName = newItemName.trim();
+    if (currentName) {
+      itemsToCreate.push(currentName);
+    }
+    if (itemsToCreate.length === 0) return;
 
     setCreatingItem(true);
     try {
-      await shoppingApi.createItem(home.id, {
+      await shoppingApi.createItems(home.id, {
         categoryId: activeCategory.id,
-        name: newItemName.trim(),
+        items: itemsToCreate.map((itemName) => ({ name: itemName })),
       });
 
       setNewItemName("");
+      setPendingItemNames([]);
       setShowItemModal(false);
       await loadShoppingData();
     } catch (error) {
@@ -287,27 +346,54 @@ export default function ShoppingScreen() {
     }
   };
 
-  const openDeleteCategory = (category: ShoppingCategory) => {
-    setCategoryToDelete(category);
-    setShowDeleteModal(true);
+  const openItemActions = (item: ShoppingItem) => {
+    setSelectedItemForActions(item);
+    setShowItemActionsModal(true);
   };
 
-  const handleDeleteCategory = async () => {
-    if (!home || !categoryToDelete) return;
+  const handleEditItem = async () => {
+    if (!home || !selectedItemForActions || !editItemName.trim()) return;
+    setSavingItemEdit(true);
+    try {
+      await shoppingApi.editItem(home.id, selectedItemForActions.id, { name: editItemName.trim() });
+      setShowEditItemModal(false);
+      setSelectedItemForActions(null);
+      await loadShoppingData();
+    } catch (error) {
+      console.error("Error editing item:", error);
+    } finally {
+      setSavingItemEdit(false);
+    }
+  };
+
+  const handleDeleteCategory = async (category: ShoppingCategory) => {
+    if (!home) return;
     setDeletingCategory(true);
     try {
-      await shoppingApi.deleteCategory(home.id, categoryToDelete.id);
-      if (activeCategory?.id === categoryToDelete.id) {
+      await shoppingApi.deleteCategory(home.id, category.id);
+      if (activeCategory?.id === category.id) {
         setActiveCategory(null);
       }
-      setShowDeleteModal(false);
-      setCategoryToDelete(null);
       await loadShoppingData();
     } catch (error) {
       console.error("Error deleting category:", error);
     } finally {
       setDeletingCategory(false);
     }
+  };
+
+  const openDeleteCategory = (category: ShoppingCategory) => {
+    if (deletingCategory) return;
+    alert(t.common.delete, `${t.common.delete} "${category.name}"?`, [
+      { text: t.common.cancel, style: "cancel" },
+      {
+        text: t.common.delete,
+        style: "destructive",
+        onPress: () => {
+          handleDeleteCategory(category);
+        },
+      },
+    ]);
   };
 
   const getCategoryIcon = (category: ShoppingCategory) => {
@@ -347,13 +433,6 @@ export default function ShoppingScreen() {
             <Text className="flex-1 text-2xl font-manrope-bold" style={{ color: theme.text }}>
               {activeCategory.name}
             </Text>
-            <TouchableOpacity
-              className="w-12 h-12 rounded-2xl justify-center items-center mr-2"
-              style={{ backgroundColor: theme.surface }}
-              onPress={() => openDeleteCategory(activeCategory)}
-            >
-              <Trash2 size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
             <View
               className="w-14 h-14 rounded-[18px] justify-center items-center"
               style={{ backgroundColor: categoryColor }}
@@ -369,6 +448,7 @@ export default function ShoppingScreen() {
                 key={item.id}
                 className="flex-row items-center gap-4 py-2"
                 onPress={() => toggleItemBought(item.id)}
+                onLongPress={() => openItemActions(item)}
                 activeOpacity={0.95}
               >
                 <View
@@ -413,14 +493,14 @@ export default function ShoppingScreen() {
         <TouchableOpacity
           className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg"
           style={{ backgroundColor: theme.accent.purple }}
-          onPress={() => setShowItemModal(true)}
+          onPress={openItemModal}
           activeOpacity={0.8}
         >
           <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
         </TouchableOpacity>
 
         {/* Add Item Modal */}
-        <Modal visible={showItemModal} onClose={() => setShowItemModal(false)} title={t.shopping.addItem} height="full">
+        <Modal visible={showItemModal} onClose={closeItemModal} title={t.shopping.addItem} height="full">
           <View className="flex-1">
             <Input
               label={t.shopping.itemName}
@@ -430,10 +510,47 @@ export default function ShoppingScreen() {
             />
 
             <Button
-              title={t.shopping.addItem}
+              title={t.common.add}
+              onPress={handleAddPendingItem}
+              disabled={!newItemName.trim() || creatingItem}
+              variant="secondary"
+              style={{ marginBottom: 16, backgroundColor: Colors.accentYellow }}
+            />
+
+            {pendingItemNames.length > 0 && (
+              <View className="mb-4">
+                <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
+                  {t.common.items} ({pendingItemNames.length})
+                </Text>
+                <View className="gap-2">
+                  {pendingItemNames.map((itemName, index) => (
+                    <View
+                      key={`${itemName}-${index}`}
+                      className="flex-row items-center justify-between px-3 py-2.5 rounded-xl"
+                      style={{ backgroundColor: theme.surface }}
+                    >
+                      <Text className="text-sm font-manrope-semibold flex-1 mr-3" style={{ color: theme.text }}>
+                        {itemName}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setPendingItemNames((prev) => prev.filter((_, itemIndex) => itemIndex !== index))
+                        }
+                        className="p-1"
+                      >
+                        <Trash2 size={16} color={theme.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Button
+              title={t.common.done}
               onPress={handleCreateItem}
               loading={creatingItem}
-              disabled={!newItemName.trim() || creatingItem}
+              disabled={(pendingItemNames.length === 0 && !newItemName.trim()) || creatingItem}
               variant="purple"
               style={{ marginTop: "auto" }}
             />
@@ -465,9 +582,10 @@ export default function ShoppingScreen() {
           <TouchableOpacity
             className="w-14 h-14 rounded-[18px] justify-center items-center"
             style={{ backgroundColor: theme.accent.cyan }}
+            onPress={() => setShowCategoryModal(true)}
             activeOpacity={0.8}
           >
-            <Search size={24} color="#1C1C1E" />
+            <Plus size={24} color="#1C1C1E" />
           </TouchableOpacity>
         </View>
 
@@ -483,7 +601,7 @@ export default function ShoppingScreen() {
                 className="w-[47%] rounded-3xl p-[18px] justify-between"
                 style={{ backgroundColor: categoryColor, aspectRatio: 0.9 }}
                 onPress={() => setActiveCategory(category)}
-                onLongPress={() => openDeleteCategory(category)}
+                onLongPress={() => openCategoryActions(category)}
                 activeOpacity={0.9}
               >
                 <View className="w-10 h-10 rounded-xl bg-black/5 justify-center items-center">
@@ -497,30 +615,23 @@ export default function ShoppingScreen() {
                 </View>
                 <View className="absolute bottom-[18px] right-[18px]">
                   <View className="w-8 h-8 rounded-full bg-black/10 justify-center items-center">
-                    <ArrowLeft size={16} color="rgba(0,0,0,0.3)" style={{ transform: [{ rotate: "180deg" }] }} />
+                    <ChevronRight size={16} color="rgba(0,0,0,1)" />
                   </View>
                 </View>
               </TouchableOpacity>
             );
           })}
-
-          {/* Add New List Card - Dashed border */}
-          <TouchableOpacity
-            className="w-[47%] rounded-3xl border-2 border-dashed justify-center items-center"
-            style={{ borderColor: theme.textSecondary, aspectRatio: 0.9, minHeight: 180 }}
-            onPress={() => setShowCategoryModal(true)}
-            activeOpacity={0.8}
-          >
-            <Plus size={32} color={theme.textSecondary} strokeWidth={1.5} />
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
       {/* Create Category Modal - matches PDF design */}
       <Modal
         visible={showCategoryModal}
-        onClose={() => setShowCategoryModal(false)}
-        title={t.shopping.newList}
+        onClose={() => {
+          setShowCategoryModal(false);
+          setEditingCategoryId(null);
+        }}
+        title={editingCategoryId ? "Edit list" : t.shopping.newList}
         height="full"
       >
         <View className="flex-1">
@@ -586,13 +697,6 @@ export default function ShoppingScreen() {
 
         <View className="flex-row gap-3 pt-4">
           <TouchableOpacity
-            className="w-14 h-14 rounded-full justify-center items-center"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => setShowCategoryModal(false)}
-          >
-            <ArrowLeft size={24} color={theme.textSecondary} style={{ transform: [{ rotate: "45deg" }] }} />
-          </TouchableOpacity>
-          <TouchableOpacity
             className="flex-1 h-14 rounded-full justify-center items-center"
             style={{ backgroundColor: newCategoryName ? theme.text : theme.textSecondary }}
             onPress={handleCreateCategory}
@@ -603,29 +707,105 @@ export default function ShoppingScreen() {
         </View>
       </Modal>
 
-      {/* Delete Category Confirmation Modal */}
-      <Modal visible={showDeleteModal} onClose={() => setShowDeleteModal(false)} title={t.common.delete} height="auto">
-        <Text className="text-base font-manrope mb-6" style={{ color: theme.textSecondary }}>
-          {t.common.delete} &quot;{categoryToDelete?.name}&quot;?
-        </Text>
-        <View className="flex-row gap-3">
+      <Modal
+        visible={showCategoryActionsModal}
+        onClose={() => {
+          setShowCategoryActionsModal(false);
+          setSelectedCategoryForActions(null);
+        }}
+        title={selectedCategoryForActions?.name || t.shopping.title}
+        height="auto"
+      >
+        <View className="gap-3">
           <TouchableOpacity
-            className="flex-1 h-14 rounded-full justify-center items-center"
-            style={{ backgroundColor: theme.background }}
-            onPress={() => setShowDeleteModal(false)}
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              const category = selectedCategoryForActions;
+              setShowCategoryActionsModal(false);
+              setSelectedCategoryForActions(null);
+              if (category) openEditCategory(category);
+            }}
           >
-            <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
-              {t.common.cancel}
+            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+              Edit
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className="flex-1 h-14 rounded-full justify-center items-center"
-            style={{ backgroundColor: "#FF7476" }}
-            onPress={handleDeleteCategory}
-            disabled={deletingCategory}
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.accent.dangerLight }}
+            onPress={() => {
+              const category = selectedCategoryForActions;
+              setShowCategoryActionsModal(false);
+              setSelectedCategoryForActions(null);
+              if (category) openDeleteCategory(category);
+            }}
           >
-            <Text className="text-base font-manrope-semibold text-white">
-              {deletingCategory ? t.common.loading : t.common.delete}
+            <Text className="font-manrope-semibold text-white">{t.common.delete}</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showItemActionsModal}
+        onClose={() => {
+          setShowItemActionsModal(false);
+          setSelectedItemForActions(null);
+        }}
+        title={selectedItemForActions?.name || t.shopping.addItem}
+        height="auto"
+      >
+        <View className="gap-3">
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              const item = selectedItemForActions;
+              setShowItemActionsModal(false);
+              if (item) {
+                setEditItemName(item.name);
+                setShowEditItemModal(true);
+              }
+            }}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+              Edit
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.accent.dangerLight }}
+            onPress={() => {
+              const item = selectedItemForActions;
+              setShowItemActionsModal(false);
+              setSelectedItemForActions(null);
+              if (item) handleDeleteItem(item.id);
+            }}
+          >
+            <Text className="font-manrope-semibold text-white">{t.common.delete}</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showEditItemModal}
+        onClose={() => {
+          setShowEditItemModal(false);
+          setSelectedItemForActions(null);
+        }}
+        title="Edit item"
+        height="auto"
+      >
+        <View className="gap-4">
+          <Input value={editItemName} onChangeText={setEditItemName} placeholder={t.shopping.itemNamePlaceholder} />
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: editItemName.trim() ? theme.text : theme.textSecondary }}
+            onPress={handleEditItem}
+            disabled={!editItemName.trim() || savingItemEdit}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.background }}>
+              Save
             </Text>
           </TouchableOpacity>
         </View>

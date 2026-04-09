@@ -23,6 +23,7 @@ type mockTaskService struct {
 	CreateTaskFunc                  func(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, createdBy int, userIDs []int) error
 	GetTaskByIDFunc                 func(ctx context.Context, taskID int) (*models.Task, error)
 	GetTasksByHomeIDFunc            func(ctx context.Context, homeID int) (*[]models.Task, error)
+	UpdateTaskFunc                  func(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time) error
 	DeleteTaskFunc                  func(ctx context.Context, taskID int) error
 	AssignUserFunc                  func(ctx context.Context, taskID, userID, homeID int, date time.Time) error
 	GetAssignmentsForUserFunc       func(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
@@ -58,6 +59,13 @@ func (m *mockTaskService) GetTasksByHomeID(ctx context.Context, homeID int) (*[]
 func (m *mockTaskService) DeleteTask(ctx context.Context, taskID int) error {
 	if m.DeleteTaskFunc != nil {
 		return m.DeleteTaskFunc(ctx, taskID)
+	}
+	return nil
+}
+
+func (m *mockTaskService) UpdateTask(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time) error {
+	if m.UpdateTaskFunc != nil {
+		return m.UpdateTaskFunc(ctx, taskID, name, description, roomID, dueDate)
 	}
 	return nil
 }

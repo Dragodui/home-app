@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/Dragodui/diploma-server/internal/event"
 	"github.com/Dragodui/diploma-server/internal/logger"
@@ -34,6 +35,7 @@ type IHomeService interface {
 	RejectMember(ctx context.Context, homeID int, userID int) error
 	GetPendingMembers(ctx context.Context, homeID int) ([]models.HomeMembership, error)
 	UpdateMemberRole(ctx context.Context, homeID int, userID int, role string) error
+	UpdateCurrency(ctx context.Context, homeID int, currency string) error
 }
 
 func NewHomeService(repo repository.HomeRepository, cache *redis.Client, notifSvc INotificationService) *HomeService {
@@ -136,6 +138,7 @@ func (s *HomeService) JoinHomeByCode(ctx context.Context, code string, userID in
 	// Notify home that a user has requested to join
 	fromID := userID
 	_ = s.notifSvc.CreateHomeNotification(ctx, &fromID, home.ID, "A user has requested to join the home")
+	_ = s.notifSvc.Create(ctx, nil, userID, "Join request sent. Waiting for admin approval.")
 
 	event.SendHomeEvent(ctx, s.cache, home.ID, &event.RealTimeEvent{
 		Module: event.ModuleHome,
@@ -386,6 +389,46 @@ func (s *HomeService) UpdateMemberRole(ctx context.Context, homeID int, userID i
 		Module: event.ModuleHome,
 		Action: event.ActionUpdated,
 		Data:   map[string]interface{}{"homeID": homeID, "userID": userID, "role": role},
+	})
+
+	return nil
+}
+
+func (s *HomeService) UpdateCurrency(ctx context.Context, homeID int, currency string) error {
+	normalizedCurrency := strings.ToUpper(strings.TrimSpace(currency))
+	if normalizedCurrency == "" {
+		return errors.New("currency is required")
+	}
+
+	if err := s.repo.UpdateCurrency(ctx, homeID, normalizedCurrency); err != nil {
+		return err
+	}
+
+	homeKey := utils.GetHomeCacheKey(homeID)
+	if err := utils.DeleteFromCache(ctx, homeKey, s.cache); err != nil {
+		logger.Info.Printf("Failed to delete redis cache for key %s: %v", homeKey, err)
+	}
+
+	members, err := s.repo.GetMembers(ctx, homeID)
+	if err == nil {
+		for _, member := range members {
+			userHomesKey := utils.GetUserHomesKey(member.UserID)
+			if deleteErr := utils.DeleteFromCache(ctx, userHomesKey, s.cache); deleteErr != nil {
+				logger.Info.Printf("Failed to delete redis cache for key %s: %v", userHomesKey, deleteErr)
+			}
+			userHomeKey := utils.GetUserHomeKey(member.UserID)
+			if deleteErr := utils.DeleteFromCache(ctx, userHomeKey, s.cache); deleteErr != nil {
+				logger.Info.Printf("Failed to delete redis cache for key %s: %v", userHomeKey, deleteErr)
+			}
+		}
+	}
+
+	metrics.HomeOperationsTotal.WithLabelValues("update_currency").Inc()
+
+	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
+		Module: event.ModuleHome,
+		Action: event.ActionUpdated,
+		Data:   map[string]interface{}{"homeID": homeID, "currency": normalizedCurrency},
 	})
 
 	return nil

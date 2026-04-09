@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { ArrowLeft, ChevronRight, Globe, Moon, Sun, Trash2, Tv, Wifi } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/components/ui/alert";
@@ -31,7 +31,7 @@ export default function SettingsScreen() {
   const [haStatus, setHaStatus] = useState<{ connected: boolean; url?: string; error?: string } | null>(null);
   const [haLoading, setHaLoading] = useState(false);
 
-  const fetchHAStatus = async () => {
+  const fetchHAStatus = useCallback(async () => {
     if (!home) return;
     setHaLoading(true);
     try {
@@ -43,7 +43,7 @@ export default function SettingsScreen() {
     } finally {
       setHaLoading(false);
     }
-  };
+  }, [home]);
 
   useEffect(() => {
     if (showSmartHomeModal) {
@@ -241,6 +241,7 @@ export default function SettingsScreen() {
                   </Text>
                   <ChevronRight size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
+
               </>
             )}
 

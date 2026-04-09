@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { authApi, getApiErrorMessage, getApiErrorStatus, userApi } from "@/lib/api";
+import { onAuthSessionExpired } from "@/lib/authSession";
 import { secureStorage } from "@/lib/secureStorage";
 import type { User } from "@/lib/types";
 
@@ -23,7 +24,7 @@ interface AuthState {
   resendVerification: (email: string) => Promise<AuthResult>;
   forgotPassword: (email: string) => Promise<AuthResult>;
   resetPassword: (token: string, password: string) => Promise<AuthResult>;
-  updateUser: (data: { name?: string; username?: string; avatar?: string }) => Promise<AuthResult>;
+  updateUser: (data: { name?: string; username?: string; avatar?: string; profilePublic?: boolean }) => Promise<AuthResult>;
   refreshUser: () => Promise<void>;
   googleSignIn: (accessToken: string) => Promise<AuthResult>;
 }
@@ -134,7 +135,12 @@ export const useAuthStore = create<AuthState>()(
       }
     },
 
-    updateUser: async (data: { name?: string; username?: string; avatar?: string }): Promise<AuthResult> => {
+    updateUser: async (data: {
+      name?: string;
+      username?: string;
+      avatar?: string;
+      profilePublic?: boolean;
+    }): Promise<AuthResult> => {
       try {
         await userApi.update(data);
         const updatedUser = await userApi.getMe();
@@ -174,6 +180,15 @@ export const useAuthStore = create<AuthState>()(
     },
   })),
 );
+
+onAuthSessionExpired(() => {
+  useAuthStore.setState({
+    user: null,
+    token: null,
+    isLoading: false,
+    isAuthenticated: false,
+  });
+});
 
 // Convenience hook matching existing API
 export function useAuth() {

@@ -126,6 +126,7 @@ export default {
       all: "All",
       my: "My",
       byRoom: "By Room",
+      completed: "Completed",
     },
     schedule: {
       title: "Schedule",

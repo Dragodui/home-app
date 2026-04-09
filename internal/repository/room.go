@@ -11,6 +11,7 @@ import (
 type RoomRepository interface {
 	Create(ctx context.Context, room *models.Room) error
 	FindByID(ctx context.Context, id int) (*models.Room, error)
+	Update(ctx context.Context, room *models.Room) error
 	Delete(ctx context.Context, id int) error
 	FindByHomeID(ctx context.Context, homeID int) (*[]models.Room, error)
 }
@@ -40,6 +41,10 @@ func (r *roomRepo) FindByID(ctx context.Context, id int) (*models.Room, error) {
 
 func (r *roomRepo) Delete(ctx context.Context, id int) error {
 	return r.db.WithContext(ctx).Delete(&models.Room{}, id).Error
+}
+
+func (r *roomRepo) Update(ctx context.Context, room *models.Room) error {
+	return r.db.WithContext(ctx).Save(room).Error
 }
 
 func (r *roomRepo) FindByHomeID(ctx context.Context, homeID int) (*[]models.Room, error) {

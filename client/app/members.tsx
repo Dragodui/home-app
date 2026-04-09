@@ -153,68 +153,81 @@ export default function MembersScreen() {
 
     return (
       <View key={member.id} className="flex-row items-center p-4 rounded-20" style={{ backgroundColor: theme.surface }}>
-        {/* Avatar */}
-        <View className="w-12 h-12 rounded-full overflow-hidden mr-3.5" style={{ backgroundColor: theme.background }}>
-          {member.user?.avatar ? (
-            <Image source={{ uri: member.user.avatar }} className="w-full h-full" />
-          ) : (
-            <View className="w-full h-full justify-center items-center">
-              <User size={24} color={theme.textSecondary} />
-            </View>
-          )}
-        </View>
-
-        {/* Info */}
-        <View className="flex-1">
-          <View className="flex-row items-center gap-2">
-            <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
-              {member.user?.name || "Unknown"}
-            </Text>
-            {isCurrentUser && (
-              <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
-                (you)
-              </Text>
+        <TouchableOpacity
+          className="flex-row items-center flex-1"
+          activeOpacity={0.8}
+          onPress={() => {
+            if (!isPending) {
+              router.push({
+                pathname: "/member-profile",
+                params: { userId: String(member.userId) },
+              });
+            }
+          }}
+        >
+          {/* Avatar */}
+          <View className="w-12 h-12 rounded-full overflow-hidden mr-3.5" style={{ backgroundColor: theme.background }}>
+            {member.user?.avatar ? (
+              <Image source={{ uri: member.user.avatar }} className="w-full h-full" />
+            ) : (
+              <View className="w-full h-full justify-center items-center">
+                <User size={24} color={theme.textSecondary} />
+              </View>
             )}
           </View>
-          <Text className="text-sm font-manrope mt-0.5" style={{ color: theme.textSecondary }}>
-            {member.user?.email}
-          </Text>
-          <View className="flex-row items-center gap-2 mt-1.5">
-            {/* Role/Status badge */}
-            {isPending ? (
-              <View
-                className="flex-row items-center gap-1 px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: `${theme.accent.yellow}20` }}
-              >
-                <Clock size={12} color={theme.accent.yellow} />
-                <Text className="text-xs font-manrope-semibold" style={{ color: theme.accent.yellow }}>
-                  {t.members.pending}
+
+          {/* Info */}
+          <View className="flex-1">
+            <View className="flex-row items-center gap-2">
+              <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
+                {member.user?.name || "Unknown"}
+              </Text>
+              {isCurrentUser && (
+                <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
+                  (you)
                 </Text>
-              </View>
-            ) : (
-              <View
-                className="flex-row items-center gap-1 px-2.5 py-1 rounded-full"
-                style={{
-                  backgroundColor: isMemberAdmin ? `${theme.accent.yellow}20` : `${theme.accent.purple}20`,
-                }}
-              >
-                {isMemberAdmin && <Shield size={12} color={theme.accent.yellow} />}
-                <Text
-                  className="text-xs font-manrope-semibold"
+              )}
+            </View>
+            <Text className="text-sm font-manrope mt-0.5" style={{ color: theme.textSecondary }}>
+              {member.user?.email}
+            </Text>
+            <View className="flex-row items-center gap-2 mt-1.5">
+              {/* Role/Status badge */}
+              {isPending ? (
+                <View
+                  className="flex-row items-center gap-1 px-2.5 py-1 rounded-full"
+                  style={{ backgroundColor: `${theme.accent.yellow}20` }}
+                >
+                  <Clock size={12} color={theme.accent.yellow} />
+                  <Text className="text-xs font-manrope-semibold" style={{ color: theme.accent.yellow }}>
+                    {t.members.pending}
+                  </Text>
+                </View>
+              ) : (
+                <View
+                  className="flex-row items-center gap-1 px-2.5 py-1 rounded-full"
                   style={{
-                    color: isMemberAdmin ? theme.accent.yellow : theme.accent.purple,
+                    backgroundColor: isMemberAdmin ? `${theme.accent.yellow}20` : `${theme.accent.purple}20`,
                   }}
                 >
-                  {isMemberAdmin ? t.members.admin : t.members.member}
-                </Text>
-              </View>
-            )}
-            {/* Join date */}
-            <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
-              {interpolate(t.members.joined, { date: formatDate(member.joinedAt) })}
-            </Text>
+                  {isMemberAdmin && <Shield size={12} color={theme.accent.yellow} />}
+                  <Text
+                    className="text-xs font-manrope-semibold"
+                    style={{
+                      color: isMemberAdmin ? theme.accent.yellow : theme.accent.purple,
+                    }}
+                  >
+                    {isMemberAdmin ? t.members.admin : t.members.member}
+                  </Text>
+                </View>
+              )}
+              {/* Join date */}
+              <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
+                {interpolate(t.members.joined, { date: formatDate(member.joinedAt) })}
+              </Text>
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Action buttons */}
         {isPending ? (

@@ -34,7 +34,8 @@ interface HomeState {
   deleteHome: () => Promise<HomeResult>;
   removeMember: (userId: number) => Promise<HomeResult>;
   regenerateInviteCode: () => Promise<HomeResult>;
-  createRoom: (name: string) => Promise<HomeResult>;
+  updateHomeCurrency: (currency: string) => Promise<HomeResult>;
+  createRoom: (name: string, icon?: string, color?: string) => Promise<HomeResult>;
   deleteRoom: (roomId: number) => Promise<HomeResult>;
   refreshRooms: () => Promise<void>;
   // Alias for backward compat
@@ -292,12 +293,29 @@ export const useHomeStore = create<HomeState>((set, get) => {
       }
     },
 
-    createRoom: async (name: string): Promise<HomeResult> => {
+    updateHomeCurrency: async (currency: string): Promise<HomeResult> => {
       const { home } = get();
       if (!home) return { success: false, error: "No home found" };
 
       try {
-        await roomApi.create(home.id, name);
+        await homeApi.updateCurrency(home.id, currency);
+        set((state) => ({
+          home: state.home ? { ...state.home, currency } : state.home,
+          homes: state.homes.map((h) => (h.id === home.id ? { ...h, currency } : h)),
+        }));
+        return { success: true };
+      } catch (error: any) {
+        console.error("Error updating home currency:", error);
+        return { success: false, error: getApiErrorMessage(error, "Failed to update currency") };
+      }
+    },
+
+    createRoom: async (name: string, icon?: string, color?: string): Promise<HomeResult> => {
+      const { home } = get();
+      if (!home) return { success: false, error: "No home found" };
+
+      try {
+        await roomApi.create(home.id, { name, icon, color });
         await get().refreshRooms();
         return { success: true };
       } catch (error: any) {

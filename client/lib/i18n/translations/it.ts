@@ -127,6 +127,7 @@ export default {
       all: "Tutte",
       my: "Mie",
       byRoom: "Per stanza",
+      completed: "Completate",
     },
     schedule: {
       title: "Programmazione",

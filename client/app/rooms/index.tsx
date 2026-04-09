@@ -1,40 +1,153 @@
 import { useRouter } from "expo-router";
-import { ArrowLeft, DoorOpen, Home, Plus, Trash2 } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Bath,
+  BedDouble,
+  Book,
+  Car,
+  Check,
+  ChefHat,
+  Coffee,
+  DoorOpen,
+  Dumbbell,
+  Home as HomeIcon,
+  Lightbulb,
+  Plus,
+  Sofa,
+  TreePine,
+  Tv,
+  Utensils,
+  Wifi,
+  Wrench,
+} from "lucide-react-native";
 import { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/components/ui/alert";
-import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
+import { roomApi } from "@/lib/api";
 import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
+const ROOM_COLOR_OPTIONS = [
+  "#FF7476",
+  "#FF9F7A",
+  "#FBEB9E",
+  "#A8E6CF",
+  "#7DD3E8",
+  "#D8D4FC",
+  "#F5A3D3",
+  "#22C55E",
+  "#F472B6",
+  "#C4B5FD",
+  "#94A3B8",
+  "#FDE68A",
+  "#6EE7B7",
+];
+
+const ROOM_ICON_OPTIONS = [
+  "home",
+  "utensils",
+  "lightbulb",
+  "coffee",
+  "wrench",
+  "car",
+  "book",
+  "bed",
+  "bath",
+  "sofa",
+  "tv",
+  "wifi",
+  "gym",
+  "garden",
+  "chef",
+] as const;
+
+const getRoomIcon = (iconId: string | undefined, size: number, color: string) => {
+  switch (iconId) {
+    case "utensils":
+      return <Utensils size={size} color={color} />;
+    case "lightbulb":
+      return <Lightbulb size={size} color={color} />;
+    case "coffee":
+      return <Coffee size={size} color={color} />;
+    case "wrench":
+      return <Wrench size={size} color={color} />;
+    case "car":
+      return <Car size={size} color={color} />;
+    case "book":
+      return <Book size={size} color={color} />;
+    case "bed":
+      return <BedDouble size={size} color={color} />;
+    case "bath":
+      return <Bath size={size} color={color} />;
+    case "sofa":
+      return <Sofa size={size} color={color} />;
+    case "tv":
+      return <Tv size={size} color={color} />;
+    case "wifi":
+      return <Wifi size={size} color={color} />;
+    case "gym":
+      return <Dumbbell size={size} color={color} />;
+    case "garden":
+      return <TreePine size={size} color={color} />;
+    case "chef":
+      return <ChefHat size={size} color={color} />;
+    default:
+      return <HomeIcon size={size} color={color} />;
+  }
+};
+
 export default function RoomsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { home, rooms, isAdmin, createRoom, deleteRoom } = useHome();
+  const { home, rooms, isAdmin, createRoom, deleteRoom, refreshRooms } = useHome();
   const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [roomName, setRoomName] = useState("");
+  const [selectedColor, setSelectedColor] = useState(ROOM_COLOR_OPTIONS[2]);
+  const [selectedIcon, setSelectedIcon] = useState<(typeof ROOM_ICON_OPTIONS)[number]>("home");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<(typeof rooms)[number] | null>(null);
+  const [showRoomActionsModal, setShowRoomActionsModal] = useState(false);
+  const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
 
-  const handleCreateRoom = async () => {
+  const handleSaveRoom = async () => {
     if (!roomName.trim()) return;
+    if (!home) return;
 
     setIsLoading(true);
-    const result = await createRoom(roomName.trim());
-    setIsLoading(false);
+    try {
+      if (editingRoomId) {
+        await roomApi.update(home.id, editingRoomId, {
+          name: roomName.trim(),
+          icon: selectedIcon,
+          color: selectedColor,
+        });
+        await refreshRooms();
+      } else {
+        const result = await createRoom(roomName.trim(), selectedIcon, selectedColor);
+        if (!result.success) {
+          alert(t.common.error, result.error || t.rooms.failedToCreate);
+          return;
+        }
+      }
 
-    if (result.success) {
       setShowCreateModal(false);
+      setEditingRoomId(null);
       setRoomName("");
-    } else {
-      alert(t.common.error, result.error || t.rooms.failedToCreate);
+      setSelectedColor(ROOM_COLOR_OPTIONS[2]);
+      setSelectedIcon("home");
+    } catch (error) {
+      console.error("Error saving room:", error);
+      alert(t.common.error, editingRoomId ? "Failed to update room" : t.rooms.failedToCreate);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -52,6 +165,20 @@ export default function RoomsScreen() {
         },
       },
     ]);
+  };
+
+  const openRoomActions = (room: (typeof rooms)[number]) => {
+    if (!isAdmin) return;
+    setSelectedRoom(room);
+    setShowRoomActionsModal(true);
+  };
+
+  const openEditRoom = (room: (typeof rooms)[number]) => {
+    setEditingRoomId(room.id);
+    setRoomName(room.name);
+    setSelectedIcon((room.icon as (typeof ROOM_ICON_OPTIONS)[number]) || "home");
+    setSelectedColor(room.color || ROOM_COLOR_OPTIONS[2]);
+    setShowCreateModal(true);
   };
 
   if (!home) {
@@ -141,7 +268,7 @@ export default function RoomsScreen() {
                 theme.border,
               ];
               const colorIndex = index % ROOM_COLORS.length;
-              const backgroundColor = ROOM_COLORS[colorIndex];
+              const backgroundColor = room.color || ROOM_COLORS[colorIndex];
               const finalTextColor =
                 backgroundColor === theme.surface || backgroundColor === theme.border ? theme.text : "#1C1C1E";
 
@@ -153,9 +280,10 @@ export default function RoomsScreen() {
                   onPress={() =>
                     router.push({ pathname: "/rooms/[id]", params: { id: String(room.id), name: room.name } })
                   }
+                  onLongPress={() => openRoomActions(room)}
                 >
                   <View className="w-14 h-14 rounded-20 justify-center items-center mb-4 bg-black/10">
-                    <Home size={28} color={finalTextColor} />
+                    {getRoomIcon(room.icon, 28, finalTextColor)}
                   </View>
                   <Text className="text-lg font-manrope-bold mb-1" style={{ color: finalTextColor }}>
                     {room.name}
@@ -163,14 +291,6 @@ export default function RoomsScreen() {
                   <Text className="text-xs font-manrope" style={{ color: finalTextColor, opacity: 0.6 }}>
                     {interpolate(t.rooms.added, { date: new Date(room.createdAt).toLocaleDateString() })}
                   </Text>
-                  {isAdmin && (
-                    <TouchableOpacity
-                      className="absolute top-4 right-4 w-9 h-9 rounded-12 justify-center items-center"
-                      onPress={() => handleDeleteRoom(room.id, room.name)}
-                    >
-                      <Trash2 size={18} color={theme.accent.danger} />
-                    </TouchableOpacity>
-                  )}
                 </TouchableOpacity>
               );
             })}
@@ -179,22 +299,134 @@ export default function RoomsScreen() {
       </ScrollView>
 
       {/* Create Room Modal */}
-      <Modal visible={showCreateModal} onClose={() => setShowCreateModal(false)} title={t.rooms.newRoom} height="full">
+      <Modal
+        visible={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false);
+          setEditingRoomId(null);
+        }}
+        title={editingRoomId ? "Edit room" : t.rooms.newRoom}
+        height="full"
+      >
         <View className="flex-1">
-          <Input
-            label={t.rooms.roomName}
-            placeholder={t.rooms.roomNamePlaceholder}
-            value={roomName}
-            onChangeText={setRoomName}
-          />
-          <Button
-            title={t.rooms.createRoom}
-            onPress={handleCreateRoom}
-            loading={isLoading}
+          <View className="items-center mb-6">
+            <View
+              className="w-20 h-20 rounded-3xl justify-center items-center"
+              style={{ backgroundColor: selectedColor }}
+            >
+              {getRoomIcon(selectedIcon, 32, "#1C1C1E")}
+            </View>
+          </View>
+
+          <Input placeholder={t.rooms.roomNamePlaceholder} value={roomName} onChangeText={setRoomName} />
+
+          <View className="mb-6 gap-3">
+            <View className="flex-row justify-center gap-2.5">
+              {ROOM_COLOR_OPTIONS.slice(0, 7).map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  className={`w-9 h-9 rounded-full ${selectedColor === color ? "border-[3px] border-black/30" : ""}`}
+                  style={{ backgroundColor: color }}
+                  onPress={() => setSelectedColor(color)}
+                />
+              ))}
+            </View>
+            <View className="flex-row justify-center gap-2.5">
+              {ROOM_COLOR_OPTIONS.slice(7).map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  className={`w-9 h-9 rounded-full ${selectedColor === color ? "border-[3px] border-black/30" : ""}`}
+                  style={{ backgroundColor: color }}
+                  onPress={() => setSelectedColor(color)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <ScrollView className="max-h-[220px]" showsVerticalScrollIndicator={false}>
+            <View className="gap-3">
+              {Array.from({ length: Math.ceil(ROOM_ICON_OPTIONS.length / 6) }, (_, row) => (
+                <View key={row} className="flex-row justify-center gap-2.5">
+                  {ROOM_ICON_OPTIONS.slice(row * 6, row * 6 + 6).map((icon) => (
+                    <TouchableOpacity
+                      key={icon}
+                      className="w-12 h-12 rounded-full justify-center items-center"
+                      style={{ backgroundColor: selectedIcon === icon ? selectedColor : theme.surface }}
+                      onPress={() => setSelectedIcon(icon)}
+                    >
+                      {getRoomIcon(icon, 20, selectedIcon === icon ? "#1C1C1E" : theme.textSecondary)}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
+        <View className="flex-row gap-3 pt-4">
+          <TouchableOpacity
+            className="flex-1 h-14 rounded-full justify-center items-center"
+            style={{ backgroundColor: roomName.trim() ? theme.text : theme.textSecondary }}
+            onPress={handleSaveRoom}
             disabled={!roomName.trim() || isLoading}
-            variant="yellow"
-            style={{ marginTop: "auto" }}
-          />
+          >
+            <Check size={24} color={theme.background} />
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showRoomActionsModal}
+        onClose={() => {
+          setShowRoomActionsModal(false);
+          setSelectedRoom(null);
+        }}
+        title={selectedRoom?.name || "Room actions"}
+        height="auto"
+      >
+        <View className="gap-3">
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              const room = selectedRoom;
+              setShowRoomActionsModal(false);
+              setSelectedRoom(null);
+              if (room) {
+                openEditRoom(room);
+              }
+            }}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+              Edit
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.accent.dangerLight }}
+            onPress={() => {
+              const room = selectedRoom;
+              setShowRoomActionsModal(false);
+              setSelectedRoom(null);
+              if (room) {
+                handleDeleteRoom(room.id, room.name);
+              }
+            }}
+          >
+            <Text className="font-manrope-semibold text-white">{t.common.delete}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              setShowRoomActionsModal(false);
+              setSelectedRoom(null);
+            }}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+              {t.common.cancel}
+            </Text>
+          </TouchableOpacity>
         </View>
       </Modal>
     </View>

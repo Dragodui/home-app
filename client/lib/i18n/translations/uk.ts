@@ -127,6 +127,7 @@ export default {
       all: "Усі",
       my: "Мої",
       byRoom: "За кімнатою",
+      completed: "Виконані",
     },
     schedule: {
       title: "Розклад",

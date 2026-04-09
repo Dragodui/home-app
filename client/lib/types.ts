@@ -5,6 +5,7 @@ export interface User {
   emailVerified: boolean;
   name: string;
   username?: string;
+  profilePublic?: boolean;
   avatar?: string;
   createdAt: string;
 }
@@ -14,6 +15,7 @@ export interface Home {
   id: number;
   name: string;
   inviteCode: string;
+  currency: string;
   createdAt: string;
   memberships?: HomeMembership[];
 }
@@ -35,6 +37,8 @@ export interface Room {
   id: number;
   homeId: number;
   name: string;
+  icon?: string;
+  color: string;
   createdAt: string;
   tasks?: Task[];
 }
@@ -143,6 +147,7 @@ export interface BillCategory {
   id: number;
   homeId: number;
   name: string;
+  icon?: string;
   color: string;
   createdAt: string;
 }
@@ -269,6 +274,17 @@ export interface CreateItemForm {
   name: string;
   image?: string;
   link?: string;
+}
+
+export interface CreateItemPayload {
+  name: string;
+  image?: string;
+  link?: string;
+}
+
+export interface CreateItemsForm {
+  categoryId: number;
+  items: CreateItemPayload[];
 }
 
 // Smart Home Types

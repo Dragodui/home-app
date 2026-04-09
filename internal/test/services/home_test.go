@@ -171,6 +171,10 @@ func (m *mockHomeRepo) UpdateMemberRole(ctx context.Context, homeID int, userID 
 	return nil
 }
 
+func (m *mockHomeRepo) UpdateCurrency(ctx context.Context, homeID int, currency string) error {
+	return nil
+}
+
 func (m *mockHomeRepo) GetUserHome(ctx context.Context, userID int) (*models.Home, error) {
 	if m.GetUserHomeFunc != nil {
 		return m.GetUserHomeFunc(ctx, userID)

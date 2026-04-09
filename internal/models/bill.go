@@ -40,3 +40,14 @@ type CreateBillRequest struct {
 	OCRData        datatypes.JSON `json:"ocr_data" validate:"required"`
 	Splits         []SplitInput   `json:"splits,omitempty" gorm:"-"`
 }
+
+type UpdateBillRequest struct {
+	BillType       *string         `json:"type"`
+	BillCategoryID *int            `json:"bill_category_id"`
+	Description    *string         `json:"description"`
+	ReceiptImage   *string         `json:"receipt_image"`
+	TotalAmount    *float64        `json:"total_amount"`
+	Start          *time.Time      `json:"period_start"`
+	End            *time.Time      `json:"period_end"`
+	OCRData        *datatypes.JSON `json:"ocr_data"`
+}

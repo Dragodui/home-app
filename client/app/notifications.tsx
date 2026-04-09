@@ -1,12 +1,16 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Bell, Check } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, Bell, Check, Trash2 } from "lucide-react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NotificationsSkeleton } from "@/components/skeletons";
+import { useToast } from "@/components/ui/toast";
 import { notificationApi } from "@/lib/api";
 import type { HomeNotification, Notification } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
@@ -17,10 +21,77 @@ export default function NotificationsScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
   const { home } = useHome();
+  const { user } = useAuth();
+  const { show } = useToast();
 
   const [notifications, setNotifications] = useState<(Notification | HomeNotification)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const swipeRefs = useRef<Record<string, Swipeable | null>>({});
+
+  const hiddenStorageKey = user ? `@hidden_notifications_${user.id}` : null;
+
+  const getNotificationKey = useCallback(
+    (notification: Notification | HomeNotification) =>
+      "homeId" in notification ? `home:${notification.homeId}:${notification.id}` : `user:${notification.id}`,
+    [],
+  );
+  const getSwipeableKey = useCallback(
+    (notification: Notification | HomeNotification) =>
+      `${notification.id}-${"homeId" in notification ? "home" : "user"}`,
+    [],
+  );
+
+  const closeSwipeable = useCallback(
+    (notification: Notification | HomeNotification) => {
+      const key = getSwipeableKey(notification);
+      swipeRefs.current[key]?.close();
+    },
+    [getSwipeableKey],
+  );
+
+  const getHiddenNotificationKeys = useCallback(async () => {
+    if (!hiddenStorageKey) return new Set<string>();
+    const raw = await AsyncStorage.getItem(hiddenStorageKey);
+    if (!raw) return new Set<string>();
+    try {
+      const parsed = JSON.parse(raw) as string[];
+      return new Set(parsed);
+    } catch {
+      return new Set<string>();
+    }
+  }, [hiddenStorageKey]);
+
+  const hideNotification = useCallback(
+    async (notification: Notification | HomeNotification) => {
+      if (!hiddenStorageKey) return;
+      const hidden = await getHiddenNotificationKeys();
+      const key = getNotificationKey(notification);
+      hidden.add(key);
+      await AsyncStorage.setItem(hiddenStorageKey, JSON.stringify(Array.from(hidden)));
+      setNotifications((prev) => prev.filter((item) => getNotificationKey(item) !== key));
+      show({ title: "Deleted", message: "Notification hidden for you." });
+    },
+    [getHiddenNotificationKeys, getNotificationKey, hiddenStorageKey, show],
+  );
+
+  const markAsRead = useCallback(
+    async (notification: Notification | HomeNotification) => {
+      if (notification.read) return;
+      if ("homeId" in notification) {
+        await notificationApi.markHomeNotificationAsRead(notification.homeId, notification.id);
+      } else {
+        await notificationApi.markAsRead(notification.id);
+      }
+      setNotifications((prev) =>
+        prev.map((item) =>
+          getNotificationKey(item) === getNotificationKey(notification) ? { ...item, read: true } : item,
+        ),
+      );
+      show({ title: "Updated", message: "Notification marked as read." });
+    },
+    [getNotificationKey, show],
+  );
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -39,13 +110,18 @@ export default function NotificationsScreen() {
       // Sort by date (newest first)
       allNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-      setNotifications(allNotifications);
+      const hidden = await getHiddenNotificationKeys();
+      const visibleNotifications = allNotifications.filter(
+        (notification) => !hidden.has(getNotificationKey(notification)),
+      );
+
+      setNotifications(visibleNotifications);
     } catch (error) {
       console.error("Error loading notifications:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [home]);
+  }, [getHiddenNotificationKeys, getNotificationKey, home]);
 
   useEffect(() => {
     loadNotifications();
@@ -59,18 +135,19 @@ export default function NotificationsScreen() {
     setRefreshing(false);
   };
 
-  const markAsRead = async (notification: Notification | HomeNotification) => {
+  const handleMarkAsRead = async (notification: Notification | HomeNotification) => {
     try {
-      if ("homeId" in notification) {
-        // Home notification
-        await notificationApi.markHomeNotificationAsRead(notification.homeId, notification.id);
-      } else {
-        // User notification
-        await notificationApi.markAsRead(notification.id);
-      }
-      await loadNotifications();
+      await markAsRead(notification);
     } catch (error) {
       console.error("Error marking notification as read:", error);
+    }
+  };
+
+  const handleDelete = async (notification: Notification | HomeNotification) => {
+    try {
+      await hideNotification(notification);
+    } catch (error) {
+      console.error("Error hiding notification:", error);
     }
   };
 
@@ -135,41 +212,83 @@ export default function NotificationsScreen() {
         ) : (
           <View className="gap-3">
             {notifications.map((notification) => (
-              <View
-                key={`${notification.id}-${"homeId" in notification ? "home" : "user"}`}
-                className="p-4 rounded-16"
-                style={{
-                  backgroundColor: theme.surface,
-                  borderLeftWidth: !notification.read ? 3 : 0,
-                  borderLeftColor: !notification.read ? theme.accent.purple : undefined,
+              <Swipeable
+                key={getSwipeableKey(notification)}
+                ref={(ref) => {
+                  swipeRefs.current[getSwipeableKey(notification)] = ref;
                 }}
-              >
-                <View className="flex-row items-start gap-3">
-                  <View
-                    className="w-10 h-10 rounded-full justify-center items-center"
-                    style={{ backgroundColor: theme.accent.purple }}
-                  >
-                    <Bell size={18} color="#1C1C1E" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-15 font-manrope-medium mb-1" style={{ color: theme.text, lineHeight: 22 }}>
-                      {notification.description}
-                    </Text>
-                    <Text className="text-13 font-manrope" style={{ color: theme.textSecondary }}>
-                      {formatDate(notification.createdAt)}
-                    </Text>
-                  </View>
-                </View>
-                {!notification.read && (
+                overshootLeft={false}
+                overshootRight={false}
+                onSwipeableOpen={(direction) => {
+                  if (direction === "left") {
+                    closeSwipeable(notification);
+                    handleDelete(notification);
+                    return;
+                  }
+                  if (direction === "right" && !notification.read) {
+                    closeSwipeable(notification);
+                    handleMarkAsRead(notification);
+                  }
+                }}
+                renderLeftActions={() => (
                   <TouchableOpacity
-                    className="absolute top-4 right-4 w-8 h-8 rounded-16 justify-center items-center"
-                    style={{ backgroundColor: theme.background }}
-                    onPress={() => markAsRead(notification)}
+                    className="justify-center items-center rounded-l-16 px-5 mb-1"
+                    style={{ backgroundColor: theme.accent.pink }}
+                    onPress={() => {
+                      closeSwipeable(notification);
+                      handleDelete(notification);
+                    }}
                   >
-                    <Check size={18} color={theme.accent.purple} />
+                    <Trash2 size={18} color="#1C1C1E" />
+                    <Text className="text-xs font-manrope-semibold mt-1" style={{ color: "#1C1C1E" }}>
+                      Delete
+                    </Text>
                   </TouchableOpacity>
                 )}
-              </View>
+                renderRightActions={() =>
+                  notification.read ? null : (
+                    <TouchableOpacity
+                      className="justify-center items-center rounded-r-16 px-5 mb-1"
+                      style={{ backgroundColor: theme.accent.mint }}
+                      onPress={() => {
+                        closeSwipeable(notification);
+                        handleMarkAsRead(notification);
+                      }}
+                    >
+                      <Check size={18} color="#1C1C1E" />
+                      <Text className="text-xs font-manrope-semibold mt-1" style={{ color: "#1C1C1E" }}>
+                        Read
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                }
+              >
+                <View
+                  className="p-4 rounded-16 mb-1"
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderLeftWidth: !notification.read ? 3 : 0,
+                    borderLeftColor: !notification.read ? theme.accent.purple : undefined,
+                  }}
+                >
+                  <View className="flex-row items-start gap-3">
+                    <View
+                      className="w-10 h-10 rounded-full justify-center items-center"
+                      style={{ backgroundColor: theme.accent.purple }}
+                    >
+                      <Bell size={18} color="#1C1C1E" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-15 font-manrope-medium mb-1" style={{ color: theme.text, lineHeight: 22 }}>
+                        {notification.description}
+                      </Text>
+                      <Text className="text-13 font-manrope" style={{ color: theme.textSecondary }}>
+                        {formatDate(notification.createdAt)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </Swipeable>
             ))}
           </View>
         )}

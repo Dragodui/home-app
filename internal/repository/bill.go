@@ -13,6 +13,7 @@ type BillRepository interface {
 	Create(ctx context.Context, b *models.Bill) error
 	FindByID(ctx context.Context, id int) (*models.Bill, error)
 	FindByHomeID(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error)
+	Update(ctx context.Context, b *models.Bill) error
 	Delete(ctx context.Context, id int) error
 	MarkPayed(ctx context.Context, id int) error
 	CreateSplits(ctx context.Context, billID int, splits []models.BillSplit) error
@@ -77,6 +78,10 @@ func (r *billRepo) Delete(ctx context.Context, id int) error {
 		return err
 	}
 	return r.db.WithContext(ctx).Delete(&models.Bill{}, id).Error
+}
+
+func (r *billRepo) Update(ctx context.Context, b *models.Bill) error {
+	return r.db.WithContext(ctx).Save(b).Error
 }
 
 func (r *billRepo) MarkPayed(ctx context.Context, id int) error {

@@ -11,13 +11,15 @@ import {
   useFonts,
 } from "@expo-google-fonts/manrope";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { AlertProvider } from "@/components/ui/alert";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { NotificationBridge } from "@/components/NotificationBridge";
+import { AlertProvider } from "@/components/ui/alert";
+import { ToastProvider } from "@/components/ui/toast";
 import { wsManager } from "@/lib/websocket";
 import { useAuthStore } from "@/stores/authStore";
 import { useHomeStore } from "@/stores/homeStore";
@@ -66,10 +68,12 @@ function RootLayoutNav() {
         <Stack.Screen name="reset-password" options={{ headerShown: false }} />
         <Stack.Screen name="rooms/index" options={{ headerShown: false }} />
         <Stack.Screen name="rooms/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="tasks/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
         <Stack.Screen name="security" options={{ headerShown: false }} />
         <Stack.Screen name="members" options={{ headerShown: false }} />
+        <Stack.Screen name="member-profile" options={{ headerShown: false }} />
         <Stack.Screen name="smarthome/index" options={{ headerShown: false }} />
       </Stack>
     </>
@@ -81,12 +85,41 @@ function AppContent() {
 
   return (
     <GestureHandlerRootView className={`flex-1 ${theme.isDark ? "bg-background-dark" : "bg-background"}`}>
-      <AlertProvider>
-        <RootLayoutNav />
-        <InstallPrompt />
-      </AlertProvider>
+      <ToastProvider>
+        <AlertProvider>
+          <AuthGate />
+          <NotificationBridge />
+          <RootLayoutNav />
+          <InstallPrompt />
+        </AlertProvider>
+      </ToastProvider>
     </GestureHandlerRootView>
   );
+}
+
+const AUTH_ROUTES = new Set(["/login", "/register", "/verify", "/forgot-password", "/reset-password"]);
+
+function AuthGate() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isAuthenticated, isLoading } = useAuthStore();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const isAuthRoute = AUTH_ROUTES.has(pathname);
+
+    if (!isAuthenticated && !isAuthRoute) {
+      router.replace("/login");
+      return;
+    }
+
+    if (isAuthenticated && isAuthRoute) {
+      router.replace("/(tabs)/home");
+    }
+  }, [isAuthenticated, isLoading, pathname, router]);
+
+  return null;
 }
 
 export default function RootLayout() {

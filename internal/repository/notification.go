@@ -48,7 +48,7 @@ func (r *notificationRepo) MarkAsRead(ctx context.Context, id int) error {
 	}
 
 	notification.Read = true
-	if err := r.db.WithContext(ctx).Save(notification).Error; err != nil {
+	if err := r.db.WithContext(ctx).Save(&notification).Error; err != nil {
 		return err
 	}
 
@@ -71,14 +71,14 @@ func (r *notificationRepo) FindByHomeID(ctx context.Context, id int) ([]models.H
 }
 
 func (r *notificationRepo) MarkAsReadForHomeNotification(ctx context.Context, id int) error {
-	var notification models.Notification
+	var notification models.HomeNotification
 
 	if err := r.db.WithContext(ctx).First(&notification, id).Error; err != nil {
 		return err
 	}
 
 	notification.Read = true
-	if err := r.db.WithContext(ctx).Save(notification).Error; err != nil {
+	if err := r.db.WithContext(ctx).Save(&notification).Error; err != nil {
 		return err
 	}
 

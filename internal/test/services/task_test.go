@@ -19,6 +19,7 @@ type mockTaskRepo struct {
 	CreateFunc                       func(ctx context.Context, t *models.Task) error
 	FindByIDFunc                     func(ctx context.Context, id int) (*models.Task, error)
 	FindByHomeIDFunc                 func(ctx context.Context, homeID int) (*[]models.Task, error)
+	UpdateFunc                       func(ctx context.Context, t *models.Task) error
 	DeleteFunc                       func(ctx context.Context, id int) error
 	ReassignRoomFunc                 func(ctx context.Context, taskID, roomID int) error
 	AssignUserFunc                   func(ctx context.Context, taskID, userID int, date time.Time) error
@@ -56,6 +57,13 @@ func (m *mockTaskRepo) FindByHomeID(ctx context.Context, homeID int) (*[]models.
 func (m *mockTaskRepo) Delete(ctx context.Context, id int) error {
 	if m.DeleteFunc != nil {
 		return m.DeleteFunc(ctx, id)
+	}
+	return nil
+}
+
+func (m *mockTaskRepo) Update(ctx context.Context, t *models.Task) error {
+	if m.UpdateFunc != nil {
+		return m.UpdateFunc(ctx, t)
 	}
 	return nil
 }

@@ -79,6 +79,10 @@ func (m *mockHomeRepo) UpdateMemberRole(ctx context.Context, homeID int, userID 
 	return nil
 }
 
+func (m *mockHomeRepo) UpdateCurrency(ctx context.Context, homeID int, currency string) error {
+	return nil
+}
+
 // Mock service
 type mockHomeService struct {
 	CreateHomeFunc           func(ctx context.Context, name string, userID int) error
@@ -146,6 +150,10 @@ func (m *mockHomeService) GetPendingMembers(ctx context.Context, homeID int) ([]
 }
 
 func (m *mockHomeService) UpdateMemberRole(ctx context.Context, homeID int, userID int, role string) error {
+	return nil
+}
+
+func (m *mockHomeService) UpdateCurrency(ctx context.Context, homeID int, currency string) error {
 	return nil
 }
 
@@ -734,16 +742,14 @@ func TestHomeHandler_GetMembers(t *testing.T) {
 func TestHomeHandler_RemoveMember(t *testing.T) {
 	tests := []struct {
 		name           string
-		body           interface{}
-		userID         int
+		currentUserID  int
 		mockFunc       func(ctx context.Context, homeID, userID, currentUserID int) error
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
-			name:   "Success",
-			body:   validRemoveMemberReq,
-			userID: 123,
+			name:          "Success",
+			currentUserID: 123,
 			mockFunc: func(ctx context.Context, homeID, userID, currentUserID int) error {
 				assert.Equal(t, 1, homeID)
 				assert.Equal(t, 2, userID)
@@ -754,9 +760,8 @@ func TestHomeHandler_RemoveMember(t *testing.T) {
 			expectedBody:   "User removed successfully",
 		},
 		{
-			name:   "Error",
-			body:   validRemoveMemberReq,
-			userID: 123,
+			name:          "Error",
+			currentUserID: 123,
 			mockFunc: func(ctx context.Context, homeID, userID, currentUserID int) error {
 				return errors.New("remove failed")
 			},
@@ -765,8 +770,7 @@ func TestHomeHandler_RemoveMember(t *testing.T) {
 		},
 		{
 			name:           "Unauthorized",
-			body:           validRemoveMemberReq,
-			userID:         0,
+			currentUserID:  0,
 			mockFunc:       nil,
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   "Unauthorized",
@@ -781,9 +785,14 @@ func TestHomeHandler_RemoveMember(t *testing.T) {
 
 			h := setupHomeHandler(svc)
 
-			req := makeJSONRequest(http.MethodPost, "/homes/remove-member", tt.body)
-			if tt.userID != 0 {
-				req = req.WithContext(utils.WithUserID(req.Context(), tt.userID))
+			req := httptest.NewRequest(http.MethodDelete, "/homes/1/members/2", nil)
+			routeCtx := chi.NewRouteContext()
+			routeCtx.URLParams.Add("home_id", "1")
+			routeCtx.URLParams.Add("user_id", "2")
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, routeCtx))
+
+			if tt.currentUserID != 0 {
+				req = req.WithContext(utils.WithUserID(req.Context(), tt.currentUserID))
 			}
 
 			rr := httptest.NewRecorder()

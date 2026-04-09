@@ -20,10 +20,11 @@ import (
 
 // Mock user service
 type mockUserService struct {
-	GetUserByIDFunc      func(ctx context.Context, userID int) (*models.User, error)
-	UpdateUserFunc       func(ctx context.Context, userID int, name string) error
-	UpdateUsernameFunc   func(ctx context.Context, userID int, username string) error
-	UpdateUserAvatarFunc func(ctx context.Context, userID int, imagePath string) error
+	GetUserByIDFunc         func(ctx context.Context, userID int) (*models.User, error)
+	UpdateUserFunc          func(ctx context.Context, userID int, name string) error
+	UpdateUsernameFunc      func(ctx context.Context, userID int, username string) error
+	UpdateUserAvatarFunc    func(ctx context.Context, userID int, imagePath string) error
+	UpdateProfilePublicFunc func(ctx context.Context, userID int, profilePublic bool) error
 }
 
 func (m *mockUserService) GetUserByID(ctx context.Context, userID int) (*models.User, error) {
@@ -50,6 +51,13 @@ func (m *mockUserService) UpdateUsername(ctx context.Context, userID int, userna
 func (m *mockUserService) UpdateUserAvatar(ctx context.Context, userID int, imagePath string) error {
 	if m.UpdateUserAvatarFunc != nil {
 		return m.UpdateUserAvatarFunc(ctx, userID, imagePath)
+	}
+	return nil
+}
+
+func (m *mockUserService) UpdateProfilePublic(ctx context.Context, userID int, profilePublic bool) error {
+	if m.UpdateProfilePublicFunc != nil {
+		return m.UpdateProfilePublicFunc(ctx, userID, profilePublic)
 	}
 	return nil
 }

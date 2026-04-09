@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { emitAuthSessionExpired } from "./authSession";
 import { deepCamelToSnake, deepSnakeToCamel } from "./caseConverter";
 import { secureStorage } from "./secureStorage";
 import type {
@@ -9,6 +10,7 @@ import type {
   CreateBillForm,
   CreateCategoryForm,
   CreateItemForm,
+  CreateItemsForm,
   CreatePollForm,
   CreateScheduleForm,
   CreateTaskForm,
@@ -30,7 +32,8 @@ import type {
   User,
 } from "./types";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "";
+export const isDevMode = process.env.EXPO_NODE_ENV === "dev";
+const API_BASE_URL = isDevMode ? process.env.EXPO_PUBLIC_API_URL_DEV : process.env.EXPO_PUBLIC_API_URL;
 const API_PREFIX = "/api";
 
 type ApiRequestOptions = {
@@ -84,12 +87,16 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 async function getAuthHeaders() {
   const token = await secureStorage.getItem("auth_token");
-  return token ? { Authorization: `Bearer ${token}` } : null;
+  return {
+    token,
+    headers: token ? { Authorization: `Bearer ${token}` } : null,
+  };
 }
 
 async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<ApiResponse<T>> {
+  const { token, headers: authHeaders } = await getAuthHeaders();
   const headers: Record<string, string> = {
-    ...(await getAuthHeaders()),
+    ...(authHeaders ?? {}),
     ...(options.headers ?? {}),
   };
 
@@ -128,9 +135,10 @@ async function request<T>(path: string, options: ApiRequestOptions = {}): Promis
     : (null as unknown);
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 && token) {
       await secureStorage.removeItem("auth_token");
       await secureStorage.removeItem("user");
+      emitAuthSessionExpired();
     }
 
     const error = new Error(`Request failed with status ${response.status}`) as ApiError;
@@ -258,11 +266,17 @@ export const userApi = {
     return response.data.user;
   },
 
-  update: async (data: { name?: string; username?: string; avatar?: string }): Promise<{ message: string }> => {
+  update: async (data: {
+    name?: string;
+    username?: string;
+    avatar?: string;
+    profilePublic?: boolean;
+  }): Promise<{ message: string }> => {
     const formData = new FormData();
     if (data.name) formData.append("name", data.name);
     if (data.username) formData.append("username", data.username);
     if (data.avatar) formData.append("avatar", data.avatar);
+    if (typeof data.profilePublic === "boolean") formData.append("profile_public", String(data.profilePublic));
 
     const response = await api.patch<{ status: boolean; message: string }>("/user", formData, {
       headers: {
@@ -346,12 +360,25 @@ export const homeApi = {
     });
     return { message: response.data.message };
   },
+
+  updateCurrency: async (homeId: number, currency: string): Promise<{ message: string }> => {
+    const response = await api.patch<{ status: boolean; message: string }>(`/homes/${homeId}/currency`, {
+      currency,
+    });
+    return { message: response.data.message };
+  },
 };
 
 // ============ Room API ============
 export const roomApi = {
-  create: async (homeId: number, name: string): Promise<{ message: string }> => {
-    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/rooms`, { name, homeId });
+  create: async (
+    homeId: number,
+    data: { name: string; icon?: string; color?: string },
+  ): Promise<{ message: string }> => {
+    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/rooms`, {
+      ...data,
+      homeId,
+    });
     return { message: response.data.message };
   },
 
@@ -363,6 +390,15 @@ export const roomApi = {
   getById: async (homeId: number, roomId: number): Promise<Room> => {
     const response = await api.get<{ status: boolean; room: Room }>(`/homes/${homeId}/rooms/${roomId}`);
     return response.data.room;
+  },
+
+  update: async (
+    homeId: number,
+    roomId: number,
+    data: { name?: string; icon?: string; color?: string },
+  ): Promise<{ message: string }> => {
+    const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/rooms/${roomId}`, data);
+    return { message: response.data.message };
   },
 
   delete: async (homeId: number, roomId: number): Promise<{ message: string }> => {
@@ -386,6 +422,15 @@ export const taskApi = {
   getById: async (homeId: number, taskId: number): Promise<Task> => {
     const response = await api.get<{ status: boolean; task: Task }>(`/homes/${homeId}/tasks/${taskId}`);
     return response.data.task;
+  },
+
+  update: async (
+    homeId: number,
+    taskId: number,
+    data: { name?: string; description?: string; roomId?: number; dueDate?: string },
+  ): Promise<{ message: string }> => {
+    const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/tasks/${taskId}`, data);
+    return { message: response.data.message };
   },
 
   delete: async (homeId: number, taskId: number): Promise<{ message: string }> => {
@@ -509,6 +554,23 @@ export const billApi = {
     return response.data.bill;
   },
 
+  update: async (
+    homeId: number,
+    billId: number,
+    data: {
+      type?: string;
+      billCategoryId?: number;
+      description?: string;
+      receiptImage?: string;
+      totalAmount?: number;
+      periodStart?: string;
+      periodEnd?: string;
+    },
+  ): Promise<{ message: string }> => {
+    const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/bills/${billId}`, data);
+    return { message: response.data.message };
+  },
+
   delete: async (homeId: number, billId: number): Promise<{ message: string }> => {
     const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/bills/${billId}`);
     return { message: response.data.message };
@@ -539,7 +601,10 @@ export const billApi = {
 };
 
 export const billCategoryApi = {
-  create: async (homeId: number, data: { name: string; color?: string }): Promise<{ message: string }> => {
+  create: async (
+    homeId: number,
+    data: { name: string; icon?: string; color?: string },
+  ): Promise<{ message: string }> => {
     const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/bill_categories`, data);
     return { message: response.data.message };
   },
@@ -552,6 +617,18 @@ export const billCategoryApi = {
   delete: async (homeId: number, categoryId: number): Promise<{ message: string }> => {
     const response = await api.delete<{ status: boolean; message: string }>(
       `/homes/${homeId}/bill_categories/${categoryId}`,
+    );
+    return { message: response.data.message };
+  },
+
+  update: async (
+    homeId: number,
+    categoryId: number,
+    data: { name?: string; icon?: string; color?: string },
+  ): Promise<{ message: string }> => {
+    const response = await api.patch<{ status: boolean; message: string }>(
+      `/homes/${homeId}/bill_categories/${categoryId}`,
+      data,
     );
     return { message: response.data.message };
   },
@@ -594,7 +671,7 @@ export const shoppingApi = {
   editCategory: async (
     homeId: number,
     categoryId: number,
-    data: { name?: string; icon?: string },
+    data: { name?: string; icon?: string; color?: string },
   ): Promise<{ message: string }> => {
     const response = await api.put<{ status: boolean; message: string }>(
       `/homes/${homeId}/shopping/categories/${categoryId}`,
@@ -604,6 +681,11 @@ export const shoppingApi = {
   },
 
   createItem: async (homeId: number, data: CreateItemForm): Promise<{ message: string }> => {
+    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/shopping/items`, data);
+    return { message: response.data.message };
+  },
+
+  createItems: async (homeId: number, data: CreateItemsForm): Promise<{ message: string }> => {
     const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/shopping/items`, data);
     return { message: response.data.message };
   },

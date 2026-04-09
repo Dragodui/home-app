@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Button from "@/components/ui/button";
@@ -27,7 +27,7 @@ export default function RegisterScreen() {
 
   const { response, promptAsync, isReady } = useGoogleAuth();
 
-  const handleGoogleResponse = async () => {
+  const handleGoogleResponse = useCallback(async () => {
     if (response?.type === "success") {
       setIsGoogleLoading(true);
       setError("");
@@ -46,7 +46,7 @@ export default function RegisterScreen() {
     } else if (response?.type === "error") {
       setError(t.auth.googleSignInCancelled);
     }
-  };
+  }, [googleSignIn, response, router, t.auth.googleSignInCancelled, t.auth.googleSignInFailed]);
 
   useEffect(() => {
     handleGoogleResponse();

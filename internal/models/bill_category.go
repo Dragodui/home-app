@@ -7,6 +7,7 @@ type BillCategory struct {
 	HomeID    int       `gorm:"not null" json:"home_id"`
 	CreatedBy int       `json:"created_by"`
 	Name      string    `gorm:"not null;size:64" json:"name"`
+	Icon      *string   `gorm:"size:64" json:"icon,omitempty"`
 	Color     string    `gorm:"size:32;default:'#FBEB9E'" json:"color"` // Hex color
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
 
@@ -16,7 +17,8 @@ type BillCategory struct {
 }
 
 type CreateBillCategoryRequest struct {
-	Name   string `json:"name" validate:"required,min=2,max=64"`
-	Color  string `json:"color" validate:"omitempty,hexcolor"`
-	HomeID int    `json:"home_id" validate:"required"`
+	Name   string  `json:"name" validate:"required,min=2,max=64"`
+	Icon   *string `json:"icon"`
+	Color  string  `json:"color" validate:"omitempty,hexcolor"`
+	HomeID int     `json:"home_id" validate:"required"`
 }

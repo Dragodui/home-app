@@ -10,7 +10,6 @@ services:
       - .env.prod
     depends_on:
       - redis
-      - db
     ports:
       - "8000:8000"
     networks:
@@ -23,20 +22,6 @@ services:
     restart: always
     networks:
       - app-network
-
-  db:
-    image: postgres:15
-    container_name: postgres-db-prod
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: mydb
-    volumes:
-      - pgdata-prod:/var/lib/postgresql/data
-    networks:
-      - app-network
-
   prometheus:
     image: prom/prometheus:v2.47.0
     container_name: prometheus-prod
@@ -63,8 +48,8 @@ services:
     container_name: grafana-prod
     restart: always
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_USER=${ADMIN_USERNAME:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
     volumes:

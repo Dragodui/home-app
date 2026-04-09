@@ -24,6 +24,7 @@ type IUserService interface {
 	UpdateUser(ctx context.Context, userID int, name string) error
 	UpdateUsername(ctx context.Context, userID int, username string) error
 	UpdateUserAvatar(ctx context.Context, userID int, imagePath string) error
+	UpdateProfilePublic(ctx context.Context, userID int, profilePublic bool) error
 }
 
 func NewUserService(repo repository.UserRepository, redis *redis.Client) *UserService {
@@ -116,6 +117,29 @@ func (s *UserService) UpdateUserAvatar(ctx context.Context, userID int, imagePat
 	updates := map[string]interface{}{}
 	updates["avatar"] = imagePath
 
+	if err := s.repo.Update(ctx, user, updates); err != nil {
+		return err
+	}
+
+	event.SendEvent(ctx, s.cache, fmt.Sprintf("user:%d:updates", userID), &event.RealTimeEvent{
+		Module: event.ModuleUser,
+		Action: event.ActionUpdated,
+		Data:   user,
+	})
+
+	return nil
+}
+
+func (s *UserService) UpdateProfilePublic(ctx context.Context, userID int, profilePublic bool) error {
+	user, err := s.repo.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("user not found")
+	}
+
+	updates := map[string]interface{}{"profile_public": profilePublic}
 	if err := s.repo.Update(ctx, user, updates); err != nil {
 		return err
 	}

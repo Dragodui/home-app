@@ -260,19 +260,43 @@ func (h *ShoppingHandler) EditCategory(w http.ResponseWriter, r *http.Request) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/shopping/items [post]
 func (h *ShoppingHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
-	var req models.CreateShoppingItemRequest
+	var rawBody json.RawMessage
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&rawBody); err != nil {
 		utils.JSONError(w, "Invalid data", http.StatusBadRequest)
 		return
 	}
 
-	// validation
+	userID := middleware.GetUserID(r)
+
+	var bulkReq models.CreateShoppingItemsRequest
+	if err := json.Unmarshal(rawBody, &bulkReq); err == nil && len(bulkReq.Items) > 0 {
+		if err := utils.Validate.Struct(bulkReq); err != nil {
+			utils.JSONValidationErrors(w, err)
+			return
+		}
+
+		for _, item := range bulkReq.Items {
+			if err := h.svc.CreateItem(r.Context(), bulkReq.CategoryID, userID, item.Name, item.Image, item.Link); err != nil {
+				utils.SafeError(w, err, "Failed to create item", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Created successfully"})
+		return
+	}
+
+	var req models.CreateShoppingItemRequest
+	if err := json.Unmarshal(rawBody, &req); err != nil {
+		utils.JSONError(w, "Invalid data", http.StatusBadRequest)
+		return
+	}
+
 	if err := utils.Validate.Struct(req); err != nil {
 		utils.JSONValidationErrors(w, err)
 		return
 	}
-	userID := middleware.GetUserID(r)
 
 	if err := h.svc.CreateItem(r.Context(), req.CategoryID, userID, req.Name, req.Image, req.Link); err != nil {
 		utils.SafeError(w, err, "Failed to create item", http.StatusInternalServerError)
