@@ -29,6 +29,7 @@ type User struct {
 	ResetExpiresAt  *time.Time `json:"-"`
 	Name            string     `gorm:"size:64;not null" json:"name"`
 	Username        string     `gorm:"size:32;uniqueIndex" json:"username"`
+	ProfilePublic   bool       `gorm:"default:true" json:"profile_public"`
 	PasswordHash    string     `gorm:"not null" json:"-"`
 	Avatar          string     `json:"avatar"`
 	CreatedAt       time.Time  `gorm:"autoCreateTime" json:"created_at"`

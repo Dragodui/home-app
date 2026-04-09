@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/Dragodui/diploma-server/internal/http/middleware"
 	"github.com/Dragodui/diploma-server/internal/services"
@@ -81,11 +82,12 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	username := r.FormValue("username")
 	avatarURL := r.FormValue("avatar")
+	profilePublicRaw := r.FormValue("profile_public")
 
 	file, fileHeader, err := r.FormFile("avatar_file")
 	hasAvatarFile := err == nil
 
-	if name == "" && username == "" && !hasAvatarFile && avatarURL == "" {
+	if name == "" && username == "" && !hasAvatarFile && avatarURL == "" && profilePublicRaw == "" {
 		utils.JSONError(w, "No fields to update", http.StatusBadRequest)
 		return
 	}
@@ -127,6 +129,18 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 		if err := h.svc.UpdateUserAvatar(r.Context(), userID, imagePath); err != nil {
 			utils.SafeError(w, err, "Failed to update avatar", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if profilePublicRaw != "" {
+		profilePublic, err := strconv.ParseBool(profilePublicRaw)
+		if err != nil {
+			utils.JSONError(w, "Invalid profile_public value", http.StatusBadRequest)
+			return
+		}
+		if err := h.svc.UpdateProfilePublic(r.Context(), userID, profilePublic); err != nil {
+			utils.SafeError(w, err, "Failed to update profile visibility", http.StatusInternalServerError)
 			return
 		}
 	}

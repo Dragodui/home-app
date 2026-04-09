@@ -24,7 +24,7 @@ interface AuthState {
   resendVerification: (email: string) => Promise<AuthResult>;
   forgotPassword: (email: string) => Promise<AuthResult>;
   resetPassword: (token: string, password: string) => Promise<AuthResult>;
-  updateUser: (data: { name?: string; username?: string; avatar?: string }) => Promise<AuthResult>;
+  updateUser: (data: { name?: string; username?: string; avatar?: string; profilePublic?: boolean }) => Promise<AuthResult>;
   refreshUser: () => Promise<void>;
   googleSignIn: (accessToken: string) => Promise<AuthResult>;
 }
@@ -135,7 +135,12 @@ export const useAuthStore = create<AuthState>()(
       }
     },
 
-    updateUser: async (data: { name?: string; username?: string; avatar?: string }): Promise<AuthResult> => {
+    updateUser: async (data: {
+      name?: string;
+      username?: string;
+      avatar?: string;
+      profilePublic?: boolean;
+    }): Promise<AuthResult> => {
       try {
         await userApi.update(data);
         const updatedUser = await userApi.getMe();

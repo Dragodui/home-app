@@ -195,6 +195,17 @@ export default function ProfileScreen() {
       onPress: () => router.push("/members"),
     },
     {
+      icon: User,
+      label: "My stats",
+      color: theme.accent.purple,
+      onPress: () =>
+        user &&
+        router.push({
+          pathname: "/member-profile",
+          params: { userId: String(user.id) },
+        }),
+    },
+    {
       icon: Zap,
       label: "Smart Home",
       color: theme.accent.cyan,

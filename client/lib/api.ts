@@ -266,11 +266,17 @@ export const userApi = {
     return response.data.user;
   },
 
-  update: async (data: { name?: string; username?: string; avatar?: string }): Promise<{ message: string }> => {
+  update: async (data: {
+    name?: string;
+    username?: string;
+    avatar?: string;
+    profilePublic?: boolean;
+  }): Promise<{ message: string }> => {
     const formData = new FormData();
     if (data.name) formData.append("name", data.name);
     if (data.username) formData.append("username", data.username);
     if (data.avatar) formData.append("avatar", data.avatar);
+    if (typeof data.profilePublic === "boolean") formData.append("profile_public", String(data.profilePublic));
 
     const response = await api.patch<{ status: boolean; message: string }>("/user", formData, {
       headers: {

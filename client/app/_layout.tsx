@@ -72,6 +72,7 @@ function RootLayoutNav() {
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
         <Stack.Screen name="security" options={{ headerShown: false }} />
         <Stack.Screen name="members" options={{ headerShown: false }} />
+        <Stack.Screen name="member-profile" options={{ headerShown: false }} />
         <Stack.Screen name="smarthome/index" options={{ headerShown: false }} />
       </Stack>
     </>
