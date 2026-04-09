@@ -24,6 +24,7 @@ type mockBillService struct {
 	CreateBillFunc       func(ctx context.Context, billType string, billCategoryID *int, description string, receiptImage *string, totalAmount float64, start, end time.Time, ocrData datatypes.JSON, homeID, userID int, splits []models.SplitInput) error
 	GetBillByIDFunc      func(ctx context.Context, billID int) (*models.Bill, error)
 	GetBillsByHomeIDFunc func(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error)
+	UpdateBillFunc       func(ctx context.Context, id int, billType *string, billCategoryID *int, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error
 	DeleteFunc           func(ctx context.Context, billID int) error
 	MarkBillPayedFunc    func(ctx context.Context, billID int) error
 	UpdateSplitsFunc     func(ctx context.Context, billID int, splits []models.SplitInput) error
@@ -54,6 +55,13 @@ func (m *mockBillService) GetBillsByHomeID(ctx context.Context, homeId int, cate
 func (m *mockBillService) Delete(ctx context.Context, billID int) error {
 	if m.DeleteFunc != nil {
 		return m.DeleteFunc(ctx, billID)
+	}
+	return nil
+}
+
+func (m *mockBillService) UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error {
+	if m.UpdateBillFunc != nil {
+		return m.UpdateBillFunc(ctx, id, billType, billCategoryID, description, receiptImage, totalAmount, start, end, ocrData)
 	}
 	return nil
 }

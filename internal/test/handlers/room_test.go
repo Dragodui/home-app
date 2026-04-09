@@ -21,6 +21,7 @@ type mockRoomService struct {
 	CreateRoomFunc       func(ctx context.Context, name string, icon *string, color string, homeID, createdBy int) error
 	GetRoomByIDFunc      func(ctx context.Context, roomID int) (*models.Room, error)
 	GetRoomsByHomeIDFunc func(ctx context.Context, homeID int) (*[]models.Room, error)
+	UpdateRoomFunc       func(ctx context.Context, roomID int, name, icon, color *string) error
 	DeleteRoomFunc       func(ctx context.Context, roomID int) error
 }
 
@@ -48,6 +49,13 @@ func (m *mockRoomService) GetRoomsByHomeID(ctx context.Context, homeID int) (*[]
 func (m *mockRoomService) DeleteRoom(ctx context.Context, roomID int) error {
 	if m.DeleteRoomFunc != nil {
 		return m.DeleteRoomFunc(ctx, roomID)
+	}
+	return nil
+}
+
+func (m *mockRoomService) UpdateRoom(ctx context.Context, roomID int, name, icon, color *string) error {
+	if m.UpdateRoomFunc != nil {
+		return m.UpdateRoomFunc(ctx, roomID, name, icon, color)
 	}
 	return nil
 }

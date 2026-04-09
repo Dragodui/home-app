@@ -14,12 +14,17 @@ import {
   File,
   FileText,
   Gift,
+  GraduationCap,
   Home,
   Lightbulb,
+  PawPrint,
   Pencil,
+  Plane,
   Plus,
   Receipt,
-  Trash,
+  Shield,
+  ShoppingBag,
+  Smartphone,
   TrendingUp,
   Users,
   Utensils,
@@ -56,6 +61,13 @@ const BILL_CATEGORY_ICON_OPTIONS = [
   "wrench",
   "car",
   "gift",
+  "shopping",
+  "phone",
+  "travel",
+  "health",
+  "education",
+  "pets",
+  "insurance",
 ] as const;
 
 const getBillCategoryIcon = (iconId: string | undefined, size: number, color: string) => {
@@ -76,6 +88,20 @@ const getBillCategoryIcon = (iconId: string | undefined, size: number, color: st
       return <Car size={size} color={color} />;
     case "gift":
       return <Gift size={size} color={color} />;
+    case "shopping":
+      return <ShoppingBag size={size} color={color} />;
+    case "phone":
+      return <Smartphone size={size} color={color} />;
+    case "travel":
+      return <Plane size={size} color={color} />;
+    case "health":
+      return <Receipt size={size} color={color} />;
+    case "education":
+      return <GraduationCap size={size} color={color} />;
+    case "pets":
+      return <PawPrint size={size} color={color} />;
+    case "insurance":
+      return <Shield size={size} color={color} />;
     default:
       return <DollarSign size={size} color={color} />;
   }
@@ -292,6 +318,11 @@ export default function BudgetScreen() {
   const [selectedIcon, setSelectedIcon] = useState<(typeof BILL_CATEGORY_ICON_OPTIONS)[number]>("wallet");
   const [selectedColor, setSelectedColor] = useState(theme.accent.yellow);
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [showCategoryActionsModal, setShowCategoryActionsModal] = useState(false);
+  const [selectedCategoryForActions, setSelectedCategoryForActions] = useState<BillCategory | null>(null);
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<BillCategory | null>(null);
+  const [savingCategoryEdit, setSavingCategoryEdit] = useState(false);
 
   // Scan flow state
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
@@ -316,6 +347,14 @@ export default function BudgetScreen() {
   const [editSplitMode, setEditSplitMode] = useState<"equal" | "manual">("equal");
   const [editManualAmounts, setEditManualAmounts] = useState<Record<number, string>>({});
   const [savingSplits, setSavingSplits] = useState(false);
+  const [showBillActionsModal, setShowBillActionsModal] = useState(false);
+  const [selectedBillForActions, setSelectedBillForActions] = useState<Bill | null>(null);
+  const [showEditBillModal, setShowEditBillModal] = useState(false);
+  const [editingBillId, setEditingBillId] = useState<number | null>(null);
+  const [editBillDescription, setEditBillDescription] = useState("");
+  const [editBillAmount, setEditBillAmount] = useState("");
+  const [editBillCategoryId, setEditBillCategoryId] = useState<number | null>(null);
+  const [savingBillEdit, setSavingBillEdit] = useState(false);
 
   // Expanded bill card
   const [expandedBillId, setExpandedBillId] = useState<number | null>(null);
@@ -453,6 +492,39 @@ export default function BudgetScreen() {
     ]);
   };
 
+  const openCategoryActions = (category: BillCategory) => {
+    setSelectedCategoryForActions(category);
+    setShowCategoryActionsModal(true);
+  };
+
+  const openEditCategory = (category: BillCategory) => {
+    setEditingCategory(category);
+    setNewCategoryName(category.name || "");
+    setSelectedIcon((category.icon as (typeof BILL_CATEGORY_ICON_OPTIONS)[number]) || "wallet");
+    setSelectedColor(category.color || theme.accent.yellow);
+    setShowEditCategoryModal(true);
+  };
+
+  const handleEditCategory = async () => {
+    if (!home || !editingCategory || !newCategoryName.trim()) return;
+    setSavingCategoryEdit(true);
+    try {
+      await billCategoryApi.update(home.id, editingCategory.id, {
+        name: newCategoryName.trim(),
+        icon: selectedIcon,
+        color: selectedColor,
+      });
+      setShowEditCategoryModal(false);
+      setEditingCategory(null);
+      await loadData();
+    } catch (error) {
+      console.error("Error editing category:", error);
+      alert(t.common.error, "Failed to update category");
+    } finally {
+      setSavingCategoryEdit(false);
+    }
+  };
+
   const buildSplits = (
     userIds: number[],
     mode: "equal" | "manual",
@@ -540,6 +612,41 @@ export default function BudgetScreen() {
         },
       },
     ]);
+  };
+
+  const openBillActions = (bill: Bill) => {
+    setSelectedBillForActions(bill);
+    setShowBillActionsModal(true);
+  };
+
+  const openEditBill = (bill: Bill) => {
+    setEditingBillId(bill.id);
+    setEditBillDescription(bill.description || "");
+    setEditBillAmount(String(bill.totalAmount || ""));
+    setEditBillCategoryId(bill.billCategoryId ?? null);
+    setShowEditBillModal(true);
+  };
+
+  const handleEditBill = async () => {
+    if (!home || !editingBillId || !editBillAmount) return;
+    const amount = parseFloat(editBillAmount);
+    if (Number.isNaN(amount) || amount <= 0) return;
+    setSavingBillEdit(true);
+    try {
+      await billApi.update(home.id, editingBillId, {
+        description: editBillDescription || undefined,
+        totalAmount: amount,
+        billCategoryId: editBillCategoryId || undefined,
+      });
+      setShowEditBillModal(false);
+      setEditingBillId(null);
+      await loadData();
+    } catch (error) {
+      console.error("Error editing bill:", error);
+      alert(t.common.error, "Failed to update bill");
+    } finally {
+      setSavingBillEdit(false);
+    }
   };
 
   const handleOpenEditSplits = (bill: Bill) => {
@@ -1102,7 +1209,7 @@ export default function BudgetScreen() {
                   borderColor: filterCategoryId === cat.id ? theme.text : theme.border,
                 }}
                 onPress={() => setFilterCategoryId(filterCategoryId === cat.id ? null : cat.id)}
-                onLongPress={() => handleDeleteCategory(cat.id)}
+                onLongPress={() => openCategoryActions(cat)}
               >
                 <View className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color || theme.accent.yellow }} />
                 {getBillCategoryIcon(cat.icon, 14, filterCategoryId === cat.id ? theme.background : theme.text)}
@@ -1136,6 +1243,7 @@ export default function BudgetScreen() {
                 className="p-4 rounded-2xl"
                 style={{ backgroundColor: theme.surface }}
                 onPress={() => setExpandedBillId(isExpanded ? null : bill.id)}
+                onLongPress={() => openBillActions(bill)}
                 activeOpacity={0.7}
               >
                 <View className="flex-row items-center gap-3">
@@ -1174,9 +1282,6 @@ export default function BudgetScreen() {
                       </Text>
                     )}
                   </View>
-                  <TouchableOpacity onPress={() => handleDeleteBill(bill.id)} className="p-0.5">
-                    <Trash size={18} color={theme.accent.pink || "#FF3B30"} />
-                  </TouchableOpacity>
                 </View>
 
                 {/* Expanded: splits details */}
@@ -1717,7 +1822,7 @@ export default function BudgetScreen() {
 
           <ScrollView className="max-h-[220px]" showsVerticalScrollIndicator={false}>
             <View className="gap-3">
-              {[0, 1].map((row) => (
+              {Array.from({ length: Math.ceil(BILL_CATEGORY_ICON_OPTIONS.length / 6) }, (_, row) => (
                 <View key={row} className="flex-row justify-center gap-2.5">
                   {BILL_CATEGORY_ICON_OPTIONS.slice(row * 6, row * 6 + 6).map((icon) => (
                     <TouchableOpacity
@@ -1741,6 +1846,260 @@ export default function BudgetScreen() {
             style={{ backgroundColor: newCategoryName.trim() ? theme.text : theme.textSecondary }}
             onPress={handleCreateCategory}
             disabled={!newCategoryName.trim() || creatingCategory}
+          >
+            <Check size={24} color={theme.background} />
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showCategoryActionsModal}
+        onClose={() => {
+          setShowCategoryActionsModal(false);
+          setSelectedCategoryForActions(null);
+        }}
+        title={selectedCategoryForActions?.name || t.budget.category}
+        height="auto"
+      >
+        <View className="gap-3">
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              const category = selectedCategoryForActions;
+              setShowCategoryActionsModal(false);
+              setSelectedCategoryForActions(null);
+              if (category) {
+                openEditCategory(category);
+              }
+            }}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+              Edit
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.accent.dangerLight }}
+            onPress={() => {
+              const category = selectedCategoryForActions;
+              setShowCategoryActionsModal(false);
+              setSelectedCategoryForActions(null);
+              if (category) {
+                handleDeleteCategory(category.id);
+              }
+            }}
+          >
+            <Text className="font-manrope-semibold text-white">{t.common.delete}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              setShowCategoryActionsModal(false);
+              setSelectedCategoryForActions(null);
+            }}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+              {t.common.cancel}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showBillActionsModal}
+        onClose={() => {
+          setShowBillActionsModal(false);
+          setSelectedBillForActions(null);
+        }}
+        title={selectedBillForActions ? getCategoryName(selectedBillForActions) : t.budget.addExpense}
+        height="auto"
+      >
+        <View className="gap-3">
+          {selectedBillForActions && canEditBill(selectedBillForActions) && (
+            <TouchableOpacity
+              className="h-12 rounded-xl justify-center items-center"
+              style={{ backgroundColor: theme.surface }}
+              onPress={() => {
+                const bill = selectedBillForActions;
+                setShowBillActionsModal(false);
+                setSelectedBillForActions(null);
+                if (bill) {
+                  openEditBill(bill);
+                }
+              }}
+            >
+              <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+                Edit
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {selectedBillForActions && canEditBill(selectedBillForActions) && (
+            <TouchableOpacity
+              className="h-12 rounded-xl justify-center items-center"
+              style={{ backgroundColor: theme.surface }}
+              onPress={() => {
+                const bill = selectedBillForActions;
+                setShowBillActionsModal(false);
+                setSelectedBillForActions(null);
+                if (bill) {
+                  handleOpenEditSplits(bill);
+                }
+              }}
+            >
+              <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+                {t.budget.editSplits}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {selectedBillForActions && canEditBill(selectedBillForActions) && (
+            <TouchableOpacity
+              className="h-12 rounded-xl justify-center items-center"
+              style={{ backgroundColor: theme.accent.dangerLight }}
+              onPress={() => {
+                const bill = selectedBillForActions;
+                setShowBillActionsModal(false);
+                setSelectedBillForActions(null);
+                if (bill) {
+                  handleDeleteBill(bill.id);
+                }
+              }}
+            >
+              <Text className="font-manrope-semibold text-white">{t.common.delete}</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              setShowBillActionsModal(false);
+              setSelectedBillForActions(null);
+            }}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+              {t.common.cancel}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showEditCategoryModal}
+        onClose={() => {
+          setShowEditCategoryModal(false);
+          setEditingCategory(null);
+        }}
+        title="Edit category"
+        height="full"
+      >
+        <View className="flex-1">
+          <Input
+            placeholder={t.budget.categoryNamePlaceholder}
+            value={newCategoryName}
+            onChangeText={setNewCategoryName}
+          />
+          <View className="mb-6 gap-3">
+            <View className="flex-row justify-center gap-2.5">
+              {COLOR_OPTIONS.slice(0, 7).map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  className={`w-9 h-9 rounded-full ${selectedColor === color ? "border-[3px] border-black/30" : ""}`}
+                  style={{ backgroundColor: color }}
+                  onPress={() => setSelectedColor(color)}
+                />
+              ))}
+            </View>
+            <View className="flex-row justify-center gap-2.5">
+              {COLOR_OPTIONS.slice(7).map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  className={`w-9 h-9 rounded-full ${selectedColor === color ? "border-[3px] border-black/30" : ""}`}
+                  style={{ backgroundColor: color }}
+                  onPress={() => setSelectedColor(color)}
+                />
+              ))}
+            </View>
+          </View>
+          <ScrollView className="max-h-[220px]" showsVerticalScrollIndicator={false}>
+            <View className="gap-3">
+              {Array.from({ length: Math.ceil(BILL_CATEGORY_ICON_OPTIONS.length / 6) }, (_, row) => (
+                <View key={row} className="flex-row justify-center gap-2.5">
+                  {BILL_CATEGORY_ICON_OPTIONS.slice(row * 6, row * 6 + 6).map((icon) => (
+                    <TouchableOpacity
+                      key={icon}
+                      className="w-12 h-12 rounded-full justify-center items-center"
+                      style={{ backgroundColor: selectedIcon === icon ? selectedColor : theme.surface }}
+                      onPress={() => setSelectedIcon(icon)}
+                    >
+                      {getBillCategoryIcon(icon, 20, selectedIcon === icon ? "#1C1C1E" : theme.textSecondary)}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+          <TouchableOpacity
+            className="h-14 rounded-full justify-center items-center mt-auto"
+            style={{ backgroundColor: newCategoryName.trim() ? theme.text : theme.textSecondary }}
+            onPress={handleEditCategory}
+            disabled={!newCategoryName.trim() || savingCategoryEdit}
+          >
+            <Check size={24} color={theme.background} />
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showEditBillModal}
+        onClose={() => {
+          setShowEditBillModal(false);
+          setEditingBillId(null);
+        }}
+        title="Edit expense"
+        height="full"
+      >
+        <View className="flex-1">
+          <Input placeholder="Description" value={editBillDescription} onChangeText={setEditBillDescription} />
+          <Input
+            placeholder={t.budget.amountPlaceholder}
+            value={editBillAmount}
+            onChangeText={setEditBillAmount}
+            keyboardType="numeric"
+          />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
+            <View className="flex-row gap-2.5">
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  className="px-4.5 py-3 rounded-[12px]"
+                  style={[
+                    { backgroundColor: theme.surface },
+                    editBillCategoryId === category.id && { backgroundColor: theme.text },
+                  ]}
+                  onPress={() => setEditBillCategoryId(category.id)}
+                >
+                  <Text
+                    className="text-sm font-manrope-semibold"
+                    style={[
+                      { color: theme.textSecondary },
+                      editBillCategoryId === category.id && { color: theme.background },
+                    ]}
+                  >
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+          <TouchableOpacity
+            className="h-14 rounded-full justify-center items-center mt-auto"
+            style={{ backgroundColor: editBillAmount ? theme.text : theme.textSecondary }}
+            onPress={handleEditBill}
+            disabled={!editBillAmount || savingBillEdit}
           >
             <Check size={24} color={theme.background} />
           </TouchableOpacity>

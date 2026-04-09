@@ -8,8 +8,8 @@ import {
   Candy,
   Car,
   Carrot,
-  ChevronRight,
   Check,
+  ChevronRight,
   Coffee,
   Cookie,
   Dog,
@@ -37,13 +37,13 @@ import { useAlert } from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
+import Colors from "@/constants/colors";
 import { shoppingApi } from "@/lib/api";
 import type { ShoppingCategory, ShoppingItem } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
-import Colors from "@/constants/colors";
 
 // Category colors matching PDF
 const CATEGORY_COLORS = ["#D8D4FC", "#FBEB9E", "#FF7476", "#A8E6CF", "#7DD3E8", "#F5A3D3"];
@@ -167,6 +167,9 @@ export default function ShoppingScreen() {
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
   const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0].id);
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [showCategoryActionsModal, setShowCategoryActionsModal] = useState(false);
+  const [selectedCategoryForActions, setSelectedCategoryForActions] = useState<ShoppingCategory | null>(null);
 
   // Delete category
   const [deletingCategory, setDeletingCategory] = useState(false);
@@ -176,6 +179,11 @@ export default function ShoppingScreen() {
   const [newItemName, setNewItemName] = useState("");
   const [pendingItemNames, setPendingItemNames] = useState<string[]>([]);
   const [creatingItem, setCreatingItem] = useState(false);
+  const [selectedItemForActions, setSelectedItemForActions] = useState<ShoppingItem | null>(null);
+  const [showItemActionsModal, setShowItemActionsModal] = useState(false);
+  const [showEditItemModal, setShowEditItemModal] = useState(false);
+  const [editItemName, setEditItemName] = useState("");
+  const [savingItemEdit, setSavingItemEdit] = useState(false);
 
   const loadShoppingData = useCallback(async () => {
     if (!home) {
@@ -221,22 +229,44 @@ export default function ShoppingScreen() {
 
     setCreatingCategory(true);
     try {
-      await shoppingApi.createCategory(home.id, {
-        name: newCategoryName.trim(),
-        icon: selectedIcon,
-        color: selectedColor,
-      });
+      if (editingCategoryId) {
+        await shoppingApi.editCategory(home.id, editingCategoryId, {
+          name: newCategoryName.trim(),
+          icon: selectedIcon,
+          color: selectedColor,
+        });
+      } else {
+        await shoppingApi.createCategory(home.id, {
+          name: newCategoryName.trim(),
+          icon: selectedIcon,
+          color: selectedColor,
+        });
+      }
 
       setNewCategoryName("");
       setSelectedIcon(ICON_OPTIONS[0].id);
       setSelectedColor(COLOR_OPTIONS[0]);
       setShowCategoryModal(false);
+      setEditingCategoryId(null);
       await loadShoppingData();
     } catch (error) {
       console.error("Error creating category:", error);
     } finally {
       setCreatingCategory(false);
     }
+  };
+
+  const openCategoryActions = (category: ShoppingCategory) => {
+    setSelectedCategoryForActions(category);
+    setShowCategoryActionsModal(true);
+  };
+
+  const openEditCategory = (category: ShoppingCategory) => {
+    setEditingCategoryId(category.id);
+    setNewCategoryName(category.name || "");
+    setSelectedIcon(category.icon || ICON_OPTIONS[0].id);
+    setSelectedColor(category.color || COLOR_OPTIONS[0]);
+    setShowCategoryModal(true);
   };
 
   const openItemModal = () => {
@@ -313,6 +343,26 @@ export default function ShoppingScreen() {
       await loadShoppingData();
     } catch (error) {
       console.error("Error deleting item:", error);
+    }
+  };
+
+  const openItemActions = (item: ShoppingItem) => {
+    setSelectedItemForActions(item);
+    setShowItemActionsModal(true);
+  };
+
+  const handleEditItem = async () => {
+    if (!home || !selectedItemForActions || !editItemName.trim()) return;
+    setSavingItemEdit(true);
+    try {
+      await shoppingApi.editItem(home.id, selectedItemForActions.id, { name: editItemName.trim() });
+      setShowEditItemModal(false);
+      setSelectedItemForActions(null);
+      await loadShoppingData();
+    } catch (error) {
+      console.error("Error editing item:", error);
+    } finally {
+      setSavingItemEdit(false);
     }
   };
 
@@ -398,6 +448,7 @@ export default function ShoppingScreen() {
                 key={item.id}
                 className="flex-row items-center gap-4 py-2"
                 onPress={() => toggleItemBought(item.id)}
+                onLongPress={() => openItemActions(item)}
                 activeOpacity={0.95}
               >
                 <View
@@ -550,18 +601,9 @@ export default function ShoppingScreen() {
                 className="w-[47%] rounded-3xl p-[18px] justify-between"
                 style={{ backgroundColor: categoryColor, aspectRatio: 0.9 }}
                 onPress={() => setActiveCategory(category)}
+                onLongPress={() => openCategoryActions(category)}
                 activeOpacity={0.9}
               >
-                <TouchableOpacity
-                  className="absolute top-3 right-3 w-8 h-8 rounded-xl justify-center items-center"
-                  style={{ backgroundColor: "rgba(0,0,0,0.08)" }}
-                  onPress={(event) => {
-                    event.stopPropagation();
-                    openDeleteCategory(category);
-                  }}
-                >
-                  <Trash2 size={16} color="#1C1C1E" />
-                </TouchableOpacity>
                 <View className="w-10 h-10 rounded-xl bg-black/5 justify-center items-center">
                   {getCategoryIcon(category)}
                 </View>
@@ -585,8 +627,11 @@ export default function ShoppingScreen() {
       {/* Create Category Modal - matches PDF design */}
       <Modal
         visible={showCategoryModal}
-        onClose={() => setShowCategoryModal(false)}
-        title={t.shopping.newList}
+        onClose={() => {
+          setShowCategoryModal(false);
+          setEditingCategoryId(null);
+        }}
+        title={editingCategoryId ? "Edit list" : t.shopping.newList}
         height="full"
       >
         <View className="flex-1">
@@ -651,7 +696,6 @@ export default function ShoppingScreen() {
         </View>
 
         <View className="flex-row gap-3 pt-4">
-         
           <TouchableOpacity
             className="flex-1 h-14 rounded-full justify-center items-center"
             style={{ backgroundColor: newCategoryName ? theme.text : theme.textSecondary }}
@@ -663,6 +707,109 @@ export default function ShoppingScreen() {
         </View>
       </Modal>
 
+      <Modal
+        visible={showCategoryActionsModal}
+        onClose={() => {
+          setShowCategoryActionsModal(false);
+          setSelectedCategoryForActions(null);
+        }}
+        title={selectedCategoryForActions?.name || t.shopping.title}
+        height="auto"
+      >
+        <View className="gap-3">
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              const category = selectedCategoryForActions;
+              setShowCategoryActionsModal(false);
+              setSelectedCategoryForActions(null);
+              if (category) openEditCategory(category);
+            }}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+              Edit
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.accent.dangerLight }}
+            onPress={() => {
+              const category = selectedCategoryForActions;
+              setShowCategoryActionsModal(false);
+              setSelectedCategoryForActions(null);
+              if (category) openDeleteCategory(category);
+            }}
+          >
+            <Text className="font-manrope-semibold text-white">{t.common.delete}</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showItemActionsModal}
+        onClose={() => {
+          setShowItemActionsModal(false);
+          setSelectedItemForActions(null);
+        }}
+        title={selectedItemForActions?.name || t.shopping.addItem}
+        height="auto"
+      >
+        <View className="gap-3">
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              const item = selectedItemForActions;
+              setShowItemActionsModal(false);
+              if (item) {
+                setEditItemName(item.name);
+                setShowEditItemModal(true);
+              }
+            }}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+              Edit
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.accent.dangerLight }}
+            onPress={() => {
+              const item = selectedItemForActions;
+              setShowItemActionsModal(false);
+              setSelectedItemForActions(null);
+              if (item) handleDeleteItem(item.id);
+            }}
+          >
+            <Text className="font-manrope-semibold text-white">{t.common.delete}</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showEditItemModal}
+        onClose={() => {
+          setShowEditItemModal(false);
+          setSelectedItemForActions(null);
+        }}
+        title="Edit item"
+        height="auto"
+      >
+        <View className="gap-4">
+          <Input value={editItemName} onChangeText={setEditItemName} placeholder={t.shopping.itemNamePlaceholder} />
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: editItemName.trim() ? theme.text : theme.textSecondary }}
+            onPress={handleEditItem}
+            disabled={!editItemName.trim() || savingItemEdit}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.background }}>
+              Save
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }

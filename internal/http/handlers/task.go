@@ -175,6 +175,52 @@ func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Deleted successfully"})
 }
 
+func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	taskID, err := strconv.Atoi(chi.URLParam(r, "task_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid task ID", http.StatusBadRequest)
+		return
+	}
+
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	task, err := h.svc.GetTaskByID(r.Context(), taskID)
+	if err != nil {
+		utils.SafeError(w, err, "Failed to find task", http.StatusInternalServerError)
+		return
+	}
+	if task.CreatedBy != userID {
+		isAdmin, _ := h.homeRepo.IsAdmin(r.Context(), homeID, userID)
+		if !isAdmin {
+			utils.JSONError(w, "forbidden", http.StatusForbidden)
+			return
+		}
+	}
+
+	var req models.UpdateTaskRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.UpdateTask(r.Context(), taskID, req.Name, req.Description, req.RoomID, req.DueDate); err != nil {
+		utils.SafeError(w, err, "Failed to update task", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Updated successfully"})
+}
+
 // AssignUser godoc
 // @Summary      Assign user to task
 // @Description  Assign a user to a task

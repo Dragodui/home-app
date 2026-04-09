@@ -22,3 +22,9 @@ type CreateRoomRequest struct {
 	Icon   *string `json:"icon"`
 	Color  string  `json:"color"`
 }
+
+type UpdateRoomRequest struct {
+	Name  *string `json:"name"`
+	Icon  *string `json:"icon"`
+	Color *string `json:"color"`
+}

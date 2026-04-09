@@ -392,6 +392,15 @@ export const roomApi = {
     return response.data.room;
   },
 
+  update: async (
+    homeId: number,
+    roomId: number,
+    data: { name?: string; icon?: string; color?: string },
+  ): Promise<{ message: string }> => {
+    const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/rooms/${roomId}`, data);
+    return { message: response.data.message };
+  },
+
   delete: async (homeId: number, roomId: number): Promise<{ message: string }> => {
     const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/rooms/${roomId}`);
     return { message: response.data.message };
@@ -413,6 +422,15 @@ export const taskApi = {
   getById: async (homeId: number, taskId: number): Promise<Task> => {
     const response = await api.get<{ status: boolean; task: Task }>(`/homes/${homeId}/tasks/${taskId}`);
     return response.data.task;
+  },
+
+  update: async (
+    homeId: number,
+    taskId: number,
+    data: { name?: string; description?: string; roomId?: number; dueDate?: string },
+  ): Promise<{ message: string }> => {
+    const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/tasks/${taskId}`, data);
+    return { message: response.data.message };
   },
 
   delete: async (homeId: number, taskId: number): Promise<{ message: string }> => {
@@ -536,6 +554,23 @@ export const billApi = {
     return response.data.bill;
   },
 
+  update: async (
+    homeId: number,
+    billId: number,
+    data: {
+      type?: string;
+      billCategoryId?: number;
+      description?: string;
+      receiptImage?: string;
+      totalAmount?: number;
+      periodStart?: string;
+      periodEnd?: string;
+    },
+  ): Promise<{ message: string }> => {
+    const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/bills/${billId}`, data);
+    return { message: response.data.message };
+  },
+
   delete: async (homeId: number, billId: number): Promise<{ message: string }> => {
     const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/bills/${billId}`);
     return { message: response.data.message };
@@ -585,6 +620,18 @@ export const billCategoryApi = {
     );
     return { message: response.data.message };
   },
+
+  update: async (
+    homeId: number,
+    categoryId: number,
+    data: { name?: string; icon?: string; color?: string },
+  ): Promise<{ message: string }> => {
+    const response = await api.patch<{ status: boolean; message: string }>(
+      `/homes/${homeId}/bill_categories/${categoryId}`,
+      data,
+    );
+    return { message: response.data.message };
+  },
 };
 
 // ============ Shopping API ============
@@ -624,7 +671,7 @@ export const shoppingApi = {
   editCategory: async (
     homeId: number,
     categoryId: number,
-    data: { name?: string; icon?: string },
+    data: { name?: string; icon?: string; color?: string },
   ): Promise<{ message: string }> => {
     const response = await api.put<{ status: boolean; message: string }>(
       `/homes/${homeId}/shopping/categories/${categoryId}`,

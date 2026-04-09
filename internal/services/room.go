@@ -21,6 +21,7 @@ type IRoomService interface {
 	CreateRoom(ctx context.Context, name string, icon *string, color string, homeID, createdBy int) error
 	GetRoomByID(ctx context.Context, roomID int) (*models.Room, error)
 	GetRoomsByHomeID(ctx context.Context, homeID int) (*[]models.Room, error)
+	UpdateRoom(ctx context.Context, roomID int, name, icon, color *string) error
 	DeleteRoom(ctx context.Context, roomID int) error
 }
 
@@ -128,6 +129,47 @@ func (s *RoomService) DeleteRoom(ctx context.Context, roomID int) error {
 	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
 		Module: event.ModuleRoom,
 		Action: event.ActionDeleted,
+		Data:   room,
+	})
+
+	return nil
+}
+
+func (s *RoomService) UpdateRoom(ctx context.Context, roomID int, name, icon, color *string) error {
+	room, err := s.repo.FindByID(ctx, roomID)
+	if err != nil {
+		return err
+	}
+	if room == nil {
+		return errors.New("room not found")
+	}
+
+	if name != nil {
+		room.Name = *name
+	}
+	if icon != nil {
+		room.Icon = icon
+	}
+	if color != nil {
+		room.Color = *color
+	}
+
+	if err := s.repo.Update(ctx, room); err != nil {
+		return err
+	}
+
+	roomKey := utils.GetRoomKey(roomID)
+	roomsKey := utils.GetRoomsForHomeKey(room.HomeID)
+	if err := utils.DeleteFromCache(ctx, roomKey, s.cache); err != nil {
+		logger.Info.Printf("Failed to delete redis cache for key %s: %v", roomKey, err)
+	}
+	if err := utils.DeleteFromCache(ctx, roomsKey, s.cache); err != nil {
+		logger.Info.Printf("Failed to delete redis cache for key %s: %v", roomsKey, err)
+	}
+
+	event.SendHomeEvent(ctx, s.cache, room.HomeID, &event.RealTimeEvent{
+		Module: event.ModuleRoom,
+		Action: event.ActionUpdated,
 		Data:   room,
 	})
 

@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ArrowRight, Calendar, Check, Plus, Repeat, Trash, X } from "lucide-react-native";
+import { Calendar, Check, Plus, Repeat, X } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -51,6 +51,16 @@ export default function TasksScreen() {
   const [scheduleRecurrence, setScheduleRecurrence] = useState<RecurrenceType>("daily");
   const [scheduleUserIds, setScheduleUserIds] = useState<number[]>([]);
   const [creatingSchedule, setCreatingSchedule] = useState(false);
+  const [selectedTaskForActions, setSelectedTaskForActions] = useState<Task | null>(null);
+  const [showTaskActionsModal, setShowTaskActionsModal] = useState(false);
+  const [showEditTaskModal, setShowEditTaskModal] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editTaskName, setEditTaskName] = useState("");
+  const [editTaskDescription, setEditTaskDescription] = useState("");
+  const [editTaskRoomId, setEditTaskRoomId] = useState<number | null>(null);
+  const [editTaskDate, setEditTaskDate] = useState<Date | null>(null);
+  const [savingEditTask, setSavingEditTask] = useState(false);
+  const [isEditDatePickerVisible, setIsEditDatePickerVisible] = useState(false);
 
   const loadTasks = useCallback(async () => {
     if (!home || !user) {
@@ -189,6 +199,41 @@ export default function TasksScreen() {
     setScheduleRecurrence("daily");
     setScheduleUserIds([]);
     setShowScheduleModal(true);
+  };
+
+  const openTaskActions = (task: Task) => {
+    setSelectedTaskForActions(task);
+    setShowTaskActionsModal(true);
+  };
+
+  const openEditTaskModal = (task: Task) => {
+    setEditingTaskId(task.id);
+    setEditTaskName(task.name || "");
+    setEditTaskDescription(task.description || "");
+    setEditTaskRoomId(task.roomId ?? null);
+    setEditTaskDate(task.dueDate ? new Date(task.dueDate) : null);
+    setShowEditTaskModal(true);
+  };
+
+  const handleSaveTaskEdit = async () => {
+    if (!home || !editingTaskId || !editTaskName.trim()) return;
+    setSavingEditTask(true);
+    try {
+      await taskApi.update(home.id, editingTaskId, {
+        name: editTaskName.trim(),
+        description: editTaskDescription.trim(),
+        roomId: editTaskRoomId || undefined,
+        dueDate: editTaskDate ? editTaskDate.toISOString() : undefined,
+      });
+      setShowEditTaskModal(false);
+      setEditingTaskId(null);
+      await loadTasks();
+    } catch (error) {
+      console.error("Error editing task:", error);
+      alert(t.common.error, "Failed to update task");
+    } finally {
+      setSavingEditTask(false);
+    }
   };
 
   const handleCreateSchedule = async () => {
@@ -338,6 +383,7 @@ export default function TasksScreen() {
           <TouchableOpacity
             className="flex-1"
             onPress={() => router.push({ pathname: "/tasks/[id]", params: { id: String(task.id) } })}
+            onLongPress={() => openTaskActions(task)}
             activeOpacity={0.7}
           >
             <View className="flex-1">
@@ -407,45 +453,6 @@ export default function TasksScreen() {
               </View>
             </View>
           </TouchableOpacity>
-
-          <View className="flex-row items-center gap-2">
-            <TouchableOpacity
-              onPress={() => router.push({ pathname: "/tasks/[id]", params: { id: String(task.id) } })}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              className="p-1"
-              activeOpacity={0.6}
-            >
-              <ArrowRight size={18} color={theme.textSecondary} />
-            </TouchableOpacity>
-            {isAdmin && !hasSchedule && (
-              <TouchableOpacity
-                onPress={() => handleOpenScheduleModal(task.id)}
-                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-                className="p-1"
-                activeOpacity={0.6}
-              >
-                <Repeat size={20} color={theme.accent.purple} />
-              </TouchableOpacity>
-            )}
-            {isAdmin && hasSchedule && (
-              <TouchableOpacity
-                onPress={() => handleDeleteSchedule(task)}
-                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-                className="p-1"
-                activeOpacity={0.6}
-              >
-                <Repeat size={20} color={theme.status.success} />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              onPress={() => handleDelete(task.id)}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              className="p-1"
-              activeOpacity={0.6}
-            >
-              <Trash size={20} color={theme.accent.pink} />
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
     );
@@ -677,6 +684,198 @@ export default function TasksScreen() {
             onPress={handleCreateTask}
             loading={creating}
             disabled={!newTaskName.trim() || creating}
+            variant="yellow"
+            style={{ marginTop: "auto" }}
+          />
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showTaskActionsModal}
+        onClose={() => {
+          setShowTaskActionsModal(false);
+          setSelectedTaskForActions(null);
+        }}
+        title={selectedTaskForActions?.name || "Task actions"}
+        height="auto"
+      >
+        <View className="gap-3">
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              const task = selectedTaskForActions;
+              setShowTaskActionsModal(false);
+              setSelectedTaskForActions(null);
+              if (task) {
+                router.push({ pathname: "/tasks/[id]", params: { id: String(task.id) } });
+              }
+            }}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+              Open
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              const task = selectedTaskForActions;
+              setShowTaskActionsModal(false);
+              setSelectedTaskForActions(null);
+              if (task) {
+                openEditTaskModal(task);
+              }
+            }}
+          >
+            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+              Edit
+            </Text>
+          </TouchableOpacity>
+
+          {isAdmin && selectedTaskForActions && !selectedTaskForActions.schedule && (
+            <TouchableOpacity
+              className="h-12 rounded-xl justify-center items-center"
+              style={{ backgroundColor: theme.surface }}
+              onPress={() => {
+                const task = selectedTaskForActions;
+                setShowTaskActionsModal(false);
+                setSelectedTaskForActions(null);
+                if (task) {
+                  handleOpenScheduleModal(task.id);
+                }
+              }}
+            >
+              <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+                Create schedule
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {isAdmin && selectedTaskForActions?.schedule && (
+            <TouchableOpacity
+              className="h-12 rounded-xl justify-center items-center"
+              style={{ backgroundColor: theme.surface }}
+              onPress={() => {
+                const task = selectedTaskForActions;
+                setShowTaskActionsModal(false);
+                setSelectedTaskForActions(null);
+                if (task) {
+                  handleDeleteSchedule(task);
+                }
+              }}
+            >
+              <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+                Delete schedule
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            className="h-12 rounded-xl justify-center items-center"
+            style={{ backgroundColor: theme.accent.dangerLight }}
+            onPress={() => {
+              const task = selectedTaskForActions;
+              setShowTaskActionsModal(false);
+              setSelectedTaskForActions(null);
+              if (task) {
+                handleDelete(task.id);
+              }
+            }}
+          >
+            <Text className="font-manrope-semibold text-white">{t.common.delete}</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showEditTaskModal}
+        onClose={() => {
+          setShowEditTaskModal(false);
+          setEditingTaskId(null);
+        }}
+        title="Edit task"
+        height="full"
+      >
+        <View className="flex-1">
+          <Input placeholder={t.tasks.taskNamePlaceholder} value={editTaskName} onChangeText={setEditTaskName} />
+          <Input
+            placeholder={t.tasks.descriptionPlaceholder}
+            value={editTaskDescription}
+            onChangeText={setEditTaskDescription}
+            multiline
+            numberOfLines={3}
+          />
+
+          <TouchableOpacity
+            onPress={() => setIsEditDatePickerVisible(true)}
+            className="rounded-[12px] p-4 h-14 justify-center mb-4"
+            style={{ backgroundColor: theme.surface }}
+          >
+            <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
+              {editTaskDate ? editTaskDate.toLocaleString() : t.tasks.selectDateTime}
+            </Text>
+          </TouchableOpacity>
+          <DatePicker
+            visible={isEditDatePickerVisible}
+            onClose={() => setIsEditDatePickerVisible(false)}
+            onConfirm={(date) => {
+              setEditTaskDate(date);
+              setIsEditDatePickerVisible(false);
+            }}
+            value={editTaskDate ?? undefined}
+            mode="datetime"
+            title={t.tasks.selectDateTime}
+          />
+
+          {rooms.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
+              <View className="flex-row gap-2.5">
+                <TouchableOpacity
+                  className="px-4.5 py-3 rounded-[12px]"
+                  style={[
+                    { backgroundColor: theme.surface },
+                    editTaskRoomId === null && { backgroundColor: theme.text },
+                  ]}
+                  onPress={() => setEditTaskRoomId(null)}
+                >
+                  <Text
+                    className="text-sm font-manrope-semibold"
+                    style={[{ color: theme.textSecondary }, editTaskRoomId === null && { color: theme.background }]}
+                  >
+                    No room
+                  </Text>
+                </TouchableOpacity>
+                {rooms.map((room) => (
+                  <TouchableOpacity
+                    key={room.id}
+                    className="px-4.5 py-3 rounded-[12px]"
+                    style={[
+                      { backgroundColor: theme.surface },
+                      editTaskRoomId === room.id && { backgroundColor: theme.text },
+                    ]}
+                    onPress={() => setEditTaskRoomId(room.id)}
+                  >
+                    <Text
+                      className="text-sm font-manrope-semibold"
+                      style={[
+                        { color: theme.textSecondary },
+                        editTaskRoomId === room.id && { color: theme.background },
+                      ]}
+                    >
+                      {room.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          )}
+
+          <Button
+            title="Save"
+            onPress={handleSaveTaskEdit}
+            loading={savingEditTask}
+            disabled={!editTaskName.trim() || savingEditTask}
             variant="yellow"
             style={{ marginTop: "auto" }}
           />

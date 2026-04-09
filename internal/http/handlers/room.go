@@ -174,3 +174,49 @@ func (h *RoomHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Deleted successfully"})
 }
+
+func (h *RoomHandler) Update(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	roomID, err := strconv.Atoi(chi.URLParam(r, "room_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid room ID", http.StatusBadRequest)
+		return
+	}
+
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	room, err := h.svc.GetRoomByID(r.Context(), roomID)
+	if err != nil {
+		utils.SafeError(w, err, "Failed to find room", http.StatusInternalServerError)
+		return
+	}
+	if room.CreatedBy != userID {
+		isAdmin, _ := h.homeRepo.IsAdmin(r.Context(), homeID, userID)
+		if !isAdmin {
+			utils.JSONError(w, "forbidden", http.StatusForbidden)
+			return
+		}
+	}
+
+	var req models.UpdateRoomRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.UpdateRoom(r.Context(), roomID, req.Name, req.Icon, req.Color); err != nil {
+		utils.SafeError(w, err, "Failed to update room", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Updated successfully"})
+}

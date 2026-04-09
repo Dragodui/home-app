@@ -13,6 +13,7 @@ type TaskRepository interface {
 	Create(ctx context.Context, t *models.Task) error
 	FindByID(ctx context.Context, id int) (*models.Task, error)
 	FindByHomeID(ctx context.Context, homeID int) (*[]models.Task, error)
+	Update(ctx context.Context, t *models.Task) error
 	Delete(ctx context.Context, id int) error
 	ReassignRoom(ctx context.Context, taskID, roomID int) error
 
@@ -74,6 +75,10 @@ func (r *taskRepo) Delete(ctx context.Context, id int) error {
 		return err
 	}
 	return nil
+}
+
+func (r *taskRepo) Update(ctx context.Context, t *models.Task) error {
+	return r.db.WithContext(ctx).Save(t).Error
 }
 
 func (r *taskRepo) AssignUser(ctx context.Context, taskID, userID int, date time.Time) error {

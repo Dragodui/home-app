@@ -35,3 +35,10 @@ type ReassignRoomRequest struct {
 	TaskID int `json:"task_id"`
 	RoomID int `json:"room_id"`
 }
+
+type UpdateTaskRequest struct {
+	Name        *string    `json:"name"`
+	Description *string    `json:"description"`
+	RoomID      *int       `json:"room_id"`
+	DueDate     *time.Time `json:"due_date"`
+}

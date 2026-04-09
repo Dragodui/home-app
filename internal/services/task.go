@@ -25,6 +25,7 @@ type ITaskService interface {
 	CreateTask(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, createdBy int, userIDs []int) error
 	GetTaskByID(ctx context.Context, taskID int) (*models.Task, error)
 	GetTasksByHomeID(ctx context.Context, homeID int) (*[]models.Task, error)
+	UpdateTask(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time) error
 	DeleteTask(ctx context.Context, taskID int) error
 	AssignUser(ctx context.Context, taskID, userID, homeID int, date time.Time) error
 	GetAssignmentsForUser(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
@@ -173,6 +174,50 @@ func (s *TaskService) DeleteTask(ctx context.Context, taskID int) error {
 	event.SendHomeEvent(ctx, s.cache, task.HomeID, &event.RealTimeEvent{
 		Module: event.ModuleTask,
 		Action: event.ActionDeleted,
+		Data:   task,
+	})
+
+	return nil
+}
+
+func (s *TaskService) UpdateTask(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time) error {
+	task, err := s.repo.FindByID(ctx, taskID)
+	if err != nil {
+		return err
+	}
+	if task == nil {
+		return errors.New("task not found")
+	}
+
+	if name != nil {
+		task.Name = *name
+	}
+	if description != nil {
+		task.Description = *description
+	}
+	if roomID != nil {
+		task.RoomID = roomID
+	}
+	if dueDate != nil {
+		task.DueDate = dueDate
+	}
+
+	if err := s.repo.Update(ctx, task); err != nil {
+		return err
+	}
+
+	taskKey := utils.GetTaskKey(taskID)
+	homeTasksKey := utils.GetTasksForHomeKey(task.HomeID)
+	if err := utils.DeleteFromCache(ctx, taskKey, s.cache); err != nil {
+		logger.Info.Printf("Failed to delete redis cache for key %s: %v", taskKey, err)
+	}
+	if err := utils.DeleteFromCache(ctx, homeTasksKey, s.cache); err != nil {
+		logger.Info.Printf("Failed to delete redis cache for key %s: %v", homeTasksKey, err)
+	}
+
+	event.SendHomeEvent(ctx, s.cache, task.HomeID, &event.RealTimeEvent{
+		Module: event.ModuleTask,
+		Action: event.ActionUpdated,
 		Data:   task,
 	})
 
