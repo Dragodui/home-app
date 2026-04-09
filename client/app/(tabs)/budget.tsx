@@ -21,8 +21,8 @@ import {
   Receipt,
   Trash,
   TrendingUp,
-  Utensils,
   Users,
+  Utensils,
   Wallet,
   Wrench,
 } from "lucide-react-native";
@@ -75,7 +75,6 @@ const getBillCategoryIcon = (iconId: string | undefined, size: number, color: st
       return <Car size={size} color={color} />;
     case "gift":
       return <Gift size={size} color={color} />;
-    case "dollar-sign":
     default:
       return <DollarSign size={size} color={color} />;
   }

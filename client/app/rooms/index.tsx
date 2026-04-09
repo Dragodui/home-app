@@ -39,15 +39,7 @@ const ROOM_COLOR_OPTIONS = [
   "#6EE7B7",
 ];
 
-const ROOM_ICON_OPTIONS = [
-  "home",
-  "utensils",
-  "lightbulb",
-  "coffee",
-  "wrench",
-  "car",
-  "book",
-] as const;
+const ROOM_ICON_OPTIONS = ["home", "utensils", "lightbulb", "coffee", "wrench", "car", "book"] as const;
 
 const getRoomIcon = (iconId: string | undefined, size: number, color: string) => {
   switch (iconId) {
@@ -63,7 +55,6 @@ const getRoomIcon = (iconId: string | undefined, size: number, color: string) =>
       return <Car size={size} color={color} />;
     case "book":
       return <Book size={size} color={color} />;
-    case "home":
     default:
       return <HomeIcon size={size} color={color} />;
   }
@@ -215,10 +206,10 @@ export default function RoomsScreen() {
                   onPress={() =>
                     router.push({ pathname: "/rooms/[id]", params: { id: String(room.id), name: room.name } })
                   }
-                  >
-                    <View className="w-14 h-14 rounded-20 justify-center items-center mb-4 bg-black/10">
+                >
+                  <View className="w-14 h-14 rounded-20 justify-center items-center mb-4 bg-black/10">
                     {getRoomIcon(room.icon, 28, finalTextColor)}
-                    </View>
+                  </View>
                   <Text className="text-lg font-manrope-bold mb-1" style={{ color: finalTextColor }}>
                     {room.name}
                   </Text>
@@ -275,7 +266,10 @@ export default function RoomsScreen() {
               <TouchableOpacity
                 key={color}
                 className="w-8 h-8 rounded-full"
-                style={[{ backgroundColor: color }, selectedColor === color && { borderWidth: 2, borderColor: theme.text }]}
+                style={[
+                  { backgroundColor: color },
+                  selectedColor === color && { borderWidth: 2, borderColor: theme.text },
+                ]}
                 onPress={() => setSelectedColor(color)}
               />
             ))}
