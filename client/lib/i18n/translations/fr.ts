@@ -127,6 +127,7 @@ export default {
       all: "Toutes",
       my: "Mes",
       byRoom: "Par pièce",
+      completed: "Terminées",
     },
     schedule: {
       title: "Planification",

@@ -127,6 +127,7 @@ export default {
       all: "Alle",
       my: "Meine",
       byRoom: "Nach Raum",
+      completed: "Erledigt",
     },
     schedule: {
       title: "Zeitplan",

@@ -18,7 +18,7 @@ import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
-type FilterType = "All" | "My" | "By Room";
+type FilterType = "All" | "My" | "By Room" | "Completed";
 type RecurrenceType = "daily" | "weekly" | "monthly";
 
 export default function TasksScreen() {
@@ -250,11 +250,19 @@ export default function TasksScreen() {
   };
 
   const getFilteredTasks = () => {
+    const completedTasks = tasks.filter((task) => isTaskCompleted(task));
+    const activeTasks = tasks.filter((task) => !isTaskCompleted(task));
+
+    if (activeFilter === "Completed") {
+      return completedTasks;
+    }
+
     if (activeFilter === "My") {
       const myTaskIds = assignments.map((a) => a.taskId);
-      return tasks.filter((t) => myTaskIds.includes(t.id));
+      return activeTasks.filter((task) => myTaskIds.includes(task.id));
     }
-    return tasks;
+
+    return activeTasks;
   };
 
   const isTaskCompleted = (task: Task) => {
@@ -479,6 +487,7 @@ export default function TasksScreen() {
             { key: "All" as FilterType, label: t.tasks.filters.all },
             { key: "My" as FilterType, label: t.tasks.filters.my },
             { key: "By Room" as FilterType, label: t.tasks.filters.byRoom },
+            { key: "Completed" as FilterType, label: t.tasks.filters.completed },
           ].map((filter) => (
             <TouchableOpacity
               key={filter.key}

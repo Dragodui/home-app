@@ -127,6 +127,7 @@ export default {
       all: "Wszystkie",
       my: "Moje",
       byRoom: "Wg pokoju",
+      completed: "Ukończone",
     },
     schedule: {
       title: "Harmonogram",
