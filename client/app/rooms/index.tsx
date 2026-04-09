@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Book,
   Car,
+  Check,
   Coffee,
   DoorOpen,
   Home as HomeIcon,
@@ -16,7 +17,6 @@ import { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/components/ui/alert";
-import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
 import { useHome } from "@/stores/homeStore";
@@ -234,54 +234,69 @@ export default function RoomsScreen() {
       {/* Create Room Modal */}
       <Modal visible={showCreateModal} onClose={() => setShowCreateModal(false)} title={t.rooms.newRoom} height="full">
         <View className="flex-1">
-          <Input
-            label={t.rooms.roomName}
-            placeholder={t.rooms.roomNamePlaceholder}
-            value={roomName}
-            onChangeText={setRoomName}
-          />
-          <Text className="text-xs font-manrope-bold uppercase mb-2 mt-5" style={{ color: theme.textSecondary }}>
-            Icon
-          </Text>
-          <View className="flex-row flex-wrap gap-3 mb-5">
-            {ROOM_ICON_OPTIONS.map((icon) => (
-              <TouchableOpacity
-                key={icon}
-                className="w-10 h-10 rounded-full justify-center items-center border"
-                style={{
-                  backgroundColor: selectedIcon === icon ? theme.accent.purple : theme.surface,
-                  borderColor: selectedIcon === icon ? theme.text : theme.border,
-                }}
-                onPress={() => setSelectedIcon(icon)}
-              >
-                {getRoomIcon(icon, 20, selectedIcon === icon ? "#1C1C1E" : theme.text)}
-              </TouchableOpacity>
-            ))}
+          <View className="items-center mb-6">
+            <View
+              className="w-20 h-20 rounded-3xl justify-center items-center"
+              style={{ backgroundColor: selectedColor }}
+            >
+              {getRoomIcon(selectedIcon, 32, "#1C1C1E")}
+            </View>
           </View>
-          <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
-            {t.budget.color}
-          </Text>
-          <View className="flex-row flex-wrap gap-3 mb-5">
-            {ROOM_COLOR_OPTIONS.map((color) => (
-              <TouchableOpacity
-                key={color}
-                className="w-8 h-8 rounded-full"
-                style={[
-                  { backgroundColor: color },
-                  selectedColor === color && { borderWidth: 2, borderColor: theme.text },
-                ]}
-                onPress={() => setSelectedColor(color)}
-              />
-            ))}
+
+          <Input placeholder={t.rooms.roomNamePlaceholder} value={roomName} onChangeText={setRoomName} />
+
+          <View className="mb-6 gap-3">
+            <View className="flex-row justify-center gap-2.5">
+              {ROOM_COLOR_OPTIONS.slice(0, 7).map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  className={`w-9 h-9 rounded-full ${selectedColor === color ? "border-[3px] border-black/30" : ""}`}
+                  style={{ backgroundColor: color }}
+                  onPress={() => setSelectedColor(color)}
+                />
+              ))}
+            </View>
+            <View className="flex-row justify-center gap-2.5">
+              {ROOM_COLOR_OPTIONS.slice(7).map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  className={`w-9 h-9 rounded-full ${selectedColor === color ? "border-[3px] border-black/30" : ""}`}
+                  style={{ backgroundColor: color }}
+                  onPress={() => setSelectedColor(color)}
+                />
+              ))}
+            </View>
           </View>
-          <Button
-            title={t.rooms.createRoom}
+
+          <ScrollView className="max-h-[220px]" showsVerticalScrollIndicator={false}>
+            <View className="gap-3">
+              {[0, 1].map((row) => (
+                <View key={row} className="flex-row justify-center gap-2.5">
+                  {ROOM_ICON_OPTIONS.slice(row * 6, row * 6 + 6).map((icon) => (
+                    <TouchableOpacity
+                      key={icon}
+                      className="w-12 h-12 rounded-full justify-center items-center"
+                      style={{ backgroundColor: selectedIcon === icon ? selectedColor : theme.surface }}
+                      onPress={() => setSelectedIcon(icon)}
+                    >
+                      {getRoomIcon(icon, 20, selectedIcon === icon ? "#1C1C1E" : theme.textSecondary)}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
+        <View className="flex-row gap-3 pt-4">
+          <TouchableOpacity
+            className="flex-1 h-14 rounded-full justify-center items-center"
+            style={{ backgroundColor: roomName.trim() ? theme.text : theme.textSecondary }}
             onPress={handleCreateRoom}
-            loading={isLoading}
             disabled={!roomName.trim() || isLoading}
-            variant="yellow"
-            style={{ marginTop: "auto" }}
-          />
+          >
+            <Check size={24} color={theme.background} />
+          </TouchableOpacity>
         </View>
       </Modal>
     </View>

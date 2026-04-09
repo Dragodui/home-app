@@ -1,7 +1,7 @@
-import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import { ArrowLeft, Bell, Check, Trash2 } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,11 +27,28 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<(Notification | HomeNotification)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const swipeRefs = useRef<Record<string, Swipeable | null>>({});
 
   const hiddenStorageKey = user ? `@hidden_notifications_${user.id}` : null;
 
-  const getNotificationKey = (notification: Notification | HomeNotification) =>
-    "homeId" in notification ? `home:${notification.homeId}:${notification.id}` : `user:${notification.id}`;
+  const getNotificationKey = useCallback(
+    (notification: Notification | HomeNotification) =>
+      "homeId" in notification ? `home:${notification.homeId}:${notification.id}` : `user:${notification.id}`,
+    [],
+  );
+  const getSwipeableKey = useCallback(
+    (notification: Notification | HomeNotification) =>
+      `${notification.id}-${"homeId" in notification ? "home" : "user"}`,
+    [],
+  );
+
+  const closeSwipeable = useCallback(
+    (notification: Notification | HomeNotification) => {
+      const key = getSwipeableKey(notification);
+      swipeRefs.current[key]?.close();
+    },
+    [getSwipeableKey],
+  );
 
   const getHiddenNotificationKeys = useCallback(async () => {
     if (!hiddenStorageKey) return new Set<string>();
@@ -55,7 +72,7 @@ export default function NotificationsScreen() {
       setNotifications((prev) => prev.filter((item) => getNotificationKey(item) !== key));
       show({ title: "Deleted", message: "Notification hidden for you." });
     },
-    [getHiddenNotificationKeys, hiddenStorageKey, show],
+    [getHiddenNotificationKeys, getNotificationKey, hiddenStorageKey, show],
   );
 
   const markAsRead = useCallback(
@@ -67,11 +84,13 @@ export default function NotificationsScreen() {
         await notificationApi.markAsRead(notification.id);
       }
       setNotifications((prev) =>
-        prev.map((item) => (getNotificationKey(item) === getNotificationKey(notification) ? { ...item, read: true } : item)),
+        prev.map((item) =>
+          getNotificationKey(item) === getNotificationKey(notification) ? { ...item, read: true } : item,
+        ),
       );
       show({ title: "Updated", message: "Notification marked as read." });
     },
-    [show],
+    [getNotificationKey, show],
   );
 
   const loadNotifications = useCallback(async () => {
@@ -92,7 +111,9 @@ export default function NotificationsScreen() {
       allNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
       const hidden = await getHiddenNotificationKeys();
-      const visibleNotifications = allNotifications.filter((notification) => !hidden.has(getNotificationKey(notification)));
+      const visibleNotifications = allNotifications.filter(
+        (notification) => !hidden.has(getNotificationKey(notification)),
+      );
 
       setNotifications(visibleNotifications);
     } catch (error) {
@@ -100,7 +121,7 @@ export default function NotificationsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [getHiddenNotificationKeys, home]);
+  }, [getHiddenNotificationKeys, getNotificationKey, home]);
 
   useEffect(() => {
     loadNotifications();
@@ -192,14 +213,31 @@ export default function NotificationsScreen() {
           <View className="gap-3">
             {notifications.map((notification) => (
               <Swipeable
-                key={`${notification.id}-${"homeId" in notification ? "home" : "user"}`}
+                key={getSwipeableKey(notification)}
+                ref={(ref) => {
+                  swipeRefs.current[getSwipeableKey(notification)] = ref;
+                }}
                 overshootLeft={false}
                 overshootRight={false}
+                onSwipeableOpen={(direction) => {
+                  if (direction === "left") {
+                    closeSwipeable(notification);
+                    handleDelete(notification);
+                    return;
+                  }
+                  if (direction === "right" && !notification.read) {
+                    closeSwipeable(notification);
+                    handleMarkAsRead(notification);
+                  }
+                }}
                 renderLeftActions={() => (
                   <TouchableOpacity
                     className="justify-center items-center rounded-l-16 px-5 mb-1"
                     style={{ backgroundColor: theme.accent.pink }}
-                    onPress={() => handleDelete(notification)}
+                    onPress={() => {
+                      closeSwipeable(notification);
+                      handleDelete(notification);
+                    }}
                   >
                     <Trash2 size={18} color="#1C1C1E" />
                     <Text className="text-xs font-manrope-semibold mt-1" style={{ color: "#1C1C1E" }}>
@@ -212,7 +250,10 @@ export default function NotificationsScreen() {
                     <TouchableOpacity
                       className="justify-center items-center rounded-r-16 px-5 mb-1"
                       style={{ backgroundColor: theme.accent.mint }}
-                      onPress={() => handleMarkAsRead(notification)}
+                      onPress={() => {
+                        closeSwipeable(notification);
+                        handleMarkAsRead(notification);
+                      }}
                     >
                       <Check size={18} color="#1C1C1E" />
                       <Text className="text-xs font-manrope-semibold mt-1" style={{ color: "#1C1C1E" }}>

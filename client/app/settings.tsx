@@ -12,29 +12,17 @@ import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
-const CURRENCY_OPTIONS = [
-  { code: "USD", label: "US Dollar", symbol: "$" },
-  { code: "EUR", label: "Euro", symbol: "€" },
-  { code: "GBP", label: "British Pound", symbol: "£" },
-  { code: "PLN", label: "Polish Zloty", symbol: "zl" },
-  { code: "UAH", label: "Ukrainian Hryvnia", symbol: "грн" },
-  { code: "BYN", label: "Belarusian Ruble", symbol: "Br" },
-] as const;
-
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { theme, themeMode, setThemeMode } = useTheme();
   const { t, language, setLanguage, languageNames, availableLanguages } = useI18n();
-  const { home, leaveHome, isAdmin, updateHomeCurrency } = useHome();
+  const { home, leaveHome, isAdmin } = useHome();
   const { alert } = useAlert();
 
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
-  const [updatingCurrency, setUpdatingCurrency] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState("USD");
 
   // Smart Home State
   const [showSmartHomeModal, setShowSmartHomeModal] = useState(false);
@@ -62,10 +50,6 @@ export default function SettingsScreen() {
       fetchHAStatus();
     }
   }, [showSmartHomeModal, fetchHAStatus]);
-
-  useEffect(() => {
-    setSelectedCurrency(home?.currency || "USD");
-  }, [home?.currency]);
 
   const handleConnectHA = async () => {
     if (!home) return;
@@ -114,27 +98,6 @@ export default function SettingsScreen() {
       setIsLeaving(false);
     }
   };
-
-  const handleSaveCurrency = async () => {
-    if (!home || selectedCurrency === (home.currency || "USD")) {
-      setShowCurrencyModal(false);
-      return;
-    }
-
-    setUpdatingCurrency(true);
-    try {
-      const result = await updateHomeCurrency(selectedCurrency);
-      if (!result.success) {
-        alert(t.common.error, result.error || "Failed to update currency");
-        return;
-      }
-      setShowCurrencyModal(false);
-    } finally {
-      setUpdatingCurrency(false);
-    }
-  };
-
-  const currentCurrency = CURRENCY_OPTIONS.find((option) => option.code === (home?.currency || "USD"));
 
   return (
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
@@ -279,29 +242,6 @@ export default function SettingsScreen() {
                   <ChevronRight size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  className="flex-row items-center p-4 rounded-20 gap-3.5 mb-3"
-                  style={{ backgroundColor: theme.surface }}
-                  onPress={() => setShowCurrencyModal(true)}
-                >
-                  <View
-                    className="w-11 h-11 rounded-14 justify-center items-center"
-                    style={{ backgroundColor: theme.accent.yellow }}
-                  >
-                    <Text className="text-base font-manrope-bold" style={{ color: "#1C1C1E" }}>
-                      {currentCurrency?.symbol || "$"}
-                    </Text>
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
-                      Home Currency
-                    </Text>
-                    <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
-                      {currentCurrency?.code || "USD"} • {currentCurrency?.label || "US Dollar"}
-                    </Text>
-                  </View>
-                  <ChevronRight size={20} color={theme.textSecondary} />
-                </TouchableOpacity>
               </>
             )}
 
@@ -416,63 +356,6 @@ export default function SettingsScreen() {
               />
             </View>
           )}
-        </View>
-      </Modal>
-
-      {/* Currency Modal */}
-      <Modal
-        visible={showCurrencyModal}
-        onClose={() => setShowCurrencyModal(false)}
-        title="Home Currency"
-        height="full"
-      >
-        <View className="flex-1">
-          <Text className="text-sm mb-3" style={{ color: theme.textSecondary }}>
-            Select the currency for all home expenses
-          </Text>
-          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-            {CURRENCY_OPTIONS.map((option) => {
-              const isSelected = selectedCurrency === option.code;
-              return (
-                <TouchableOpacity
-                  key={option.code}
-                  className="p-4 rounded-16 mb-2.5 flex-row items-center"
-                  style={{
-                    backgroundColor: isSelected ? theme.accent.yellow : theme.surface,
-                  }}
-                  onPress={() => setSelectedCurrency(option.code)}
-                >
-                  <Text
-                    className="text-lg font-manrope-bold mr-3"
-                    style={{ color: isSelected ? "#1C1C1E" : theme.textSecondary }}
-                  >
-                    {option.symbol}
-                  </Text>
-                  <View className="flex-1">
-                    <Text
-                      className="text-17 font-manrope-semibold"
-                      style={{ color: isSelected ? "#1C1C1E" : theme.text }}
-                    >
-                      {option.code}
-                    </Text>
-                    <Text
-                      className="text-xs font-manrope"
-                      style={{ color: isSelected ? "#1C1C1E" : theme.textSecondary }}
-                    >
-                      {option.label}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-          <Button
-            title={t.common.save}
-            onPress={handleSaveCurrency}
-            loading={updatingCurrency}
-            disabled={!home || selectedCurrency === (home.currency || "USD")}
-            style={{ marginTop: 16 }}
-          />
         </View>
       </Modal>
 

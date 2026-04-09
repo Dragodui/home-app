@@ -1104,8 +1104,8 @@ export default function BudgetScreen() {
                 onPress={() => setFilterCategoryId(filterCategoryId === cat.id ? null : cat.id)}
                 onLongPress={() => handleDeleteCategory(cat.id)}
               >
-                {getBillCategoryIcon(cat.icon, 14, filterCategoryId === cat.id ? theme.background : theme.text)}
                 <View className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color || theme.accent.yellow }} />
+                {getBillCategoryIcon(cat.icon, 14, filterCategoryId === cat.id ? theme.background : theme.text)}
                 <Text
                   className="font-manrope-semibold text-sm"
                   style={{ color: filterCategoryId === cat.id ? theme.background : theme.text }}
@@ -1676,58 +1676,74 @@ export default function BudgetScreen() {
         title={t.budget.newCategory}
         height="full"
       >
-        <View className="pt-2.5">
+        <View className="flex-1">
+          <View className="items-center mb-6">
+            <View
+              className="w-20 h-20 rounded-3xl justify-center items-center"
+              style={{ backgroundColor: selectedColor }}
+            >
+              {getBillCategoryIcon(selectedIcon, 32, "#1C1C1E")}
+            </View>
+          </View>
+
           <Input
-            label={t.budget.categoryName}
             placeholder={t.budget.categoryNamePlaceholder}
             value={newCategoryName}
             onChangeText={setNewCategoryName}
           />
 
-          <Text className="text-xs font-manrope-bold uppercase mb-2 mt-5" style={{ color: theme.textSecondary }}>
-            Icon
-          </Text>
-          <View className="flex-row flex-wrap gap-3 mb-5">
-            {BILL_CATEGORY_ICON_OPTIONS.map((icon) => (
-              <TouchableOpacity
-                key={icon}
-                className="w-10 h-10 rounded-full justify-center items-center border"
-                style={{
-                  backgroundColor: selectedIcon === icon ? theme.accent.purple : theme.surface,
-                  borderColor: selectedIcon === icon ? theme.text : theme.border,
-                }}
-                onPress={() => setSelectedIcon(icon)}
-              >
-                {getBillCategoryIcon(icon, 20, selectedIcon === icon ? "#1C1C1E" : theme.text)}
-              </TouchableOpacity>
-            ))}
+          <View className="mb-6 gap-3">
+            <View className="flex-row justify-center gap-2.5">
+              {COLOR_OPTIONS.slice(0, 7).map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  className={`w-9 h-9 rounded-full ${selectedColor === color ? "border-[3px] border-black/30" : ""}`}
+                  style={{ backgroundColor: color }}
+                  onPress={() => setSelectedColor(color)}
+                />
+              ))}
+            </View>
+            <View className="flex-row justify-center gap-2.5">
+              {COLOR_OPTIONS.slice(7).map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  className={`w-9 h-9 rounded-full ${selectedColor === color ? "border-[3px] border-black/30" : ""}`}
+                  style={{ backgroundColor: color }}
+                  onPress={() => setSelectedColor(color)}
+                />
+              ))}
+            </View>
           </View>
 
-          <Text className="text-xs font-manrope-bold uppercase mb-2 mt-5" style={{ color: theme.textSecondary }}>
-            {t.budget.color}
-          </Text>
-          <View className="flex-row flex-wrap gap-3 mb-5">
-            {COLOR_OPTIONS.map((color) => (
-              <TouchableOpacity
-                key={color}
-                className="w-8 h-8 rounded-full"
-                style={[
-                  { backgroundColor: color },
-                  selectedColor === color && { borderWidth: 2, borderColor: theme.text },
-                ]}
-                onPress={() => setSelectedColor(color)}
-              />
-            ))}
-          </View>
+          <ScrollView className="max-h-[220px]" showsVerticalScrollIndicator={false}>
+            <View className="gap-3">
+              {[0, 1].map((row) => (
+                <View key={row} className="flex-row justify-center gap-2.5">
+                  {BILL_CATEGORY_ICON_OPTIONS.slice(row * 6, row * 6 + 6).map((icon) => (
+                    <TouchableOpacity
+                      key={icon}
+                      className="w-12 h-12 rounded-full justify-center items-center"
+                      style={{ backgroundColor: selectedIcon === icon ? selectedColor : theme.surface }}
+                      onPress={() => setSelectedIcon(icon)}
+                    >
+                      {getBillCategoryIcon(icon, 20, selectedIcon === icon ? "#1C1C1E" : theme.textSecondary)}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
 
-          <Button
-            title={t.budget.createCategory}
+        <View className="flex-row gap-3 pt-4">
+          <TouchableOpacity
+            className="flex-1 h-14 rounded-full justify-center items-center"
+            style={{ backgroundColor: newCategoryName.trim() ? theme.text : theme.textSecondary }}
             onPress={handleCreateCategory}
-            loading={creatingCategory}
-            disabled={!newCategoryName.trim()}
-            variant="yellow"
-            style={{ marginTop: 20 }}
-          />
+            disabled={!newCategoryName.trim() || creatingCategory}
+          >
+            <Check size={24} color={theme.background} />
+          </TouchableOpacity>
         </View>
       </Modal>
 

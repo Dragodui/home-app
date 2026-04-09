@@ -27,6 +27,13 @@ export default function TaskDetailScreen() {
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace("/(tabs)/tasks");
+  }, [router]);
 
   const loadTask = useCallback(async () => {
     if (!home || !Number.isFinite(taskId)) {
@@ -102,7 +109,7 @@ export default function TaskDetailScreen() {
           setSubmitting(true);
           try {
             await taskApi.delete(home.id, task.id);
-            router.back();
+            goBack();
           } catch (error) {
             console.error("Failed to delete task:", error);
             alert(t.common.error, t.tasks.failedToDelete);
@@ -131,7 +138,7 @@ export default function TaskDetailScreen() {
         <Text className="text-sm font-manrope text-center mb-5" style={{ color: theme.textSecondary }}>
           Task not found.
         </Text>
-        <Button title={t.common.done} onPress={() => router.back()} />
+        <Button title={t.common.done} onPress={goBack} />
       </View>
     );
   }
@@ -147,17 +154,17 @@ export default function TaskDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 120 }}
       >
-        <View className="flex-row items-center justify-between mb-6">
+        <View className="flex-row items-center justify-between mb-4 gap-2">
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={goBack}
             className="w-11 h-11 rounded-2xl items-center justify-center"
             style={{ backgroundColor: theme.surface }}
             activeOpacity={0.8}
           >
             <ArrowLeft size={22} color={theme.text} />
           </TouchableOpacity>
-          <Text className="text-2xl font-manrope-bold flex-1 ml-3 mr-2" style={{ color: theme.text }} numberOfLines={1}>
-            {task.name}
+          <Text className="flex-1 text-lg font-manrope-bold text-center mx-2" style={{ color: theme.text }} numberOfLines={1}>
+            Task #{task.id}
           </Text>
           {isAdmin && (
             <TouchableOpacity
@@ -170,7 +177,11 @@ export default function TaskDetailScreen() {
             </TouchableOpacity>
           )}
         </View>
-
+        <View className="rounded-3xl p-5 mb-4" style={{ backgroundColor: theme.surface }}>
+          <Text className="text-2xl font-bold font-manrope" style={{ color: theme.text }}>
+            {task.name || "—"}
+          </Text>
+        </View>
         <View className="rounded-3xl p-5 mb-4" style={{ backgroundColor: theme.surface }}>
           <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
             {t.tasks.description}
@@ -214,7 +225,7 @@ export default function TaskDetailScreen() {
             </View>
             <Text
               className="text-sm font-manrope-semibold text-right flex-1 ml-3"
-              style={{ color: completed ? theme.status.success : theme.accent.orange }}
+              style={{ color: completed ? theme.status.success : theme.accent.pink }}
             >
               {completed ? "Completed" : "Pending"}
             </Text>

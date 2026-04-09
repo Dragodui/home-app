@@ -18,6 +18,13 @@ type MemberStats = {
   splitAmount: number;
 };
 
+type MemberProfileCacheEntry = {
+  member: HomeMembership | null;
+  stats: MemberStats | null;
+};
+
+const memberProfileCache = new Map<string, MemberProfileCacheEntry>();
+
 export default function MemberProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -47,7 +54,16 @@ export default function MemberProfileScreen() {
       return;
     }
 
-    setLoading(true);
+    const cacheKey = `${home.id}:${targetUserID}`;
+    const cached = memberProfileCache.get(cacheKey);
+    if (cached) {
+      setMember(cached.member);
+      setStats(cached.stats);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const members = await homeApi.getMembers(home.id);
       const targetMember = members.find((item) => item.userId === targetUserID) || null;
@@ -55,11 +71,13 @@ export default function MemberProfileScreen() {
 
       if (!targetMember) {
         setStats(null);
+        memberProfileCache.set(cacheKey, { member: null, stats: null });
         return;
       }
 
       if (targetMember.userId !== user?.id && targetMember.user?.profilePublic === false) {
         setStats(null);
+        memberProfileCache.set(cacheKey, { member: targetMember, stats: null });
         return;
       }
 
@@ -86,6 +104,16 @@ export default function MemberProfileScreen() {
         tasksActive,
         billsCreated,
         splitAmount,
+      });
+      memberProfileCache.set(cacheKey, {
+        member: targetMember,
+        stats: {
+          tasksTotal,
+          tasksCompleted,
+          tasksActive,
+          billsCreated,
+          splitAmount,
+        },
       });
     } catch (error) {
       console.error("Error loading member profile:", error);
@@ -214,9 +242,7 @@ export default function MemberProfileScreen() {
                   Stats visibility
                 </Text>
                 <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                  {member.user?.profilePublic === false
-                    ? "Hidden from other members"
-                    : "Visible to other members"}
+                  {member.user?.profilePublic === false ? "Hidden from other members" : "Visible to other members"}
                 </Text>
               </TouchableOpacity>
             )}

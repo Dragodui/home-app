@@ -321,8 +321,8 @@ export default function RoomDetailScreen() {
                 </Text>
                 <View className="flex-row items-center gap-2">
                   <TouchableOpacity
-                    className="px-3 py-2 rounded-12"
-                    style={{ backgroundColor: theme.surface }}
+                    className="px-3 py-2"
+                    style={{ backgroundColor: theme.surface, borderRadius: '12px' }}
                     onPress={() => router.push("/(tabs)/tasks")}
                   >
                     <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
@@ -330,8 +330,8 @@ export default function RoomDetailScreen() {
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    className="px-3 py-2 rounded-12"
-                    style={{ backgroundColor: theme.accent.yellow }}
+                    className="px-3 py-2"
+                    style={{ backgroundColor: theme.accent.yellow, borderRadius: '12px' }}
                     onPress={() => setShowTaskModal(true)}
                   >
                     <Text className="text-xs font-manrope-bold" style={{ color: "#1C1C1E" }}>

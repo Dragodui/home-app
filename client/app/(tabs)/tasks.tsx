@@ -324,20 +324,22 @@ export default function TasksScreen() {
       <View key={task.id} className="rounded-24 p-5" style={{ backgroundColor: theme.surface }}>
         <View className="flex-row items-center gap-4">
           <TouchableOpacity
-            className="flex-1 flex-row items-center gap-4"
+            className="w-8 h-8 rounded-16 border-2 justify-center items-center"
             onPress={() => handleToggleTask(task)}
             activeOpacity={0.7}
+            style={[
+              { borderColor: theme.textSecondary },
+              completed && { backgroundColor: theme.accent.pink, borderColor: theme.accent.pink },
+            ]}
           >
-            <View
-              className="w-8 h-8 rounded-16 border-2 justify-center items-center"
-              style={[
-                { borderColor: theme.textSecondary },
-                completed && { backgroundColor: theme.accent.pink, borderColor: theme.accent.pink },
-              ]}
-            >
-              {completed && <Check size={16} color="#FFFFFF" strokeWidth={3} />}
-            </View>
+            {completed && <Check size={16} color="#FFFFFF" strokeWidth={3} />}
+          </TouchableOpacity>
 
+          <TouchableOpacity
+            className="flex-1"
+            onPress={() => router.push({ pathname: "/tasks/[id]", params: { id: String(task.id) } })}
+            activeOpacity={0.7}
+          >
             <View className="flex-1">
               <View className="flex-row items-center gap-2 mb-2">
                 <Text

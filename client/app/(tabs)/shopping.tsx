@@ -8,6 +8,7 @@ import {
   Candy,
   Car,
   Carrot,
+  ChevronRight,
   Check,
   Coffee,
   Cookie,
@@ -32,6 +33,7 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ShoppingSkeleton } from "@/components/skeletons";
+import { useAlert } from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
@@ -41,6 +43,7 @@ import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
+import Colors from "@/constants/colors";
 
 // Category colors matching PDF
 const CATEGORY_COLORS = ["#D8D4FC", "#FBEB9E", "#FF7476", "#A8E6CF", "#7DD3E8", "#F5A3D3"];
@@ -150,6 +153,7 @@ export default function ShoppingScreen() {
   const { home } = useHome();
   const { theme } = useTheme();
   const { t } = useI18n();
+  const { alert } = useAlert();
 
   const [categories, setCategories] = useState<ShoppingCategory[]>([]);
   const [items, setItems] = useState<Record<number, ShoppingItem[]>>({});
@@ -165,8 +169,6 @@ export default function ShoppingScreen() {
   const [creatingCategory, setCreatingCategory] = useState(false);
 
   // Delete category
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<ShoppingCategory | null>(null);
   const [deletingCategory, setDeletingCategory] = useState(false);
 
   // Create item modal
@@ -314,27 +316,34 @@ export default function ShoppingScreen() {
     }
   };
 
-  const openDeleteCategory = (category: ShoppingCategory) => {
-    setCategoryToDelete(category);
-    setShowDeleteModal(true);
-  };
-
-  const handleDeleteCategory = async () => {
-    if (!home || !categoryToDelete) return;
+  const handleDeleteCategory = async (category: ShoppingCategory) => {
+    if (!home) return;
     setDeletingCategory(true);
     try {
-      await shoppingApi.deleteCategory(home.id, categoryToDelete.id);
-      if (activeCategory?.id === categoryToDelete.id) {
+      await shoppingApi.deleteCategory(home.id, category.id);
+      if (activeCategory?.id === category.id) {
         setActiveCategory(null);
       }
-      setShowDeleteModal(false);
-      setCategoryToDelete(null);
       await loadShoppingData();
     } catch (error) {
       console.error("Error deleting category:", error);
     } finally {
       setDeletingCategory(false);
     }
+  };
+
+  const openDeleteCategory = (category: ShoppingCategory) => {
+    if (deletingCategory) return;
+    alert(t.common.delete, `${t.common.delete} "${category.name}"?`, [
+      { text: t.common.cancel, style: "cancel" },
+      {
+        text: t.common.delete,
+        style: "destructive",
+        onPress: () => {
+          handleDeleteCategory(category);
+        },
+      },
+    ]);
   };
 
   const getCategoryIcon = (category: ShoppingCategory) => {
@@ -454,7 +463,7 @@ export default function ShoppingScreen() {
               onPress={handleAddPendingItem}
               disabled={!newItemName.trim() || creatingItem}
               variant="secondary"
-              style={{ marginBottom: 16 }}
+              style={{ marginBottom: 16, backgroundColor: Colors.accentYellow }}
             />
 
             {pendingItemNames.length > 0 && (
@@ -564,7 +573,7 @@ export default function ShoppingScreen() {
                 </View>
                 <View className="absolute bottom-[18px] right-[18px]">
                   <View className="w-8 h-8 rounded-full bg-black/10 justify-center items-center">
-                    <ArrowLeft size={16} color="rgba(0,0,0,1)" style={{ transform: [{ rotate: "180deg" }] }} />
+                    <ChevronRight size={16} color="rgba(0,0,0,1)" />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -642,13 +651,7 @@ export default function ShoppingScreen() {
         </View>
 
         <View className="flex-row gap-3 pt-4">
-          <TouchableOpacity
-            className="w-14 h-14 rounded-full justify-center items-center"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => setShowCategoryModal(false)}
-          >
-            <ArrowLeft size={24} color={theme.textSecondary} style={{ transform: [{ rotate: "45deg" }] }} />
-          </TouchableOpacity>
+         
           <TouchableOpacity
             className="flex-1 h-14 rounded-full justify-center items-center"
             style={{ backgroundColor: newCategoryName ? theme.text : theme.textSecondary }}
@@ -660,33 +663,6 @@ export default function ShoppingScreen() {
         </View>
       </Modal>
 
-      {/* Delete Category Confirmation Modal */}
-      <Modal visible={showDeleteModal} onClose={() => setShowDeleteModal(false)} title={t.common.delete} height="auto">
-        <Text className="text-base font-manrope mb-6" style={{ color: theme.textSecondary }}>
-          {t.common.delete} &quot;{categoryToDelete?.name}&quot;?
-        </Text>
-        <View className="flex-row gap-3">
-          <TouchableOpacity
-            className="flex-1 h-14 rounded-full justify-center items-center"
-            style={{ backgroundColor: theme.background }}
-            onPress={() => setShowDeleteModal(false)}
-          >
-            <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
-              {t.common.cancel}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="flex-1 h-14 rounded-full justify-center items-center"
-            style={{ backgroundColor: "#FF7476" }}
-            onPress={handleDeleteCategory}
-            disabled={deletingCategory}
-          >
-            <Text className="text-base font-manrope-semibold text-white">
-              {deletingCategory ? t.common.loading : t.common.delete}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
     </View>
   );
 }
