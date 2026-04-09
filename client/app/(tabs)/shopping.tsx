@@ -20,7 +20,6 @@ import {
   Pill,
   Plus,
   Scissors,
-  Search,
   Shirt,
   ShoppingCart,
   Sparkles,
@@ -458,9 +457,10 @@ export default function ShoppingScreen() {
           <TouchableOpacity
             className="w-14 h-14 rounded-[18px] justify-center items-center"
             style={{ backgroundColor: theme.accent.cyan }}
+            onPress={() => setShowCategoryModal(true)}
             activeOpacity={0.8}
           >
-            <Search size={24} color="#1C1C1E" />
+            <Plus size={24} color="#1C1C1E" />
           </TouchableOpacity>
         </View>
 
@@ -505,16 +505,6 @@ export default function ShoppingScreen() {
               </TouchableOpacity>
             );
           })}
-
-          {/* Add New List Card - Dashed border */}
-          <TouchableOpacity
-            className="w-[47%] rounded-3xl border-2 border-dashed justify-center items-center"
-            style={{ borderColor: theme.textSecondary, aspectRatio: 0.9, minHeight: 180 }}
-            onPress={() => setShowCategoryModal(true)}
-            activeOpacity={0.8}
-          >
-            <Plus size={32} color={theme.textSecondary} strokeWidth={1.5} />
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
