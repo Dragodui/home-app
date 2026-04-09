@@ -1,6 +1,6 @@
 import { Eye, EyeOff } from "lucide-react-native";
 import { type FC, useState } from "react";
-import { Text, TextInput, type TextInputProps, TouchableOpacity, View } from "react-native";
+import { Platform, Text, TextInput, type TextInputProps, TouchableOpacity, View } from "react-native";
 import { useTheme } from "@/stores/themeStore";
 
 interface InputProps extends TextInputProps {
@@ -15,6 +15,14 @@ const Input: FC<InputProps> = ({ label, error, style, secureTextEntry, className
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const isPassword = secureTextEntry !== undefined;
+  const webInputResetStyle =
+    Platform.OS === "web"
+      ? ({
+          outlineStyle: "none",
+          outlineWidth: 0,
+          boxShadow: "none",
+        } as const)
+      : null;
 
   const getInputBorderStyle = () => {
     if (error) {
@@ -44,6 +52,7 @@ const Input: FC<InputProps> = ({ label, error, style, secureTextEntry, className
               backgroundColor: theme.inputBackground,
               color: theme.inputText,
             },
+            webInputResetStyle,
             getInputBorderStyle(),
             style,
           ]}

@@ -49,15 +49,18 @@ export default function HomeScreen() {
       }
 
       try {
-        const [assignmentData, pollsData, billsData, userNotifs, homeNotifs] = await Promise.all([
+        const [assignmentData, tasksData, pollsData, billsData, userNotifs, homeNotifs] = await Promise.all([
           taskApi.getClosestAssignment(home.id, user.id).catch(() => null),
+          taskApi.getByHomeId(home.id).catch(() => []),
           pollApi.getByHomeId(home.id).catch(() => []),
           billApi.getByHomeId(home.id).catch(() => []),
           notificationApi.getUserNotifications().catch(() => []),
           notificationApi.getHomeNotifications(home.id).catch(() => []),
         ]);
 
-        setNextAssignment(assignmentData);
+        const taskIds = new Set((tasksData || []).map((task) => task.id));
+        const validAssignment = assignmentData && taskIds.has(assignmentData.taskId) ? assignmentData : null;
+        setNextAssignment(validAssignment);
         setPolls(pollsData.filter((p) => p.status === "open") || []);
 
         const now = new Date();

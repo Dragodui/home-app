@@ -1,4 +1,5 @@
-import { Calendar, Check, Plus, Repeat, Trash, X } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { ArrowRight, Calendar, Check, Plus, Repeat, Trash, X } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +22,7 @@ type FilterType = "All" | "My" | "By Room";
 type RecurrenceType = "daily" | "weekly" | "monthly";
 
 export default function TasksScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { home, rooms, isAdmin } = useHome();
@@ -397,6 +399,14 @@ export default function TasksScreen() {
           </TouchableOpacity>
 
           <View className="flex-row items-center gap-2">
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: "/tasks/[id]", params: { id: String(task.id) } })}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              className="p-1"
+              activeOpacity={0.6}
+            >
+              <ArrowRight size={18} color={theme.textSecondary} />
+            </TouchableOpacity>
             {isAdmin && !hasSchedule && (
               <TouchableOpacity
                 onPress={() => handleOpenScheduleModal(task.id)}
