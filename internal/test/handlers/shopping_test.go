@@ -51,6 +51,14 @@ var (
 		Link:       stringPtr("http://example.com"),
 	}
 
+	validCreateItemsRequest = models.CreateShoppingItemsRequest{
+		CategoryID: 1,
+		Items: []models.CreateShoppingItemPayload{
+			{Name: "Milk"},
+			{Name: "Bread"},
+		},
+	}
+
 	validUpdateCategoryRequest = models.UpdateShoppingCategoryRequest{
 		Name:  stringPtr("Updated Category"),
 		Icon:  stringPtr("🆕"),
@@ -597,6 +605,7 @@ func TestShoppingHandler_Items(t *testing.T) {
 			name           string
 			body           interface{}
 			mockFunc       func(ctx context.Context, categoryID, userID int, name string, image, link *string) error
+			expectedCalls  int
 			expectedStatus int
 			expectedBody   string
 		}{
@@ -610,6 +619,28 @@ func TestShoppingHandler_Items(t *testing.T) {
 					assert.Equal(t, "http://example.com", *link)
 					return nil
 				},
+				expectedCalls:  1,
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Created successfully",
+			},
+			{
+				name: "Bulk Success",
+				body: validCreateItemsRequest,
+				mockFunc: func() func(ctx context.Context, categoryID, userID int, name string, image, link *string) error {
+					calls := 0
+					return func(ctx context.Context, categoryID, userID int, name string, image, link *string) error {
+						assert.Equal(t, 1, categoryID)
+						calls++
+						if calls == 1 {
+							assert.Equal(t, "Milk", name)
+						}
+						if calls == 2 {
+							assert.Equal(t, "Bread", name)
+						}
+						return nil
+					}
+				}(),
+				expectedCalls:  2,
 				expectedStatus: http.StatusOK,
 				expectedBody:   "Created successfully",
 			},
@@ -617,6 +648,7 @@ func TestShoppingHandler_Items(t *testing.T) {
 				name:           "Invalid JSON",
 				body:           "{bad json}",
 				mockFunc:       nil,
+				expectedCalls:  0,
 				expectedStatus: http.StatusBadRequest,
 				expectedBody:   "Invalid data",
 			},
@@ -626,6 +658,7 @@ func TestShoppingHandler_Items(t *testing.T) {
 				mockFunc: func(ctx context.Context, categoryID, userID int, name string, image, link *string) error {
 					return errors.New("service error")
 				},
+				expectedCalls:  1,
 				expectedStatus: http.StatusInternalServerError,
 				expectedBody:   "Failed to create item",
 			},
@@ -633,8 +666,15 @@ func TestShoppingHandler_Items(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				callCount := 0
 				svc := &mockShoppingService{
-					CreateItemFunc: tt.mockFunc,
+					CreateItemFunc: func(ctx context.Context, categoryID, userID int, name string, image, link *string) error {
+						callCount++
+						if tt.mockFunc == nil {
+							return nil
+						}
+						return tt.mockFunc(ctx, categoryID, userID, name, image, link)
+					},
 				}
 
 				h := setupShoppingHandler(svc)
@@ -651,6 +691,7 @@ func TestShoppingHandler_Items(t *testing.T) {
 				h.CreateItem(rr, req)
 
 				assertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+				assert.Equal(t, tt.expectedCalls, callCount)
 			})
 		}
 	})

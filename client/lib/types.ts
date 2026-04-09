@@ -275,6 +275,17 @@ export interface CreateItemForm {
   link?: string;
 }
 
+export interface CreateItemPayload {
+  name: string;
+  image?: string;
+  link?: string;
+}
+
+export interface CreateItemsForm {
+  categoryId: number;
+  items: CreateItemPayload[];
+}
+
 // Smart Home Types
 export interface SmartDevice {
   id: number;

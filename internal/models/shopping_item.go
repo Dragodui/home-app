@@ -24,6 +24,17 @@ type CreateShoppingItemRequest struct {
 	Link       *string `json:"link"`
 }
 
+type CreateShoppingItemPayload struct {
+	Name  string  `json:"name" validate:"required,min=3"`
+	Image *string `json:"image"`
+	Link  *string `json:"link"`
+}
+
+type CreateShoppingItemsRequest struct {
+	CategoryID int                         `json:"category_id" validate:"required"`
+	Items      []CreateShoppingItemPayload `json:"items" validate:"required,min=1,dive"`
+}
+
 type UpdateShoppingItemRequest struct {
 	Name     *string    `json:"name,omitempty" validate:"omitempty,min=3"`
 	Image    *string    `json:"image,omitempty"`

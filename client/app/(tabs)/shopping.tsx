@@ -172,6 +172,7 @@ export default function ShoppingScreen() {
   // Create item modal
   const [showItemModal, setShowItemModal] = useState(false);
   const [newItemName, setNewItemName] = useState("");
+  const [pendingItemNames, setPendingItemNames] = useState<string[]>([]);
   const [creatingItem, setCreatingItem] = useState(false);
 
   const loadShoppingData = useCallback(async () => {
@@ -236,17 +237,44 @@ export default function ShoppingScreen() {
     }
   };
 
+  const openItemModal = () => {
+    setNewItemName("");
+    setPendingItemNames([]);
+    setShowItemModal(true);
+  };
+
+  const closeItemModal = () => {
+    setShowItemModal(false);
+    setNewItemName("");
+    setPendingItemNames([]);
+  };
+
+  const handleAddPendingItem = () => {
+    const name = newItemName.trim();
+    if (!name) return;
+    setPendingItemNames((prev) => [...prev, name]);
+    setNewItemName("");
+  };
+
   const handleCreateItem = async () => {
-    if (!home || !activeCategory || !newItemName.trim()) return;
+    if (!home || !activeCategory) return;
+
+    const itemsToCreate = [...pendingItemNames];
+    const currentName = newItemName.trim();
+    if (currentName) {
+      itemsToCreate.push(currentName);
+    }
+    if (itemsToCreate.length === 0) return;
 
     setCreatingItem(true);
     try {
-      await shoppingApi.createItem(home.id, {
+      await shoppingApi.createItems(home.id, {
         categoryId: activeCategory.id,
-        name: newItemName.trim(),
+        items: itemsToCreate.map((itemName) => ({ name: itemName })),
       });
 
       setNewItemName("");
+      setPendingItemNames([]);
       setShowItemModal(false);
       await loadShoppingData();
     } catch (error) {
@@ -405,14 +433,14 @@ export default function ShoppingScreen() {
         <TouchableOpacity
           className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg"
           style={{ backgroundColor: theme.accent.purple }}
-          onPress={() => setShowItemModal(true)}
+          onPress={openItemModal}
           activeOpacity={0.8}
         >
           <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
         </TouchableOpacity>
 
         {/* Add Item Modal */}
-        <Modal visible={showItemModal} onClose={() => setShowItemModal(false)} title={t.shopping.addItem} height="full">
+        <Modal visible={showItemModal} onClose={closeItemModal} title={t.shopping.addItem} height="full">
           <View className="flex-1">
             <Input
               label={t.shopping.itemName}
@@ -422,10 +450,47 @@ export default function ShoppingScreen() {
             />
 
             <Button
-              title={t.shopping.addItem}
+              title={t.common.add}
+              onPress={handleAddPendingItem}
+              disabled={!newItemName.trim() || creatingItem}
+              variant="secondary"
+              style={{ marginBottom: 16 }}
+            />
+
+            {pendingItemNames.length > 0 && (
+              <View className="mb-4">
+                <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
+                  {t.common.items} ({pendingItemNames.length})
+                </Text>
+                <View className="gap-2">
+                  {pendingItemNames.map((itemName, index) => (
+                    <View
+                      key={`${itemName}-${index}`}
+                      className="flex-row items-center justify-between px-3 py-2.5 rounded-xl"
+                      style={{ backgroundColor: theme.surface }}
+                    >
+                      <Text className="text-sm font-manrope-semibold flex-1 mr-3" style={{ color: theme.text }}>
+                        {itemName}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setPendingItemNames((prev) => prev.filter((_, itemIndex) => itemIndex !== index))
+                        }
+                        className="p-1"
+                      >
+                        <Trash2 size={16} color={theme.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Button
+              title={t.common.done}
               onPress={handleCreateItem}
               loading={creatingItem}
-              disabled={!newItemName.trim() || creatingItem}
+              disabled={(pendingItemNames.length === 0 && !newItemName.trim()) || creatingItem}
               variant="purple"
               style={{ marginTop: "auto" }}
             />

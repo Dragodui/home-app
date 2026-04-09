@@ -10,6 +10,7 @@ import type {
   CreateBillForm,
   CreateCategoryForm,
   CreateItemForm,
+  CreateItemsForm,
   CreatePollForm,
   CreateScheduleForm,
   CreateTaskForm,
@@ -627,6 +628,11 @@ export const shoppingApi = {
   },
 
   createItem: async (homeId: number, data: CreateItemForm): Promise<{ message: string }> => {
+    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/shopping/items`, data);
+    return { message: response.data.message };
+  },
+
+  createItems: async (homeId: number, data: CreateItemsForm): Promise<{ message: string }> => {
     const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/shopping/items`, data);
     return { message: response.data.message };
   },
