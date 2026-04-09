@@ -322,39 +322,26 @@ func (h *HomeHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
 // @Summary      Remove member
 // @Description  Remove a member from the home
 // @Tags         home
-// @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        home_id path int true "Home ID"
 // @Param        user_id path int true "User ID"
-// @Param        input body models.RemoveMemberRequest true "Remove Member Request"
 // @Success      200  {object}  map[string]interface{}
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      401  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/members/{user_id} [delete]
 func (h *HomeHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
-	var req models.RemoveMemberRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	// validation
-	if err := utils.Validate.Struct(req); err != nil {
-		utils.JSONValidationErrors(w, err)
-		return
-	}
-
-	homeID, err := strconv.Atoi(req.HomeID)
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
 	if err != nil {
 		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
 		return
 	}
 
-	userID, err := strconv.Atoi(req.UserID)
+	userIDStr := chi.URLParam(r, "user_id")
+	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		utils.JSONError(w, "invalid user ID", http.StatusBadRequest)
 		return
 	}
 
