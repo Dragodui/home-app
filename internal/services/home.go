@@ -136,6 +136,7 @@ func (s *HomeService) JoinHomeByCode(ctx context.Context, code string, userID in
 	// Notify home that a user has requested to join
 	fromID := userID
 	_ = s.notifSvc.CreateHomeNotification(ctx, &fromID, home.ID, "A user has requested to join the home")
+	_ = s.notifSvc.Create(ctx, nil, userID, "Join request sent. Waiting for admin approval.")
 
 	event.SendHomeEvent(ctx, s.cache, home.ID, &event.RealTimeEvent{
 		Module: event.ModuleHome,

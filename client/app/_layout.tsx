@@ -17,7 +17,9 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { NotificationBridge } from "@/components/NotificationBridge";
 import { AlertProvider } from "@/components/ui/alert";
+import { ToastProvider } from "@/components/ui/toast";
 import { wsManager } from "@/lib/websocket";
 import { useAuthStore } from "@/stores/authStore";
 import { useHomeStore } from "@/stores/homeStore";
@@ -81,11 +83,14 @@ function AppContent() {
 
   return (
     <GestureHandlerRootView className={`flex-1 ${theme.isDark ? "bg-background-dark" : "bg-background"}`}>
-      <AlertProvider>
-        <AuthGate />
-        <RootLayoutNav />
-        <InstallPrompt />
-      </AlertProvider>
+      <ToastProvider>
+        <AlertProvider>
+          <AuthGate />
+          <NotificationBridge />
+          <RootLayoutNav />
+          <InstallPrompt />
+        </AlertProvider>
+      </ToastProvider>
     </GestureHandlerRootView>
   );
 }

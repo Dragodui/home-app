@@ -22,6 +22,7 @@ import { useAlert } from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
+import { useToast } from "@/components/ui/toast";
 import { imageApi } from "@/lib/api";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
@@ -36,6 +37,7 @@ export default function ProfileScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
+  const { show } = useToast();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -139,6 +141,10 @@ export default function ProfileScreen() {
     if (result.success) {
       setShowJoinModal(false);
       setInviteCode("");
+      show({
+        title: "Home request",
+        message: "Request sent. Wait for admin approval.",
+      });
     } else {
       alert("Error", result.error || "Failed to join home");
     }

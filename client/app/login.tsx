@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, Vie
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import { useGoogleAuth } from "@/lib/useGoogleAuth";
 import { useAuth } from "@/stores/authStore";
 import { useI18n } from "@/stores/i18nStore";
@@ -16,6 +17,7 @@ export default function LoginScreen() {
   const { login, googleSignIn } = useAuth();
   const { theme } = useTheme();
   const { t } = useI18n();
+  const { show } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +36,7 @@ export default function LoginScreen() {
         const result = await googleSignIn(authentication.accessToken);
 
         if (result.success) {
+          show({ title: "Success", message: "You are logged in." });
           router.replace("/(tabs)/home");
         } else {
           setError(result.error || t.auth.googleSignInFailed);
@@ -43,7 +46,7 @@ export default function LoginScreen() {
     } else if (response?.type === "error") {
       setError(t.auth.googleSignInCancelled);
     }
-  }, [googleSignIn, response, router, t.auth.googleSignInCancelled, t.auth.googleSignInFailed]);
+  }, [googleSignIn, response, router, show, t.auth.googleSignInCancelled, t.auth.googleSignInFailed]);
 
   useEffect(() => {
     handleGoogleResponse();
@@ -70,6 +73,7 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (result.success) {
+      show({ title: "Success", message: "You are logged in." });
       router.replace("/(tabs)/home");
     } else if (result.needsVerification) {
       router.push({ pathname: "/verify", params: { email } });

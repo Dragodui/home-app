@@ -31,7 +31,8 @@ import type {
   User,
 } from "./types";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "";
+export const isDevMode = process.env.EXPO_NODE_ENV ==="dev"
+const API_BASE_URL = isDevMode ? process.env.EXPO_PUBLIC_API_URL_DEV : process.env.EXPO_PUBLIC_API_URL;
 const API_PREFIX = "/api";
 
 type ApiRequestOptions = {
