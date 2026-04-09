@@ -79,6 +79,10 @@ func (m *mockHomeRepo) UpdateMemberRole(ctx context.Context, homeID int, userID 
 	return nil
 }
 
+func (m *mockHomeRepo) UpdateCurrency(ctx context.Context, homeID int, currency string) error {
+	return nil
+}
+
 // Mock service
 type mockHomeService struct {
 	CreateHomeFunc           func(ctx context.Context, name string, userID int) error
@@ -146,6 +150,10 @@ func (m *mockHomeService) GetPendingMembers(ctx context.Context, homeID int) ([]
 }
 
 func (m *mockHomeService) UpdateMemberRole(ctx context.Context, homeID int, userID int, role string) error {
+	return nil
+}
+
+func (m *mockHomeService) UpdateCurrency(ctx context.Context, homeID int, currency string) error {
 	return nil
 }
 

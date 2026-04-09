@@ -14,6 +14,7 @@ export interface Home {
   id: number;
   name: string;
   inviteCode: string;
+  currency: string;
   createdAt: string;
   memberships?: HomeMembership[];
 }

@@ -170,6 +170,7 @@ func SetupRoutes(
 						r.With(middleware.RequireAdmin(homeRepo)).Post("/members/{user_id}/approve", homeHandler.ApproveMember)
 						r.With(middleware.RequireAdmin(homeRepo)).Post("/members/{user_id}/reject", homeHandler.RejectMember)
 						r.With(middleware.RequireAdmin(homeRepo)).Patch("/members/{user_id}/role", homeHandler.UpdateMemberRole)
+						r.With(middleware.RequireAdmin(homeRepo)).Patch("/currency", homeHandler.UpdateCurrency)
 						r.With(middleware.RequireAdmin(homeRepo)).Post("/regenerate_code", homeHandler.RegenerateInviteCode)
 
 						// Notifications for home

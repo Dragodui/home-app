@@ -519,3 +519,43 @@ func (h *HomeHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Role updated successfully"})
 }
+
+// UpdateCurrency godoc
+// @Summary      Update home currency
+// @Description  Update home currency (admin only)
+// @Tags         home
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Param        input body models.UpdateHomeCurrencyRequest true "Update Home Currency Request"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Router       /homes/{home_id}/currency [patch]
+func (h *HomeHandler) UpdateCurrency(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	var req models.UpdateHomeCurrencyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := utils.Validate.Struct(req); err != nil {
+		utils.JSONValidationErrors(w, err)
+		return
+	}
+
+	if err := h.svc.UpdateCurrency(r.Context(), homeID, req.Currency); err != nil {
+		utils.SafeError(w, err, "Error updating home currency", http.StatusBadRequest)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Currency updated successfully"})
+}

@@ -34,6 +34,7 @@ interface HomeState {
   deleteHome: () => Promise<HomeResult>;
   removeMember: (userId: number) => Promise<HomeResult>;
   regenerateInviteCode: () => Promise<HomeResult>;
+  updateHomeCurrency: (currency: string) => Promise<HomeResult>;
   createRoom: (name: string, icon?: string, color?: string) => Promise<HomeResult>;
   deleteRoom: (roomId: number) => Promise<HomeResult>;
   refreshRooms: () => Promise<void>;
@@ -289,6 +290,23 @@ export const useHomeStore = create<HomeState>((set, get) => {
       } catch (error: any) {
         console.error("Error regenerating invite code:", error);
         return { success: false, error: getApiErrorMessage(error, "Failed to regenerate invite code") };
+      }
+    },
+
+    updateHomeCurrency: async (currency: string): Promise<HomeResult> => {
+      const { home } = get();
+      if (!home) return { success: false, error: "No home found" };
+
+      try {
+        await homeApi.updateCurrency(home.id, currency);
+        set((state) => ({
+          home: state.home ? { ...state.home, currency } : state.home,
+          homes: state.homes.map((h) => (h.id === home.id ? { ...h, currency } : h)),
+        }));
+        return { success: true };
+      } catch (error: any) {
+        console.error("Error updating home currency:", error);
+        return { success: false, error: getApiErrorMessage(error, "Failed to update currency") };
       }
     },
 

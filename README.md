@@ -91,12 +91,12 @@ cp .env.example .env.dev
 | `AWS_REGION` | AWS Region | `us-east-1` |
 | `AWS_S3_BUCKET` | AWS S3 Bucket name | `your-s3-bucket` |
 
-### Production Grafana Variables (Optional)
+### Production Grafana Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GRAFANA_ADMIN_USER` | Grafana admin username | `admin` |
-| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password | `admin` |
+| `ADMIN_USERNAME` | Grafana admin username (shared with app basic auth) | `admin` |
+| `ADMIN_PASSWORD` | Grafana admin password (shared with app basic auth) | `admin` |
 | `GRAFANA_ROOT_URL` | Grafana public URL | `http://localhost:3000` |
 
 ## Running the Application
@@ -124,10 +124,10 @@ Available services:
 To run the application in production mode:
 
 1. Create a `.env.prod` file with your production values.
-2. (Optional) Set Grafana credentials in `.env.prod`:
+2. Set Grafana credentials in `.env.prod`:
    ```
-   GRAFANA_ADMIN_USER=your-admin-user
-   GRAFANA_ADMIN_PASSWORD=your-secure-password
+   ADMIN_USERNAME=your-admin-user
+   ADMIN_PASSWORD=your-secure-password
    GRAFANA_ROOT_URL=https://grafana.yourdomain.com
    ```
 3. Run the production compose file:

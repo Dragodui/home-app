@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HomeSkeleton } from "@/components/skeletons";
 import Card from "@/components/ui/card";
 import { billApi, notificationApi, pollApi, taskApi } from "@/lib/api";
+import { formatCurrencyAmount, getHomeCurrency } from "@/lib/currency";
 import type { Poll, TaskAssignment } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
@@ -20,6 +21,7 @@ export default function HomeScreen() {
   const { home, rooms, isLoading: homeLoading } = useHome();
   const { theme } = useTheme();
   const { t } = useI18n();
+  const homeCurrency = getHomeCurrency(home);
 
   const [nextAssignment, setNextAssignment] = useState<TaskAssignment | null>(null);
   const [polls, setPolls] = useState<Poll[]>([]);
@@ -349,7 +351,9 @@ export default function HomeScreen() {
           <View className="flex-row justify-between items-start mb-2">
             <Text className="text-xs font-manrope-semibold text-muted tracking-widest">{t.home.monthlySpend}</Text>
           </View>
-          <Text className="text-5xl font-manrope-extrabold text-primary mb-5">${monthlySpend.toFixed(0)}</Text>
+          <Text className="text-5xl font-manrope-extrabold text-primary mb-5">
+            {formatCurrencyAmount(monthlySpend, homeCurrency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </Text>
           <View className="flex-row justify-between items-center">
             <View className="bg-accent-pink/15 px-4 py-3 rounded-14">
               <Text className="text-[13px] font-manrope-bold text-accent-pink">{t.home.totalExpenses}</Text>

@@ -31,7 +31,7 @@ import type {
   User,
 } from "./types";
 
-export const isDevMode = process.env.EXPO_NODE_ENV ==="dev"
+export const isDevMode = process.env.EXPO_NODE_ENV === "dev";
 const API_BASE_URL = isDevMode ? process.env.EXPO_PUBLIC_API_URL_DEV : process.env.EXPO_PUBLIC_API_URL;
 const API_PREFIX = "/api";
 
@@ -353,6 +353,13 @@ export const homeApi = {
     });
     return { message: response.data.message };
   },
+
+  updateCurrency: async (homeId: number, currency: string): Promise<{ message: string }> => {
+    const response = await api.patch<{ status: boolean; message: string }>(`/homes/${homeId}/currency`, {
+      currency,
+    });
+    return { message: response.data.message };
+  },
 };
 
 // ============ Room API ============
@@ -361,7 +368,10 @@ export const roomApi = {
     homeId: number,
     data: { name: string; icon?: string; color?: string },
   ): Promise<{ message: string }> => {
-    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/rooms`, { ...data, homeId });
+    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/rooms`, {
+      ...data,
+      homeId,
+    });
     return { message: response.data.message };
   },
 
@@ -549,7 +559,10 @@ export const billApi = {
 };
 
 export const billCategoryApi = {
-  create: async (homeId: number, data: { name: string; icon?: string; color?: string }): Promise<{ message: string }> => {
+  create: async (
+    homeId: number,
+    data: { name: string; icon?: string; color?: string },
+  ): Promise<{ message: string }> => {
     const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/bill_categories`, data);
     return { message: response.data.message };
   },

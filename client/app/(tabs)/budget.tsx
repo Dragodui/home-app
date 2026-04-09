@@ -36,6 +36,7 @@ import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
 import { billApi, billCategoryApi, imageApi, ocrApi } from "@/lib/api";
+import { formatCurrencyAmount, getHomeCurrency } from "@/lib/currency";
 import type { Bill, BillCategory, BillSplit, HomeMembership, OCRResult } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
@@ -265,6 +266,7 @@ const BarChart = ({
 export default function BudgetScreen() {
   const insets = useSafeAreaInsets();
   const { home, isAdmin } = useHome();
+  const homeCurrency = getHomeCurrency(home);
   const { theme } = useTheme();
   const { user } = useAuth();
   const { t } = useI18n();
@@ -851,7 +853,7 @@ export default function BudgetScreen() {
                     {getMemberName(uid)}
                   </Text>
                   <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
-                    {(totalAmount / selectedIds.length).toFixed(2)}
+                    {formatCurrencyAmount(totalAmount / selectedIds.length, homeCurrency)}
                   </Text>
                 </View>
               ))}
@@ -1164,11 +1166,11 @@ export default function BudgetScreen() {
                   </View>
                   <View className="items-end">
                     <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
-                      {bill.totalAmount.toFixed(2)}
+                      {formatCurrencyAmount(bill.totalAmount, homeCurrency)}
                     </Text>
                     {userSplit && (
                       <Text className="text-xs" style={{ color: userSplit.paid ? "#22C55E" : theme.accent.pink }}>
-                        {t.budget.yourShare}: {userSplit.amount.toFixed(2)}
+                        {t.budget.yourShare}: {formatCurrencyAmount(userSplit.amount, homeCurrency)}
                       </Text>
                     )}
                   </View>
@@ -1212,7 +1214,7 @@ export default function BudgetScreen() {
                           </Text>
                         </View>
                         <Text className="text-sm font-manrope-semibold mr-2" style={{ color: theme.text }}>
-                          {split.amount.toFixed(2)}
+                          {formatCurrencyAmount(split.amount, homeCurrency)}
                         </Text>
                         {!split.paid && canEditBill(bill) && (
                           <TouchableOpacity
@@ -1292,7 +1294,7 @@ export default function BudgetScreen() {
                         </Text>
                       </View>
                       <Text className="text-lg font-manrope-bold mr-2" style={{ color: theme.text }}>
-                        {bill.totalAmount.toFixed(2)}
+                        {formatCurrencyAmount(bill.totalAmount, homeCurrency)}
                       </Text>
                       {isExpanded ? (
                         <ChevronUp size={18} color={theme.textSecondary} />
@@ -1312,7 +1314,7 @@ export default function BudgetScreen() {
                               )}
                             </Text>
                             <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
-                              {item.price?.toFixed(2)}
+                              {formatCurrencyAmount(item.price || 0, homeCurrency)}
                             </Text>
                           </View>
                         ))}
@@ -1521,7 +1523,7 @@ export default function BudgetScreen() {
                               )}
                             </Text>
                             <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
-                              {item.price.toFixed(2)}
+                              {formatCurrencyAmount(item.price, homeCurrency)}
                             </Text>
                           </View>
                         ))}
@@ -1537,7 +1539,7 @@ export default function BudgetScreen() {
                           {t.common.total}
                         </Text>
                         <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
-                          {ocrResult.total.toFixed(2)}
+                          {formatCurrencyAmount(ocrResult.total, homeCurrency)}
                         </Text>
                       </View>
                     )}
@@ -1641,7 +1643,7 @@ export default function BudgetScreen() {
                   {getCategoryName(editingBill)}
                 </Text>
                 <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
-                  {editingBill.totalAmount.toFixed(2)}
+                  {formatCurrencyAmount(editingBill.totalAmount, homeCurrency)}
                 </Text>
               </View>
 
@@ -1757,7 +1759,7 @@ export default function BudgetScreen() {
                   className="text-sm font-manrope-bold"
                   style={{ color: idx === monthlyTrends.length - 1 ? theme.accent.pink : theme.text }}
                 >
-                  ${item.total.toFixed(2)}
+                  {formatCurrencyAmount(item.total, homeCurrency)}
                 </Text>
               </View>
             ))}

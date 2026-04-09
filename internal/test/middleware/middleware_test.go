@@ -83,6 +83,10 @@ func (m *mockHomeRepo) UpdateMemberRole(ctx context.Context, homeID int, userID 
 	return nil
 }
 
+func (m *mockHomeRepo) UpdateCurrency(ctx context.Context, homeID int, currency string) error {
+	return nil
+}
+
 var testJWTSecret = []byte("test-secret-key-for-testing-purposes")
 
 func TestJWTAuth(t *testing.T) {

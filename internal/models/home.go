@@ -6,6 +6,7 @@ type Home struct {
 	ID         int       `gorm:"autoIncrement; primaryKey" json:"id"`
 	Name       string    `gorm:"size:64;not null" json:"name"`
 	InviteCode string    `gorm:"size:64;not null;unique" json:"invite_code"`
+	Currency   string    `gorm:"size:3;not null;default:USD" json:"currency"`
 	CreatedAt  time.Time `gorm:"autoCreateTime" json:"created_at"`
 
 	// relations
@@ -16,4 +17,8 @@ type Home struct {
 
 type CreateHomeRequest struct {
 	Name string `json:"name" validate:"required,min=3"`
+}
+
+type UpdateHomeCurrencyRequest struct {
+	Currency string `json:"currency" validate:"required,oneof=USD EUR GBP PLN UAH BYN"`
 }
