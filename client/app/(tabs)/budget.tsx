@@ -2,21 +2,29 @@ import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import {
   Camera,
+  Car,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Coffee,
   DollarSign,
   Eye,
   File,
   FileText,
+  Gift,
+  Home,
+  Lightbulb,
   Pencil,
   Plus,
   Receipt,
   Trash,
   TrendingUp,
+  Utensils,
   Users,
+  Wallet,
+  Wrench,
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -36,6 +44,42 @@ import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
 type BudgetPeriod = "month" | "year" | "all";
+
+const BILL_CATEGORY_ICON_OPTIONS = [
+  "wallet",
+  "dollar-sign",
+  "home",
+  "utensils",
+  "lightbulb",
+  "coffee",
+  "wrench",
+  "car",
+  "gift",
+] as const;
+
+const getBillCategoryIcon = (iconId: string | undefined, size: number, color: string) => {
+  switch (iconId) {
+    case "wallet":
+      return <Wallet size={size} color={color} />;
+    case "home":
+      return <Home size={size} color={color} />;
+    case "utensils":
+      return <Utensils size={size} color={color} />;
+    case "lightbulb":
+      return <Lightbulb size={size} color={color} />;
+    case "coffee":
+      return <Coffee size={size} color={color} />;
+    case "wrench":
+      return <Wrench size={size} color={color} />;
+    case "car":
+      return <Car size={size} color={color} />;
+    case "gift":
+      return <Gift size={size} color={color} />;
+    case "dollar-sign":
+    default:
+      return <DollarSign size={size} color={color} />;
+  }
+};
 
 function buildBudgetTrends(bills: Bill[], period: BudgetPeriod, cursor: Date) {
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -244,6 +288,7 @@ export default function BudgetScreen() {
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState<(typeof BILL_CATEGORY_ICON_OPTIONS)[number]>("wallet");
   const [selectedColor, setSelectedColor] = useState(theme.accent.yellow);
   const [creatingCategory, setCreatingCategory] = useState(false);
 
@@ -372,9 +417,11 @@ export default function BudgetScreen() {
     try {
       await billCategoryApi.create(home.id, {
         name: newCategoryName.trim(),
+        icon: selectedIcon,
         color: selectedColor,
       });
       setNewCategoryName("");
+      setSelectedIcon("wallet");
       setShowCategoryModal(false);
       await loadData();
     } catch (error) {
@@ -1056,6 +1103,7 @@ export default function BudgetScreen() {
                 onPress={() => setFilterCategoryId(filterCategoryId === cat.id ? null : cat.id)}
                 onLongPress={() => handleDeleteCategory(cat.id)}
               >
+                {getBillCategoryIcon(cat.icon, 14, filterCategoryId === cat.id ? theme.background : theme.text)}
                 <View className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color || theme.accent.yellow }} />
                 <Text
                   className="font-manrope-semibold text-sm"
@@ -1094,7 +1142,7 @@ export default function BudgetScreen() {
                     className="w-10 h-10 rounded-full justify-center items-center"
                     style={{ backgroundColor: getCategoryColor(bill.billCategoryId) }}
                   >
-                    <DollarSign size={20} color="#1C1C1E" />
+                    {getBillCategoryIcon(bill.billCategory?.icon, 20, "#1C1C1E")}
                   </View>
                   <View className="flex-1">
                     <Text className="text-base font-manrope-semibold mb-0.5" style={{ color: theme.text }}>
@@ -1519,7 +1567,10 @@ export default function BudgetScreen() {
                   ]}
                   onPress={() => setSelectedCategoryId(cat.id)}
                 >
-                  <Text style={{ color: theme.text }}>{cat.name}</Text>
+                  <View className="flex-row items-center gap-2">
+                    {getBillCategoryIcon(cat.icon, 14, theme.text)}
+                    <Text style={{ color: theme.text }}>{cat.name}</Text>
+                  </View>
                 </TouchableOpacity>
               ))}
               <TouchableOpacity
@@ -1631,6 +1682,25 @@ export default function BudgetScreen() {
             value={newCategoryName}
             onChangeText={setNewCategoryName}
           />
+
+          <Text className="text-xs font-manrope-bold uppercase mb-2 mt-5" style={{ color: theme.textSecondary }}>
+            Icon
+          </Text>
+          <View className="flex-row flex-wrap gap-3 mb-5">
+            {BILL_CATEGORY_ICON_OPTIONS.map((icon) => (
+              <TouchableOpacity
+                key={icon}
+                className="w-10 h-10 rounded-full justify-center items-center border"
+                style={{
+                  backgroundColor: selectedIcon === icon ? theme.accent.purple : theme.surface,
+                  borderColor: selectedIcon === icon ? theme.text : theme.border,
+                }}
+                onPress={() => setSelectedIcon(icon)}
+              >
+                {getBillCategoryIcon(icon, 20, selectedIcon === icon ? "#1C1C1E" : theme.text)}
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <Text className="text-xs font-manrope-bold uppercase mb-2 mt-5" style={{ color: theme.textSecondary }}>
             {t.budget.color}

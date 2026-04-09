@@ -13,10 +13,10 @@ import (
 )
 
 type IBillCategoryService interface {
-	CreateCategory(ctx context.Context, homeID int, name, color string, createdBy int) error
+	CreateCategory(ctx context.Context, homeID int, name string, icon *string, color string, createdBy int) error
 	GetCategoryByID(ctx context.Context, id int) (*models.BillCategory, error)
 	GetCategories(ctx context.Context, homeID int) ([]models.BillCategory, error)
-	UpdateCategory(ctx context.Context, categoryID int, name, color *string) (*models.BillCategory, error)
+	UpdateCategory(ctx context.Context, categoryID int, name, icon, color *string) (*models.BillCategory, error)
 	DeleteCategory(ctx context.Context, id int, homeID int) error
 }
 
@@ -33,11 +33,16 @@ func (s *BillCategoryService) GetCategoryByID(ctx context.Context, id int) (*mod
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *BillCategoryService) CreateCategory(ctx context.Context, homeID int, name, color string, createdBy int) error {
+func (s *BillCategoryService) CreateCategory(ctx context.Context, homeID int, name string, icon *string, color string, createdBy int) error {
+	if color == "" {
+		color = "#FBEB9E"
+	}
+
 	category := &models.BillCategory{
 		HomeID:    homeID,
 		CreatedBy: createdBy,
 		Name:      name,
+		Icon:      icon,
 		Color:     color,
 	}
 
@@ -79,7 +84,7 @@ func (s *BillCategoryService) GetCategories(ctx context.Context, homeID int) ([]
 	return categories, nil
 }
 
-func (s *BillCategoryService) UpdateCategory(ctx context.Context, categoryID int, name, color *string) (*models.BillCategory, error) {
+func (s *BillCategoryService) UpdateCategory(ctx context.Context, categoryID int, name, icon, color *string) (*models.BillCategory, error) {
 	category, err := s.repo.GetByID(ctx, categoryID)
 	if err != nil {
 		return nil, err
@@ -96,6 +101,9 @@ func (s *BillCategoryService) UpdateCategory(ctx context.Context, categoryID int
 	updates := map[string]interface{}{}
 	if name != nil {
 		updates["name"] = *name
+	}
+	if icon != nil {
+		updates["icon"] = *icon
 	}
 	if color != nil {
 		updates["color"] = *color

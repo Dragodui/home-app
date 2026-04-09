@@ -48,7 +48,7 @@ func (h *RoomHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.CreateRoom(r.Context(), req.Name, req.HomeID, userID); err != nil {
+	if err := h.svc.CreateRoom(r.Context(), req.Name, req.Icon, req.Color, req.HomeID, userID); err != nil {
 		utils.JSONError(w, "Invalid data", http.StatusBadRequest)
 		return
 	}

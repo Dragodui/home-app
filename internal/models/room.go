@@ -7,6 +7,8 @@ type Room struct {
 	HomeID    int       `json:"home_id"`
 	CreatedBy int       `json:"created_by"`
 	Name      string    `gorm:"not null;size:64" json:"name"`
+	Icon      *string   `gorm:"size:64" json:"icon,omitempty"`
+	Color     string    `gorm:"size:32;default:'#FBEB9E'" json:"color"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
 	// relations
 	Home    *Home  `gorm:"foreignKey:HomeID;constraint:OnDelete:CASCADE" json:"home,omitempty"`
@@ -15,6 +17,8 @@ type Room struct {
 }
 
 type CreateRoomRequest struct {
-	HomeID int    `json:"home_id"`
-	Name   string `json:"name"`
+	HomeID int     `json:"home_id"`
+	Name   string  `json:"name"`
+	Icon   *string `json:"icon"`
+	Color  string  `json:"color"`
 }

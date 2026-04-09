@@ -35,6 +35,8 @@ export interface Room {
   id: number;
   homeId: number;
   name: string;
+  icon?: string;
+  color: string;
   createdAt: string;
   tasks?: Task[];
 }
@@ -143,6 +145,7 @@ export interface BillCategory {
   id: number;
   homeId: number;
   name: string;
+  icon?: string;
   color: string;
   createdAt: string;
 }

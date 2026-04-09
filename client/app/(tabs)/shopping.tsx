@@ -347,13 +347,6 @@ export default function ShoppingScreen() {
             <Text className="flex-1 text-2xl font-manrope-bold" style={{ color: theme.text }}>
               {activeCategory.name}
             </Text>
-            <TouchableOpacity
-              className="w-12 h-12 rounded-2xl justify-center items-center mr-2"
-              style={{ backgroundColor: theme.surface }}
-              onPress={() => openDeleteCategory(activeCategory)}
-            >
-              <Trash2 size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
             <View
               className="w-14 h-14 rounded-[18px] justify-center items-center"
               style={{ backgroundColor: categoryColor }}
@@ -483,9 +476,18 @@ export default function ShoppingScreen() {
                 className="w-[47%] rounded-3xl p-[18px] justify-between"
                 style={{ backgroundColor: categoryColor, aspectRatio: 0.9 }}
                 onPress={() => setActiveCategory(category)}
-                onLongPress={() => openDeleteCategory(category)}
                 activeOpacity={0.9}
               >
+                <TouchableOpacity
+                  className="absolute top-3 right-3 w-8 h-8 rounded-xl justify-center items-center"
+                  style={{ backgroundColor: "rgba(0,0,0,0.08)" }}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    openDeleteCategory(category);
+                  }}
+                >
+                  <Trash2 size={16} color="#1C1C1E" />
+                </TouchableOpacity>
                 <View className="w-10 h-10 rounded-xl bg-black/5 justify-center items-center">
                   {getCategoryIcon(category)}
                 </View>
@@ -497,7 +499,7 @@ export default function ShoppingScreen() {
                 </View>
                 <View className="absolute bottom-[18px] right-[18px]">
                   <View className="w-8 h-8 rounded-full bg-black/10 justify-center items-center">
-                    <ArrowLeft size={16} color="rgba(0,0,0,0.3)" style={{ transform: [{ rotate: "180deg" }] }} />
+                    <ArrowLeft size={16} color="rgba(0,0,0,1)" style={{ transform: [{ rotate: "180deg" }] }} />
                   </View>
                 </View>
               </TouchableOpacity>

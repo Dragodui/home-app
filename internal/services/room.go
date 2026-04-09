@@ -18,7 +18,7 @@ type RoomService struct {
 }
 
 type IRoomService interface {
-	CreateRoom(ctx context.Context, name string, homeID, createdBy int) error
+	CreateRoom(ctx context.Context, name string, icon *string, color string, homeID, createdBy int) error
 	GetRoomByID(ctx context.Context, roomID int) (*models.Room, error)
 	GetRoomsByHomeID(ctx context.Context, homeID int) (*[]models.Room, error)
 	DeleteRoom(ctx context.Context, roomID int) error
@@ -28,15 +28,21 @@ func NewRoomService(repo repository.RoomRepository, cache *redis.Client) *RoomSe
 	return &RoomService{repo: repo, cache: cache}
 }
 
-func (s *RoomService) CreateRoom(ctx context.Context, name string, homeID, createdBy int) error {
+func (s *RoomService) CreateRoom(ctx context.Context, name string, icon *string, color string, homeID, createdBy int) error {
 	// delete homes rooms from cache
 	key := utils.GetRoomsForHomeKey(homeID)
 	if err := utils.DeleteFromCache(ctx, key, s.cache); err != nil {
 		logger.Info.Printf("Failed to delete redis cache for key %s: %v", key, err)
 	}
 
+	if color == "" {
+		color = "#FBEB9E"
+	}
+
 	room := &models.Room{
 		Name:      name,
+		Icon:      icon,
+		Color:     color,
 		HomeID:    homeID,
 		CreatedBy: createdBy,
 	}

@@ -357,8 +357,11 @@ export const homeApi = {
 
 // ============ Room API ============
 export const roomApi = {
-  create: async (homeId: number, name: string): Promise<{ message: string }> => {
-    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/rooms`, { name, homeId });
+  create: async (
+    homeId: number,
+    data: { name: string; icon?: string; color?: string },
+  ): Promise<{ message: string }> => {
+    const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/rooms`, { ...data, homeId });
     return { message: response.data.message };
   },
 
@@ -546,7 +549,7 @@ export const billApi = {
 };
 
 export const billCategoryApi = {
-  create: async (homeId: number, data: { name: string; color?: string }): Promise<{ message: string }> => {
+  create: async (homeId: number, data: { name: string; icon?: string; color?: string }): Promise<{ message: string }> => {
     const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/bill_categories`, data);
     return { message: response.data.message };
   },

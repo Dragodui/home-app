@@ -34,7 +34,7 @@ interface HomeState {
   deleteHome: () => Promise<HomeResult>;
   removeMember: (userId: number) => Promise<HomeResult>;
   regenerateInviteCode: () => Promise<HomeResult>;
-  createRoom: (name: string) => Promise<HomeResult>;
+  createRoom: (name: string, icon?: string, color?: string) => Promise<HomeResult>;
   deleteRoom: (roomId: number) => Promise<HomeResult>;
   refreshRooms: () => Promise<void>;
   // Alias for backward compat
@@ -292,12 +292,12 @@ export const useHomeStore = create<HomeState>((set, get) => {
       }
     },
 
-    createRoom: async (name: string): Promise<HomeResult> => {
+    createRoom: async (name: string, icon?: string, color?: string): Promise<HomeResult> => {
       const { home } = get();
       if (!home) return { success: false, error: "No home found" };
 
       try {
-        await roomApi.create(home.id, name);
+        await roomApi.create(home.id, { name, icon, color });
         await get().refreshRooms();
         return { success: true };
       } catch (error: any) {

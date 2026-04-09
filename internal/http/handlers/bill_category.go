@@ -54,7 +54,7 @@ func (h *BillCategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.CreateCategory(r.Context(), homeID, req.Name, req.Color, userID); err != nil {
+	if err := h.svc.CreateCategory(r.Context(), homeID, req.Name, req.Icon, req.Color, userID); err != nil {
 		utils.SafeError(w, err, "Failed to create category", http.StatusInternalServerError)
 		return
 	}
@@ -173,6 +173,7 @@ func (h *BillCategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var input struct {
 		Name  *string `json:"name"`
+		Icon  *string `json:"icon"`
 		Color *string `json:"color"`
 	}
 
@@ -181,7 +182,7 @@ func (h *BillCategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedCategory, err := h.svc.UpdateCategory(r.Context(), categoryID, input.Name, input.Color)
+	updatedCategory, err := h.svc.UpdateCategory(r.Context(), categoryID, input.Name, input.Icon, input.Color)
 	if err != nil {
 		utils.SafeError(w, err, "Failed to update category", http.StatusInternalServerError)
 		return

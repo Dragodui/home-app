@@ -1,5 +1,17 @@
 import { useRouter } from "expo-router";
-import { ArrowLeft, DoorOpen, Home, Plus, Trash2 } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Book,
+  Car,
+  Coffee,
+  DoorOpen,
+  Home as HomeIcon,
+  Lightbulb,
+  Plus,
+  Trash2,
+  Utensils,
+  Wrench,
+} from "lucide-react-native";
 import { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,6 +23,52 @@ import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
+const ROOM_COLOR_OPTIONS = [
+  "#FF7476",
+  "#FF9F7A",
+  "#FBEB9E",
+  "#A8E6CF",
+  "#7DD3E8",
+  "#D8D4FC",
+  "#F5A3D3",
+  "#22C55E",
+  "#F472B6",
+  "#C4B5FD",
+  "#94A3B8",
+  "#FDE68A",
+  "#6EE7B7",
+];
+
+const ROOM_ICON_OPTIONS = [
+  "home",
+  "utensils",
+  "lightbulb",
+  "coffee",
+  "wrench",
+  "car",
+  "book",
+] as const;
+
+const getRoomIcon = (iconId: string | undefined, size: number, color: string) => {
+  switch (iconId) {
+    case "utensils":
+      return <Utensils size={size} color={color} />;
+    case "lightbulb":
+      return <Lightbulb size={size} color={color} />;
+    case "coffee":
+      return <Coffee size={size} color={color} />;
+    case "wrench":
+      return <Wrench size={size} color={color} />;
+    case "car":
+      return <Car size={size} color={color} />;
+    case "book":
+      return <Book size={size} color={color} />;
+    case "home":
+    default:
+      return <HomeIcon size={size} color={color} />;
+  }
+};
+
 export default function RoomsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -21,18 +79,22 @@ export default function RoomsScreen() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [roomName, setRoomName] = useState("");
+  const [selectedColor, setSelectedColor] = useState(ROOM_COLOR_OPTIONS[2]);
+  const [selectedIcon, setSelectedIcon] = useState<(typeof ROOM_ICON_OPTIONS)[number]>("home");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCreateRoom = async () => {
     if (!roomName.trim()) return;
 
     setIsLoading(true);
-    const result = await createRoom(roomName.trim());
+    const result = await createRoom(roomName.trim(), selectedIcon, selectedColor);
     setIsLoading(false);
 
     if (result.success) {
       setShowCreateModal(false);
       setRoomName("");
+      setSelectedColor(ROOM_COLOR_OPTIONS[2]);
+      setSelectedIcon("home");
     } else {
       alert(t.common.error, result.error || t.rooms.failedToCreate);
     }
@@ -141,7 +203,7 @@ export default function RoomsScreen() {
                 theme.border,
               ];
               const colorIndex = index % ROOM_COLORS.length;
-              const backgroundColor = ROOM_COLORS[colorIndex];
+              const backgroundColor = room.color || ROOM_COLORS[colorIndex];
               const finalTextColor =
                 backgroundColor === theme.surface || backgroundColor === theme.border ? theme.text : "#1C1C1E";
 
@@ -153,10 +215,10 @@ export default function RoomsScreen() {
                   onPress={() =>
                     router.push({ pathname: "/rooms/[id]", params: { id: String(room.id), name: room.name } })
                   }
-                >
-                  <View className="w-14 h-14 rounded-20 justify-center items-center mb-4 bg-black/10">
-                    <Home size={28} color={finalTextColor} />
-                  </View>
+                  >
+                    <View className="w-14 h-14 rounded-20 justify-center items-center mb-4 bg-black/10">
+                    {getRoomIcon(room.icon, 28, finalTextColor)}
+                    </View>
                   <Text className="text-lg font-manrope-bold mb-1" style={{ color: finalTextColor }}>
                     {room.name}
                   </Text>
@@ -187,6 +249,37 @@ export default function RoomsScreen() {
             value={roomName}
             onChangeText={setRoomName}
           />
+          <Text className="text-xs font-manrope-bold uppercase mb-2 mt-5" style={{ color: theme.textSecondary }}>
+            Icon
+          </Text>
+          <View className="flex-row flex-wrap gap-3 mb-5">
+            {ROOM_ICON_OPTIONS.map((icon) => (
+              <TouchableOpacity
+                key={icon}
+                className="w-10 h-10 rounded-full justify-center items-center border"
+                style={{
+                  backgroundColor: selectedIcon === icon ? theme.accent.purple : theme.surface,
+                  borderColor: selectedIcon === icon ? theme.text : theme.border,
+                }}
+                onPress={() => setSelectedIcon(icon)}
+              >
+                {getRoomIcon(icon, 20, selectedIcon === icon ? "#1C1C1E" : theme.text)}
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
+            {t.budget.color}
+          </Text>
+          <View className="flex-row flex-wrap gap-3 mb-5">
+            {ROOM_COLOR_OPTIONS.map((color) => (
+              <TouchableOpacity
+                key={color}
+                className="w-8 h-8 rounded-full"
+                style={[{ backgroundColor: color }, selectedColor === color && { borderWidth: 2, borderColor: theme.text }]}
+                onPress={() => setSelectedColor(color)}
+              />
+            ))}
+          </View>
           <Button
             title={t.rooms.createRoom}
             onPress={handleCreateRoom}
