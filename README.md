@@ -14,7 +14,8 @@ This repository now contains the monorepo root. The Expo client lives in `client
 
 ## App Architecture Scheme
 
-<img width="2816" height="1536" alt="Gemini_Generated_Image_b2s172b2s172b2s1" src="https://github.com/user-attachments/assets/e5c760cd-fcb9-462b-a995-a76a2435e73c" />
+<img width="1869" height="988" alt="system_schema" src="https://github.com/user-attachments/assets/9469746f-31df-4d2e-9519-843d44e3f1b2" />
+
 
 ## API Documentation
 
