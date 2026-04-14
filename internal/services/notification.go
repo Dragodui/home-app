@@ -13,8 +13,9 @@ import (
 )
 
 type NotificationService struct {
-	repo  repository.NotificationRepository
-	cache *redis.Client
+	repo    repository.NotificationRepository
+	cache   *redis.Client
+	pushSvc *PushSubscriptionService
 }
 
 type INotificationService interface {
@@ -29,8 +30,8 @@ type INotificationService interface {
 	MarkAsReadForHomeNotification(ctx context.Context, notificationID, homeID int) error
 }
 
-func NewNotificationService(repo repository.NotificationRepository, cache *redis.Client) *NotificationService {
-	return &NotificationService{repo: repo, cache: cache}
+func NewNotificationService(repo repository.NotificationRepository, cache *redis.Client, pushSvc *PushSubscriptionService) *NotificationService {
+	return &NotificationService{repo: repo, cache: cache, pushSvc: pushSvc}
 }
 
 func (s *NotificationService) Create(ctx context.Context, from *int, to int, description string) error {
@@ -48,12 +49,17 @@ func (s *NotificationService) Create(ctx context.Context, from *int, to int, des
 	if err := s.repo.Create(ctx, notification); err != nil {
 		return err
 	}
-
 	event.SendEvent(ctx, s.cache, fmt.Sprintf("user:%d:updates", to), &event.RealTimeEvent{
 		Module: event.ModuleNotification,
 		Action: event.ActionCreated,
 		Data:   notification,
 	})
+
+	if s.pushSvc != nil {
+		go func() {
+			_ = s.pushSvc.SendPushNotification(context.Background(), to, "New Notification", description)
+		}()
+	}
 
 	return nil
 }

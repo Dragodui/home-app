@@ -37,6 +37,7 @@ func SetupRoutes(
 	userHandler *handlers.UserHandler,
 	ocrHandler *handlers.OCRHandler,
 	smartHomeHandler *handlers.SmartHomeHandler,
+	pushSubHandler *handlers.PushSubscriptionHandler,
 
 	// redis client
 	cache *redis.Client,

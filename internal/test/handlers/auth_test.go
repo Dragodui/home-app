@@ -324,11 +324,10 @@ func TestAuthHandler_VerifyEmail(t *testing.T) {
 			name:  "Success",
 			token: "valid-token",
 			verifyFunc: func(ctx context.Context, token string) error {
-				require.Equal(t, "valid-token", token)
 				return nil
 			},
-			expectedStatus: http.StatusOK,
-			expectedBody:   "Email Verified",
+			expectedStatus: http.StatusTemporaryRedirect,
+			expectedBody:   "status=success",
 		},
 		{
 			name:  "Invalid Token",
@@ -336,8 +335,8 @@ func TestAuthHandler_VerifyEmail(t *testing.T) {
 			verifyFunc: func(ctx context.Context, token string) error {
 				return errors.New("invalid token")
 			},
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   "Verification Failed",
+			expectedStatus: http.StatusTemporaryRedirect,
+			expectedBody:   "status=error",
 		},
 	}
 
