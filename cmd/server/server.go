@@ -70,6 +70,7 @@ func NewServer() (*Server, error) {
 		&models.Room{},
 		&models.HomeAssistantConfig{},
 		&models.SmartDevice{},
+		&models.PushSubscription{},
 	); err != nil {
 		return nil, err
 	}
@@ -108,9 +109,11 @@ func NewServer() (*Server, error) {
 	notificationRepo := repository.NewNotificationRepository(db)
 	smartHomeRepo := repository.NewSmartHomeRepository(db)
 	taskScheduleRepo := repository.NewTaskScheduleRepository(db)
+	pushSubRepo := repository.NewPushSubscriptionRepository(db)
 
 	// services
-	notificationSvc := services.NewNotificationService(notificationRepo, cacheClient)
+	pushSubSvc := services.NewPushSubscriptionService(pushSubRepo, cfg.VapidPublicKey, cfg.VapidPrivateKey, cfg.VapidSubject)
+	notificationSvc := services.NewNotificationService(notificationRepo, cacheClient, pushSubSvc)
 	authSvc := services.NewAuthService(userRepo, []byte(cfg.JWTSecret), cacheClient, 24*time.Hour, cfg.ClientURL, cfg.ServerURL, mailer)
 	homeSvc := services.NewHomeService(homeRepo, cacheClient, notificationSvc)
 	roomSvc := services.NewRoomService(roomRepo, cacheClient)
@@ -145,9 +148,10 @@ func NewServer() (*Server, error) {
 	ocrHandler := handlers.NewOCRHandler(ocrSvc)
 	smartHomeHandler := handlers.NewSmartHomeHandler(smartHomeSvc)
 	taskScheduleHandler := handlers.NewTaskScheduleHandler(taskScheduleSvc, homeRepo)
+	pushSubHandler := handlers.NewPushSubscriptionHandler(pushSubSvc)
 
 	// setup all routes
-	router := router.SetupRoutes(cfg, authHandler, homeHandler, taskHandler, taskScheduleHandler, billHandler, billCategoryHandler, roomHandler, shoppingHandler, imageHandler, pollHandler, notificationHandler, userHandler, ocrHandler, smartHomeHandler, cacheClient, homeRepo)
+	router := router.SetupRoutes(cfg, authHandler, homeHandler, taskHandler, taskScheduleHandler, billHandler, billCategoryHandler, roomHandler, shoppingHandler, imageHandler, pollHandler, notificationHandler, userHandler, ocrHandler, smartHomeHandler, pushSubHandler, cacheClient, homeRepo)
 
 	// Set startup metrics
 	metrics.ServerStartTime.Set(float64(time.Now().Unix()))

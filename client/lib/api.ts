@@ -787,6 +787,14 @@ export const notificationApi = {
     );
     return { message: response.data.message };
   },
+
+  subscribeToPushNotifications: async (subscription: PushSubscription): Promise<{ message: string }> => {
+    const response = await api.post<{ status: boolean; message: string }>(
+      "/notifications/subscribe",
+      subscription.toJSON()
+    );
+    return { message: response.data.message };
+  },
 };
 
 // ============ Smart Home API ============

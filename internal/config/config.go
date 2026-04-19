@@ -37,12 +37,12 @@ type Config struct {
 	BrevoAPIKey string
 
 	// R2
-	R2Region    string
-	R2S3Bucket  string
-	R2AccessKeyID string
+	R2Region          string
+	R2S3Bucket        string
+	R2AccessKeyID     string
 	R2SecretAccessKey string
-	R2PublicUrl string
-	R2AccountID string
+	R2PublicUrl       string
+	R2AccountID       string
 	// ADMIN (for /metrics and /swagger)
 	AdminUsername string
 	AdminPassword string
@@ -52,6 +52,11 @@ type Config struct {
 
 	// Gemini API key for receipt OCR
 	GeminiAPIKey string
+
+	// VAPID keys for Web Push Notifications
+	VapidPublicKey  string
+	VapidPrivateKey string
+	VapidSubject    string
 }
 
 func Load() *Config {
@@ -97,7 +102,7 @@ func Load() *Config {
 
 		BrevoAPIKey: getEnvRequired("BREVO_API_KEY"),
 
-		R2AccessKeyID:       getEnvRequired("R2_ACCESS_KEY_ID"),
+		R2AccessKeyID:     getEnvRequired("R2_ACCESS_KEY_ID"),
 		R2SecretAccessKey: getEnvRequired("R2_SECRET_ACCESS_KEY"),
 		R2S3Bucket:        getEnvRequired("R2_S3_BUCKET"),
 		R2Region:          getEnv("R2_REGION", "auto"),
@@ -115,6 +120,11 @@ func Load() *Config {
 
 		// Gemini API for receipt OCR
 		GeminiAPIKey: getEnv("GEMINI_API_KEY", ""),
+
+		// VAPID keys for Web Push Notifications
+		VapidPublicKey:  getEnvRequired("VAPID_PUBLIC_KEY"),
+		VapidPrivateKey: getEnvRequired("VAPID_PRIVATE_KEY"),
+		VapidSubject:    getEnv("VAPID_SUBJECT", "mailto:contact@example.com"),
 	}
 
 	// Validate security-critical config values
