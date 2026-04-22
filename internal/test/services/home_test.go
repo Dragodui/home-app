@@ -182,6 +182,11 @@ func (m *mockHomeRepo) GetUserHome(ctx context.Context, userID int) (*models.Hom
 	return nil, nil
 }
 
+// GetCurrency mock to satisfy repository.HomeRepository interface
+func (m *mockHomeRepo) GetCurrency(ctx context.Context, homeID int) (string, error) {
+	return "", nil
+}
+
 // Test helpers
 func setupHomeService(t *testing.T, repo repository.HomeRepository) *services.HomeService {
 	redisClient := redis.NewClient(&redis.Options{Addr: "localhost:6379"})

@@ -36,6 +36,7 @@ type IHomeService interface {
 	GetPendingMembers(ctx context.Context, homeID int) ([]models.HomeMembership, error)
 	UpdateMemberRole(ctx context.Context, homeID int, userID int, role string) error
 	UpdateCurrency(ctx context.Context, homeID int, currency string) error
+	GetHomeCurrency(ctx context.Context, homeID int) (string, error)
 }
 
 func NewHomeService(repo repository.HomeRepository, cache *redis.Client, notifSvc INotificationService) *HomeService {
@@ -405,6 +406,10 @@ func (s *HomeService) UpdateCurrency(ctx context.Context, homeID int, currency s
 	}
 
 	homeKey := utils.GetHomeCacheKey(homeID)
+	currencyKey := utils.GetHomeCurrencyKey(homeID)
+	if err := utils.DeleteFromCache(ctx, currencyKey, s.cache); err != nil {
+		logger.Info.Printf("Failed to delete redis cache for key %s: %v", homeKey, err)
+	}
 	if err := utils.DeleteFromCache(ctx, homeKey, s.cache); err != nil {
 		logger.Info.Printf("Failed to delete redis cache for key %s: %v", homeKey, err)
 	}
@@ -432,4 +437,16 @@ func (s *HomeService) UpdateCurrency(ctx context.Context, homeID int, currency s
 	})
 
 	return nil
+}
+
+func (s *HomeService) GetHomeCurrency(ctx context.Context, homeID int) (string, error) {
+	cacheKey := utils.GetHomeCurrencyKey(homeID)
+	cached, err := utils.GetFromCache[string](ctx, cacheKey, s.cache)
+
+	if cached != nil && err == nil {
+		return *cached, nil
+	}
+
+	return s.repo.GetCurrency(ctx, homeID)
+
 }

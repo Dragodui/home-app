@@ -32,6 +32,7 @@ type HomeRepository interface {
 	GetUserHomes(ctx context.Context, userID int) ([]models.Home, error)
 	UpdateMemberRole(ctx context.Context, homeID int, userID int, role string) error
 	UpdateCurrency(ctx context.Context, homeID int, currency string) error
+	GetCurrency(ctx context.Context, homeID int) (string, error)
 }
 
 type homeRepo struct {
@@ -314,4 +315,14 @@ func (r *homeRepo) GetUserHome(ctx context.Context, userID int) (*models.Home, e
 	}
 
 	return &home, nil
+}
+
+func (r *homeRepo) GetCurrency(ctx context.Context, homeID int) (string, error) {
+
+	var currency string
+	if err := r.db.WithContext(ctx).Model(&models.Home{}).Select("homes.currency").Where("id = ?", homeID).Scan(&currency).Error; err != nil {
+		return "", err
+	}
+
+	return currency, nil
 }

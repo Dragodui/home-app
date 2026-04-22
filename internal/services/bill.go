@@ -20,6 +20,7 @@ type BillService struct {
 	repo     repository.BillRepository
 	cache    *redis.Client
 	notifSvc INotificationService
+	homeSvc  IHomeService
 }
 
 type IBillService interface {
@@ -35,8 +36,8 @@ type IBillService interface {
 	GetSplitByID(ctx context.Context, splitID int) (*models.BillSplit, error)
 }
 
-func NewBillService(repo repository.BillRepository, cache *redis.Client, notifSvc INotificationService) *BillService {
-	return &BillService{repo: repo, cache: cache, notifSvc: notifSvc}
+func NewBillService(repo repository.BillRepository, cache *redis.Client, notifSvc INotificationService, homeSvc IHomeService) *BillService {
+	return &BillService{repo: repo, cache: cache, notifSvc: notifSvc, homeSvc: homeSvc}
 }
 
 func validateSplits(splits []models.SplitInput, totalAmount float64) error {
@@ -60,6 +61,11 @@ func (s *BillService) CreateBill(ctx context.Context, billType string, billCateg
 		if err := validateSplits(splits, totalAmount); err != nil {
 			return err
 		}
+	}
+
+	currency, err := s.homeSvc.GetHomeCurrency(ctx, homeID)
+	if err != nil {
+		return err
 	}
 
 	bill := &models.Bill{
@@ -100,9 +106,9 @@ func (s *BillService) CreateBill(ctx context.Context, billType string, billCateg
 
 	// Notify home about new expense
 	fromID := uploadedBy
-	desc := fmt.Sprintf("New expense added: $%.2f", totalAmount)
+	desc := fmt.Sprintf("New expense added: %s(%.2f)", currency, totalAmount)
 	if description != "" {
-		desc = fmt.Sprintf("New expense added: %s ($%.2f)", description, totalAmount)
+		desc = fmt.Sprintf("New expense added: %s %s(%.2f)", currency, description, totalAmount)
 	}
 	_ = s.notifSvc.CreateHomeNotification(ctx, &fromID, homeID, desc)
 

@@ -118,7 +118,7 @@ func NewServer() (*Server, error) {
 	homeSvc := services.NewHomeService(homeRepo, cacheClient, notificationSvc)
 	roomSvc := services.NewRoomService(roomRepo, cacheClient)
 	taskSvc := services.NewTaskService(taskRepo, cacheClient, notificationSvc)
-	billSvc := services.NewBillService(billRepo, cacheClient, notificationSvc)
+	billSvc := services.NewBillService(billRepo, cacheClient, notificationSvc, homeSvc)
 	billCategorySvc := services.NewBillCategoryService(billCategoryRepo, cacheClient)
 	shoppingSvc := services.NewShoppingService(shoppingRepo, cacheClient)
 	pollSvc := services.NewPollService(pollRepo, cacheClient, notificationSvc)

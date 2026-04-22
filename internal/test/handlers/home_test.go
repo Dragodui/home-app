@@ -56,6 +56,10 @@ func (m *mockHomeRepo) GenerateUniqueInviteCode(ctx context.Context) (string, er
 func (m *mockHomeRepo) GetUserHome(ctx context.Context, userID int) (*models.Home, error) {
 	return nil, nil
 }
+
+func (m *mockHomeRepo) GetCurrency(ctx context.Context, homeID int) (string, error) {
+	return "", nil
+}
 func (m *mockHomeRepo) GetUserHomes(ctx context.Context, userID int) ([]models.Home, error) {
 	return nil, nil
 }
@@ -155,6 +159,10 @@ func (m *mockHomeService) UpdateMemberRole(ctx context.Context, homeID int, user
 
 func (m *mockHomeService) UpdateCurrency(ctx context.Context, homeID int, currency string) error {
 	return nil
+}
+
+func (m *mockHomeService) GetHomeCurrency(ctx context.Context, homeID int) (string, error) {
+	return "", nil
 }
 
 // Test fixtures
