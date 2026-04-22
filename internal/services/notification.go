@@ -13,9 +13,10 @@ import (
 )
 
 type NotificationService struct {
-	repo    repository.NotificationRepository
-	cache   *redis.Client
-	pushSvc *PushSubscriptionService
+	repo     repository.NotificationRepository
+	cache    *redis.Client
+	pushSvc  *PushSubscriptionService
+	homeRepo repository.HomeRepository
 }
 
 type INotificationService interface {
@@ -30,8 +31,8 @@ type INotificationService interface {
 	MarkAsReadForHomeNotification(ctx context.Context, notificationID, homeID int) error
 }
 
-func NewNotificationService(repo repository.NotificationRepository, cache *redis.Client, pushSvc *PushSubscriptionService) *NotificationService {
-	return &NotificationService{repo: repo, cache: cache, pushSvc: pushSvc}
+func NewNotificationService(repo repository.NotificationRepository, cache *redis.Client, pushSvc *PushSubscriptionService, homeRepo repository.HomeRepository) *NotificationService {
+	return &NotificationService{repo: repo, cache: cache, pushSvc: pushSvc, homeRepo: homeRepo}
 }
 
 func (s *NotificationService) Create(ctx context.Context, from *int, to int, description string) error {
@@ -122,6 +123,23 @@ func (s *NotificationService) CreateHomeNotification(ctx context.Context, from *
 		Action: event.ActionCreated,
 		Data:   notification,
 	})
+
+	// send push notifications to all approved home members
+	if s.pushSvc != nil && s.homeRepo != nil {
+		go func() {
+			members, err := s.homeRepo.GetMembers(context.Background(), homeID)
+			if err != nil {
+				logger.Info.Printf("Failed to get home members for push: %v", err)
+				return
+			}
+			for _, m := range members {
+				if m.UserID == 0 {
+					continue
+				}
+				_ = s.pushSvc.SendPushNotification(context.Background(), m.UserID, "Home Notification", description)
+			}
+		}()
+	}
 
 	return nil
 }

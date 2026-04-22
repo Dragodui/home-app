@@ -41,6 +41,23 @@ self.addEventListener("fetch", (event) => {
   // API requests: network-only, do not cache
   if (url.pathname.startsWith("/api/") || url.pathname === "/ws") return;
 
+  const origin = new URL(self.location.href).origin;
+
+  const shouldCacheResponse = (request, response) => {
+    try {
+      const reqUrl = new URL(request.url);
+      // Only cache http(s) and same-origin static assets
+      if (reqUrl.protocol !== 'http:' && reqUrl.protocol !== 'https:') return false;
+      if (reqUrl.origin !== origin) return false;
+      if (!response || !response.ok) return false;
+      // only cache files with known static extensions or root
+      if (reqUrl.pathname === '/') return true;
+      return /\.(js|css|png|jpg|svg|ico|woff2?)$/.test(reqUrl.pathname);
+    } catch (e) {
+      return false;
+    }
+  };
+
   // App shell & static assets: cache-first, fallback to network
   event.respondWith(
     caches
@@ -49,14 +66,14 @@ self.addEventListener("fetch", (event) => {
         if (cached) return cached;
 
         return fetch(event.request).then((response) => {
-          // Cache successful responses for static assets
-          if (
-            response.ok &&
-            (url.pathname.match(/\.(js|css|png|jpg|svg|ico|woff2?)$/) ||
-              url.pathname === "/")
-          ) {
+          if (shouldCacheResponse(event.request, response)) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, clone).catch((err) => {
+                // Ignore cache put errors (e.g., unsupported schemes)
+                console.warn('[SW] cache.put failed, skipping:', err);
+              });
+            });
           }
           return response;
         });

@@ -113,7 +113,7 @@ func NewServer() (*Server, error) {
 
 	// services
 	pushSubSvc := services.NewPushSubscriptionService(pushSubRepo, cfg.VapidPublicKey, cfg.VapidPrivateKey, cfg.VapidSubject)
-	notificationSvc := services.NewNotificationService(notificationRepo, cacheClient, pushSubSvc)
+	notificationSvc := services.NewNotificationService(notificationRepo, cacheClient, pushSubSvc, homeRepo)
 	authSvc := services.NewAuthService(userRepo, []byte(cfg.JWTSecret), cacheClient, 24*time.Hour, cfg.ClientURL, cfg.ServerURL, mailer)
 	homeSvc := services.NewHomeService(homeRepo, cacheClient, notificationSvc)
 	roomSvc := services.NewRoomService(roomRepo, cacheClient)
