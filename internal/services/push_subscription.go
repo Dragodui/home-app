@@ -26,6 +26,11 @@ func NewPushSubscriptionService(repo repository.PushSubscriptionRepository, publ
 	}
 }
 
+// PublicVAPIDKey returns configured VAPID public key
+func (s *PushSubscriptionService) PublicVAPIDKey() string {
+	return s.publicKey
+}
+
 func (s *PushSubscriptionService) SaveSubscription(ctx context.Context, userID int, input models.PushSubscriptionInput) error {
 	sub := &models.PushSubscription{
 		UserID:   userID,

@@ -45,8 +45,10 @@ func (h *PushSubscriptionHandler) Subscribe(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *PushSubscriptionHandler) GetPublicKey(w http.ResponseWriter, r *http.Request) {
-	// Typically we don't expose public key this way since the frontend can have it via env, 
-	// but providing an endpoint is also standard practice.
-	// But let's skip for now, since we only really need it injected via vite config or just env in react native.
-	// Just return success for now if someone checks
+	if h.svc == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	pub := h.svc.PublicVAPIDKey()
+	utils.JSON(w, http.StatusOK, map[string]string{"publicKey": pub})
 }
