@@ -4,12 +4,12 @@
     "slug": "household-manager-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/app_icon.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "household-manager-app",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/app_icon.png",
+      "image": "./assets/images/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/app_icon.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "app.rork.household-assistant-api"
