@@ -11,11 +11,12 @@ export default function Root({ children }: PropsWithChildren) {
 
         {/* PWA Meta Tags */}
         <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" type="image/png" sizes="196x196" href="/icons/favicon-196.png" />
         <meta name="theme-color" content="#1C1C1E" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="HomeManager" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <link rel="apple-touch-icon" href="/icons/apple-icon-180.png" />
 
         {/* Disable body scrolling on web to match native behavior */}
         <ScrollViewStyleReset />
