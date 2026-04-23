@@ -33,13 +33,7 @@ services:
     command:
       - -c
       - |
-        set -e
         sed "s/[$$]{ADMIN_USERNAME}/$$ADMIN_USERNAME/g; s/[$$]{ADMIN_PASSWORD}/$$ADMIN_PASSWORD/g" /etc/prometheus/prometheus.yml.template > /tmp/prometheus.yml
-        
-        echo "--- Generated Config (Check this) ---"
-        grep "basic_auth" -A 3 /tmp/prometheus.yml
-        echo "------------------------------------"
-
         exec /bin/prometheus \
           --config.file=/tmp/prometheus.yml \
           --storage.tsdb.path=/prometheus \
