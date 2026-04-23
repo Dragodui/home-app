@@ -338,6 +338,13 @@ export default {
     minutesAgo: "min fa",
     hoursAgo: "ore fa",
     daysAgo: "giorni fa",
+    enablePush: "Attiva le notifiche push",
+    enablePushText: "Ricevi notifiche anche quando l'app è chiusa",
+    pushEnabled: "Attivato",
+    pushEnabledText: "Notifiche push attivate!",
+    pushBlocked: "Notifiche push bloccate",
+    pushBlockedText: "Attivale nelle impostazioni del browser",
+    pushError: "Impossibile attivare le notifiche push",
   },
 
   // Security

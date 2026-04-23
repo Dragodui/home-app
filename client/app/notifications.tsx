@@ -1,14 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Bell, Check, Trash2 } from "lucide-react-native";
+import { ArrowLeft, Bell, BellRing, Check, Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Platform, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NotificationsSkeleton } from "@/components/skeletons";
 import { useToast } from "@/components/ui/toast";
 import { notificationApi } from "@/lib/api";
 import type { HomeNotification, Notification } from "@/lib/types";
+import { getPushState, subscribeToPush, isPushSupported, type PushPermissionState } from "@/lib/pushUtils";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
@@ -28,6 +29,7 @@ export default function NotificationsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const swipeRefs = useRef<Record<string, Swipeable | null>>({});
+  const [pushState, setPushState] = useState<PushPermissionState>("unsupported");
 
   const hiddenStorageKey = user ? `@hidden_notifications_${user.id}` : null;
 
@@ -127,6 +129,22 @@ export default function NotificationsScreen() {
     loadNotifications();
   }, [loadNotifications]);
 
+  useEffect(() => {
+    getPushState().then(setPushState);
+  }, []);
+
+  const handleEnablePush = async () => {
+    try {
+      const success = await subscribeToPush();
+      setPushState(success ? "granted" : await getPushState());
+      if (success) {
+        show({ title: t.notifications.pushEnabled || "Enabled", message: t.notifications.pushEnabledText || "Push notifications enabled!" });
+      }
+    } catch {
+      show({ title: "Error", message: t.notifications.pushError || "Failed to enable push notifications" });
+    }
+  };
+
   useRealtimeRefresh(["NOTIFICATION", "HOME_NOTIFICATION"], loadNotifications);
 
   const onRefresh = async () => {
@@ -192,6 +210,41 @@ export default function NotificationsScreen() {
           </Text>
           <View className="w-12" />
         </View>
+
+        {/* Push Notification Banner */}
+        {pushState === "prompt" && (
+          <TouchableOpacity
+            className="flex-row items-center p-4 rounded-16 mb-4 gap-3"
+            style={{ backgroundColor: theme.accent.purple }}
+            onPress={handleEnablePush}
+          >
+            <BellRing size={22} color="#1C1C1E" />
+            <View className="flex-1">
+              <Text className="text-15 font-manrope-bold" style={{ color: "#1C1C1E" }}>
+                {t.notifications.enablePush || "Enable push notifications"}
+              </Text>
+              <Text className="text-13 font-manrope" style={{ color: "#3A3A3C" }}>
+                {t.notifications.enablePushText || "Get notified even when the app is closed"}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        {pushState === "denied" && (
+          <View
+            className="flex-row items-center p-4 rounded-16 mb-4 gap-3"
+            style={{ backgroundColor: theme.surface }}
+          >
+            <Bell size={22} color={theme.textSecondary} />
+            <View className="flex-1">
+              <Text className="text-15 font-manrope-bold" style={{ color: theme.text }}>
+                {t.notifications.pushBlocked || "Push notifications blocked"}
+              </Text>
+              <Text className="text-13 font-manrope" style={{ color: theme.textSecondary }}>
+                {t.notifications.pushBlockedText || "Enable them in your browser settings"}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Notifications List */}
         {notifications.length === 0 ? (

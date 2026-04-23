@@ -338,6 +338,13 @@ export default {
     minutesAgo: "хв тому",
     hoursAgo: "год тому",
     daysAgo: "д тому",
+    enablePush: "Увімкнути push-сповіщення",
+    enablePushText: "Отримуйте сповіщення навіть коли додаток закритий",
+    pushEnabled: "Увімкнено",
+    pushEnabledText: "Push-сповіщення увімкнено!",
+    pushBlocked: "Push-сповіщення заблоковано",
+    pushBlockedText: "Увімкніть їх у налаштуваннях браузера",
+    pushError: "Не вдалося увімкнути push-сповіщення",
   },
 
   // Security

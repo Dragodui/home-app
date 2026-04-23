@@ -338,6 +338,13 @@ export default {
     minutesAgo: "Min. her",
     hoursAgo: "Std. her",
     daysAgo: "Tage her",
+    enablePush: "Push-Benachrichtigungen aktivieren",
+    enablePushText: "Erhalten Sie Benachrichtigungen auch wenn die App geschlossen ist",
+    pushEnabled: "Aktiviert",
+    pushEnabledText: "Push-Benachrichtigungen aktiviert!",
+    pushBlocked: "Push-Benachrichtigungen blockiert",
+    pushBlockedText: "Aktivieren Sie sie in den Browsereinstellungen",
+    pushError: "Push-Benachrichtigungen konnten nicht aktiviert werden",
   },
 
   // Security

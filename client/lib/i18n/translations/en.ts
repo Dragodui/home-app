@@ -337,6 +337,13 @@ export default {
     minutesAgo: "min ago",
     hoursAgo: "h ago",
     daysAgo: "d ago",
+    enablePush: "Enable push notifications",
+    enablePushText: "Get notified even when the app is closed",
+    pushEnabled: "Enabled",
+    pushEnabledText: "Push notifications enabled!",
+    pushBlocked: "Push notifications blocked",
+    pushBlockedText: "Enable them in your browser settings",
+    pushError: "Failed to enable push notifications",
   },
 
   // Security

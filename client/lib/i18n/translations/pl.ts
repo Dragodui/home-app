@@ -338,6 +338,13 @@ export default {
     minutesAgo: "min temu",
     hoursAgo: "godz. temu",
     daysAgo: "dni temu",
+    enablePush: "Włącz powiadomienia push",
+    enablePushText: "Otrzymuj powiadomienia nawet gdy aplikacja jest zamknięta",
+    pushEnabled: "Włączone",
+    pushEnabledText: "Powiadomienia push włączone!",
+    pushBlocked: "Powiadomienia push zablokowane",
+    pushBlockedText: "Włącz je w ustawieniach przeglądarki",
+    pushError: "Nie udało się włączyć powiadomień push",
   },
 
   // Security

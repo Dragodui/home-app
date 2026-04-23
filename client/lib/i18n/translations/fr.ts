@@ -339,6 +339,13 @@ export default {
     minutesAgo: "min",
     hoursAgo: "h",
     daysAgo: "j",
+    enablePush: "Activer les notifications push",
+    enablePushText: "Recevez des notifications même lorsque l'application est fermée",
+    pushEnabled: "Activé",
+    pushEnabledText: "Notifications push activées !",
+    pushBlocked: "Notifications push bloquées",
+    pushBlockedText: "Activez-les dans les paramètres du navigateur",
+    pushError: "Impossible d'activer les notifications push",
   },
 
   // Security

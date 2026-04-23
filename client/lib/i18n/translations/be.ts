@@ -338,6 +338,13 @@ export default {
     minutesAgo: "хв таму",
     hoursAgo: "гадз таму",
     daysAgo: "дзён таму",
+    enablePush: "Уключыць push-апавяшчэнні",
+    enablePushText: "Атрымлівайце апавяшчэнні нават калі дадатак закрыты",
+    pushEnabled: "Уключана",
+    pushEnabledText: "Push-апавяшчэнні ўключаны!",
+    pushBlocked: "Push-апавяшчэнні заблакаваны",
+    pushBlockedText: "Уключыце іх у наладах браўзера",
+    pushError: "Не ўдалося ўключыць push-апавяшчэнні",
   },
 
   // Security
