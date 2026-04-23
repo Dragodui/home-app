@@ -26,6 +26,8 @@ services:
     image: prom/prometheus:v2.47.0
     container_name: prometheus-prod
     restart: always
+    env_file:
+      - .env.prod
     environment:
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
@@ -36,7 +38,7 @@ services:
     command:
       - -c
       - |
-        sed "s/\\\${ADMIN_USERNAME}/$${ADMIN_USERNAME:-admin}/g; s/\\\${ADMIN_PASSWORD}/$${ADMIN_PASSWORD:-admin}/g" /etc/prometheus/prometheus.yml.template > /tmp/prometheus.yml
+        sed "s/\\\${ADMIN_USERNAME}/$${ADMIN_USERNAME}/g; s/\\\${ADMIN_PASSWORD}/$${ADMIN_PASSWORD}/g" /etc/prometheus/prometheus.yml.template > /tmp/prometheus.yml
         exec /bin/prometheus \
           --config.file=/tmp/prometheus.yml \
           --storage.tsdb.path=/prometheus \
