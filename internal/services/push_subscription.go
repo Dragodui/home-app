@@ -68,19 +68,20 @@ func (s *PushSubscriptionService) SendPushNotification(ctx context.Context, user
 			Subscriber:      s.subject,
 			VAPIDPublicKey:  s.publicKey,
 			VAPIDPrivateKey: s.privateKey,
-			TTL:             30,
+			TTL:             86400,
 		})
 
 		if err != nil {
 			logger.Info.Printf("Failed to send push notification to %s: %v", sub.Endpoint, err)
-			// If subscription is invalid/expired (status 404 or 410), delete it
-			if resp != nil && (resp.StatusCode == 404 || resp.StatusCode == 410) {
-				_ = s.repo.DeleteByEndpoint(ctx, sub.Endpoint)
-			}
 			continue
 		}
 		if resp != nil {
 			resp.Body.Close()
+			if resp.StatusCode == 404 || resp.StatusCode == 410 {
+				_ = s.repo.DeleteByEndpoint(ctx, sub.Endpoint)
+			} else if resp.StatusCode >= 400 {
+				logger.Info.Printf("Push service returned %d for %s", resp.StatusCode, sub.Endpoint)
+			}
 		}
 	}
 

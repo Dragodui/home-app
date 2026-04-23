@@ -21,5 +21,5 @@ scrape_configs:
     scrape_interval: 10s
     scrape_timeout: 5s
     basic_auth:
-      username: admin
-      password: changeme
+      username: ${ADMIN_USERNAME}
+      password: ${ADMIN_PASSWORD}
