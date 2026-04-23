@@ -3,8 +3,10 @@ module github.com/Dragodui/diploma-server
 go 1.24.3
 
 require (
+	github.com/SherClockHolmes/webpush-go v1.3.0
 	github.com/aws/aws-sdk-go-v2 v1.40.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.2
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.92.1
 	github.com/go-chi/cors v1.2.2
 	github.com/google/uuid v1.6.0
@@ -24,9 +26,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
-	github.com/SherClockHolmes/webpush-go v1.3.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.3 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.19.2 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.14 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.14 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.14 // indirect
@@ -65,7 +65,6 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.6.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

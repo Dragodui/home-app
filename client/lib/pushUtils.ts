@@ -28,7 +28,10 @@ export type PushPermissionState = "prompt" | "granted" | "denied" | "unsupported
 
 export async function getPushState(): Promise<PushPermissionState> {
   if (!isPushSupported()) return "unsupported";
-  return Notification.permission as PushPermissionState;
+  const permission = Notification.permission;
+  if (permission === "granted") return "granted";
+  if (permission === "denied") return "denied";
+  return "prompt";
 }
 
 export async function subscribeToPush(): Promise<boolean> {
