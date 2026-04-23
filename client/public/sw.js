@@ -1,9 +1,13 @@
-const CACHE_NAME = "household-manager-v1";
+const CACHE_NAME = "household-manager-v2";
 const SHELL_URLS = [
   "/",
   "/manifest.json",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
+  "/icons/manifest-icon-192.maskable.png",
+  "/icons/manifest-icon-512.maskable.png",
+  "/icons/favicon-196.png",
+  "/icons/apple-icon-180.png",
 ];
 
 // Install: pre-cache the app shell
