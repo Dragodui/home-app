@@ -66,14 +66,16 @@ A pre-configured dashboard "Household Manager API" is automatically provisioned 
 The application is configured using environment variables. You can copy the example file to get started:
 
 ```bash
-cp .env.example .env.dev
+cp .env.example .env
 ```
+
+For Docker-based local development, the repository already includes a tracked [.env.dev](D:\Projects\test\home-app\.env.dev:1) with safe dev defaults for PostgreSQL and Redis.
 
 ### Environment Variables
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DB_DSN` | PostgreSQL connection string | `postgres://postgres:postgres@localhost:5432/db` |
+| `DB_DSN` | PostgreSQL connection string | `postgres://postgres:postgres@db:5432/db?sslmode=disable` |
 | `PORT` | Server port | `8000` |
 | `JWT_SECRET` | Secret key for JWT signing | `your-secret-key` |
 | `CLIENT_URL` | Frontend application URL (for CORS) | `http://localhost:8081` |
@@ -92,7 +94,7 @@ cp .env.example .env.dev
 | `AWS_REGION` | AWS Region | `us-east-1` |
 | `AWS_S3_BUCKET` | AWS S3 Bucket name | `your-s3-bucket` |
 
-### Production Grafana Variables
+### Grafana Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -120,21 +122,21 @@ Available services:
 - **PostgreSQL**: `localhost:5432`
 - **Redis**: `localhost:6379`
 
-### Production
+### Deployment
 
-To run the application in production mode:
+To run the application with the main compose file:
 
-1. Create a `.env.prod` file with your production values.
-2. Set Grafana credentials in `.env.prod`:
+1. Create a `.env` file with your deployment values.
+2. Set Grafana credentials in `.env`:
    ```
    ADMIN_USERNAME=your-admin-user
    ADMIN_PASSWORD=your-secure-password
    GRAFANA_ROOT_URL=https://grafana.yourdomain.com
    ```
-3. Run the production compose file:
+3. Run Docker Compose:
 
 ```bash
-docker compose -f docker-compose.prod.yaml up --build -d
+docker compose up --build -d
 ```
 
 ### Local Development (without Docker)
@@ -174,7 +176,7 @@ diploma-server/
 │       └── provisioning/ # Grafana auto-provisioning configs
 ├── docs/                 # Swagger documentation
 ├── docker-compose.dev.yaml
-├── docker-compose.prod.yaml
+├── docker-compose.yaml
 ├── Dockerfile
 └── Dockerfile.dev
 ```

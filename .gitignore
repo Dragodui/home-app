@@ -34,5 +34,4 @@ tmp/main
 
 *.log
 client-code.txt
-.env.dev
 .env.prod
