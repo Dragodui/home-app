@@ -9,6 +9,7 @@ import type { HomeMembership } from "@/lib/types";
 import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
+import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
 type MemberStats = {
@@ -32,6 +33,7 @@ export default function MemberProfileScreen() {
   const { user, updateUser } = useAuth();
   const { home } = useHome();
   const { theme } = useTheme();
+  const { t } = useI18n();
   const { alert } = useAlert();
   const params = useLocalSearchParams<{ userId?: string }>();
   const targetUserID = Number(params.userId);
@@ -119,11 +121,11 @@ export default function MemberProfileScreen() {
       });
     } catch (error) {
       console.error("Error loading member profile:", error);
-      alert("Error", "Failed to load member profile");
+      alert(t.common.error, t.profile.memberProfileLoadFailed);
     } finally {
       setLoading(false);
     }
-  }, [alert, home, targetUserID, user?.id]);
+  }, [alert, home, t.common.error, t.profile.memberProfileLoadFailed, targetUserID, user?.id]);
 
   useEffect(() => {
     loadProfile();
@@ -136,7 +138,7 @@ export default function MemberProfileScreen() {
     try {
       const result = await updateUser({ profilePublic: nextValue });
       if (!result.success) {
-        alert("Error", result.error || "Failed to update visibility");
+        alert(t.common.error, result.error || t.profile.memberProfileVisibilityFailed);
         return;
       }
       await loadProfile();
@@ -146,15 +148,15 @@ export default function MemberProfileScreen() {
   };
 
   const roleLabel = useMemo(() => {
-    if (member?.role === "admin") return "Admin";
-    return "Member";
-  }, [member?.role]);
+    if (member?.role === "admin") return t.members.admin;
+    return t.members.member;
+  }, [member?.role, t.members.admin, t.members.member]);
 
   if (!home) {
     return (
       <View className="flex-1 justify-center items-center px-6" style={{ backgroundColor: theme.background }}>
         <Text className="text-base font-manrope" style={{ color: theme.textSecondary }}>
-          Select home first
+          {t.profile.memberProfileSelectHome}
         </Text>
       </View>
     );
@@ -183,18 +185,18 @@ export default function MemberProfileScreen() {
             <ArrowLeft size={22} color={theme.text} />
           </TouchableOpacity>
           <Text className="flex-1 text-2xl font-manrope-bold text-center" style={{ color: theme.text }}>
-            Member profile
+            {t.profile.myStats}
           </Text>
           <View className="w-12" />
         </View>
 
         {loading ? (
           <Text className="text-base font-manrope" style={{ color: theme.textSecondary }}>
-            Loading...
+            {t.common.loading}
           </Text>
         ) : !member ? (
           <Text className="text-base font-manrope" style={{ color: theme.textSecondary }}>
-            Member not found
+            {t.profile.memberProfileNotFound}
           </Text>
         ) : (
           <>
@@ -209,7 +211,7 @@ export default function MemberProfileScreen() {
                 )}
               </View>
               <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
-                {member.user?.name || "Unknown"}
+                {member.user?.name || t.profile.memberProfileUnknown}
               </Text>
               {!!member.user?.username && (
                 <Text className="text-sm font-manrope mt-1" style={{ color: theme.textSecondary }}>
@@ -221,7 +223,7 @@ export default function MemberProfileScreen() {
             <View className="rounded-3xl p-4 mb-4" style={{ backgroundColor: theme.surface }}>
               <View className="flex-row justify-between items-center mb-2">
                 <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                  Role
+                  {t.profile.memberProfileRole}
                 </Text>
                 <View className="flex-row items-center gap-1">
                   {member.role === "admin" && <Shield size={12} color={theme.accent.yellow} />}
@@ -232,7 +234,7 @@ export default function MemberProfileScreen() {
               </View>
               <View className="flex-row justify-between items-center">
                 <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                  Joined
+                  {t.profile.memberProfileJoined}
                 </Text>
                 <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
                   {formatDate(member.joinedAt)}
@@ -248,10 +250,12 @@ export default function MemberProfileScreen() {
                 disabled={updatingPrivacy}
               >
                 <Text className="text-base font-manrope-semibold mb-1" style={{ color: theme.text }}>
-                  Stats visibility
+                  {t.profile.memberProfileStatsVisibility}
                 </Text>
                 <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                  {member.user?.profilePublic === false ? "Hidden from other members" : "Visible to other members"}
+                  {member.user?.profilePublic === false
+                    ? t.profile.memberProfileHiddenFromMembers
+                    : t.profile.memberProfileVisibleToMembers}
                 </Text>
               </TouchableOpacity>
             )}
@@ -260,18 +264,18 @@ export default function MemberProfileScreen() {
               <View className="rounded-3xl p-4 flex-row items-center gap-3" style={{ backgroundColor: theme.surface }}>
                 <EyeOff size={20} color={theme.textSecondary} />
                 <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                  This member hid their stats.
+                  {t.profile.memberProfileStatsHidden}
                 </Text>
               </View>
             ) : (
               <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 12 }}>
                 <View className="rounded-3xl p-4" style={{ backgroundColor: theme.surface, flex: 1 }}>
                   <Text className="text-base font-manrope-semibold mb-3" style={{ color: theme.text }}>
-                    Task stats
+                    {t.profile.memberProfileTaskStats}
                   </Text>
                   <View className="flex-row justify-between">
                     <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                      Total
+                      {t.common.total}
                     </Text>
                     <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
                       {stats?.tasksTotal ?? 0}
@@ -279,7 +283,7 @@ export default function MemberProfileScreen() {
                   </View>
                   <View className="flex-row justify-between mt-2">
                     <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                      Completed
+                      {t.tasks.schedule.completed}
                     </Text>
                     <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
                       {stats?.tasksCompleted ?? 0}
@@ -287,7 +291,7 @@ export default function MemberProfileScreen() {
                   </View>
                   <View className="flex-row justify-between mt-2">
                     <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                      Active
+                      {t.tasks.schedule.active}
                     </Text>
                     <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
                       {stats?.tasksActive ?? 0}
@@ -297,11 +301,11 @@ export default function MemberProfileScreen() {
 
                 <View className="rounded-3xl p-4" style={{ backgroundColor: theme.surface, flex: 1 }}>
                   <Text className="text-base font-manrope-semibold mb-3" style={{ color: theme.text }}>
-                    Budget stats
+                    {t.profile.memberProfileBudgetStats}
                   </Text>
                   <View className="flex-row justify-between">
                     <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                      Bills created
+                      {t.profile.memberProfileBillsCreated}
                     </Text>
                     <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
                       {stats?.billsCreated ?? 0}
@@ -309,7 +313,7 @@ export default function MemberProfileScreen() {
                   </View>
                   <View className="flex-row justify-between mt-2">
                     <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                      Assigned split amount
+                      {t.profile.memberProfileAssignedSplitAmount}
                     </Text>
                     <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
                       {(stats?.splitAmount ?? 0).toFixed(2)}

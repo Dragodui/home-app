@@ -1,7 +1,8 @@
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
-import { type FC, useMemo, useState } from "react";
+import { type FC, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
+  type FlatList as FlatListType,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
@@ -11,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 import Button from "./button";
 
@@ -25,7 +27,115 @@ interface DatePickerProps {
   confirmLabel?: string;
 }
 
-const DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+const WEEKDAYS_BY_LANGUAGE = {
+  en: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+  pl: ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"],
+  de: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
+  fr: ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"],
+  it: ["Lu", "Ma", "Me", "Gi", "Ve", "Sa", "Do"],
+  uk: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"],
+  be: ["Пн", "Аў", "Ср", "Чц", "Пт", "Сб", "Нд"],
+} as const;
+const MONTHS_BY_LANGUAGE = {
+  en: [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ],
+  pl: [
+    "styczeń",
+    "luty",
+    "marzec",
+    "kwiecień",
+    "maj",
+    "czerwiec",
+    "lipiec",
+    "sierpień",
+    "wrzesień",
+    "październik",
+    "listopad",
+    "grudzień",
+  ],
+  de: [
+    "Januar",
+    "Februar",
+    "März",
+    "April",
+    "Mai",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "Dezember",
+  ],
+  fr: [
+    "janvier",
+    "février",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "août",
+    "septembre",
+    "octobre",
+    "novembre",
+    "décembre",
+  ],
+  it: [
+    "gennaio",
+    "febbraio",
+    "marzo",
+    "aprile",
+    "maggio",
+    "giugno",
+    "luglio",
+    "agosto",
+    "settembre",
+    "ottobre",
+    "novembre",
+    "dicembre",
+  ],
+  uk: [
+    "січень",
+    "лютий",
+    "березень",
+    "квітень",
+    "травень",
+    "червень",
+    "липень",
+    "серпень",
+    "вересень",
+    "жовтень",
+    "листопад",
+    "грудень",
+  ],
+  be: [
+    "студзень",
+    "люты",
+    "сакавік",
+    "красавік",
+    "май",
+    "чэрвень",
+    "ліпень",
+    "жнівень",
+    "верасень",
+    "кастрычнік",
+    "лістапад",
+    "снежань",
+  ],
+} as const;
 
 // --- Компонент бесконечного барабана ---
 interface WheelPickerProps {
@@ -33,12 +143,14 @@ interface WheelPickerProps {
   value: number;
   onChange: (val: number) => void;
   theme: any;
+  visible: boolean;
 }
 
 const ITEM_HEIGHT = 40;
 const MULTIPLIER = 100; // Эмуляция бесконечного скролла
 
-const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, theme }) => {
+const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, theme, visible }) => {
+  const listRef = useRef<FlatListType<number>>(null);
   const data = useMemo(() => {
     const arr = [];
     for (let i = 0; i < MULTIPLIER; i++) {
@@ -47,14 +159,39 @@ const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, the
     return arr;
   }, [items]);
 
-  const middleIndex = Math.floor(MULTIPLIER / 2) * items.length + value;
+  const getCenteredIndex = (targetValue: number) => {
+    const itemIndex = Math.max(0, items.indexOf(targetValue));
+    return Math.floor(MULTIPLIER / 2) * items.length + itemIndex;
+  };
+
+  const middleIndex = getCenteredIndex(value);
+
+  useEffect(() => {
+    if (!visible) return;
+    const timeout = setTimeout(() => {
+      listRef.current?.scrollToOffset({
+        offset: middleIndex * ITEM_HEIGHT,
+        animated: false,
+      });
+    }, 0);
+
+    return () => clearTimeout(timeout);
+  }, [middleIndex, visible]);
 
   const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
     const index = Math.round(y / ITEM_HEIGHT);
-    const val = data[index];
+    const normalizedIndex = ((index % items.length) + items.length) % items.length;
+    const val = items[normalizedIndex];
     if (val !== undefined) {
       onChange(val);
+      const centeredIndex = getCenteredIndex(val);
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToOffset({
+          offset: centeredIndex * ITEM_HEIGHT,
+          animated: false,
+        });
+      });
     }
   };
 
@@ -85,6 +222,7 @@ const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, the
         pointerEvents="none"
       />
       <FlatList
+        ref={listRef}
         data={data}
         keyExtractor={(_, i) => i.toString()}
         showsVerticalScrollIndicator={false}
@@ -132,21 +270,28 @@ const DatePicker: FC<DatePickerProps> = ({
   confirmLabel = "Done",
 }) => {
   const { theme } = useTheme();
+  const { language } = useI18n();
   const [viewDate, setViewDate] = useState(() => value ?? new Date());
   const [selectedDate, setSelectedDate] = useState(() => value ?? new Date());
   const [selectedHour, setSelectedHour] = useState(() => (value ?? new Date()).getHours());
   const [selectedMinute, setSelectedMinute] = useState(() => (value ?? new Date()).getMinutes());
+
+  useEffect(() => {
+    if (!visible) return;
+    const nextValue = value ?? new Date();
+    setViewDate(nextValue);
+    setSelectedDate(nextValue);
+    setSelectedHour(nextValue.getHours());
+    setSelectedMinute(nextValue.getMinutes());
+  }, [value, visible]);
 
   const HOURS = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
   const MINUTES = useMemo(() => Array.from({ length: 60 }, (_, i) => i), []);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
-
-  const monthName = viewDate.toLocaleString("default", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthName = `${MONTHS_BY_LANGUAGE[language]?.[month] || MONTHS_BY_LANGUAGE.en[month]} ${year}`;
+  const weekdays = WEEKDAYS_BY_LANGUAGE[language] || WEEKDAYS_BY_LANGUAGE.en;
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1);
@@ -248,7 +393,7 @@ const DatePicker: FC<DatePickerProps> = ({
 
           {/* Weekday headers */}
           <View className="flex-row mb-1">
-            {DAYS.map((d) => (
+            {weekdays.map((d) => (
               <View key={d} className="flex-1 items-center">
                 <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
                   {d}
@@ -304,7 +449,13 @@ const DatePicker: FC<DatePickerProps> = ({
           {mode === "datetime" && (
             <View className="mt-4 pt-4" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
               <View className="flex-row items-center justify-center gap-4">
-                <InfiniteWheelPicker items={HOURS} value={selectedHour} onChange={setSelectedHour} theme={theme} />
+                <InfiniteWheelPicker
+                  items={HOURS}
+                  value={selectedHour}
+                  onChange={setSelectedHour}
+                  theme={theme}
+                  visible={visible}
+                />
 
                 <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
                   :
@@ -315,6 +466,7 @@ const DatePicker: FC<DatePickerProps> = ({
                   value={selectedMinute}
                   onChange={setSelectedMinute}
                   theme={theme}
+                  visible={visible}
                 />
               </View>
             </View>
