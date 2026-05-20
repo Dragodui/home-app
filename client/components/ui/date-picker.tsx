@@ -151,6 +151,7 @@ const MULTIPLIER = 100; // Эмуляция бесконечного скрол�
 
 const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, theme, visible }) => {
   const listRef = useRef<FlatListType<number>>(null);
+  const commitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const data = useMemo(() => {
     const arr = [];
     for (let i = 0; i < MULTIPLIER; i++) {
@@ -175,12 +176,17 @@ const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, the
       });
     }, 0);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      if (commitTimeoutRef.current) {
+        clearTimeout(commitTimeoutRef.current);
+        commitTimeoutRef.current = null;
+      }
+    };
   }, [middleIndex, visible]);
 
-  const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = e.nativeEvent.contentOffset.y;
-    const index = Math.round(y / ITEM_HEIGHT);
+  const commitOffset = (offsetY: number) => {
+    const index = Math.round(offsetY / ITEM_HEIGHT);
     const normalizedIndex = ((index % items.length) + items.length) % items.length;
     const val = items[normalizedIndex];
     if (val !== undefined) {
@@ -193,6 +199,16 @@ const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, the
         });
       });
     }
+  };
+
+  const scheduleCommit = (offsetY: number, delay: number) => {
+    if (commitTimeoutRef.current) {
+      clearTimeout(commitTimeoutRef.current);
+    }
+    commitTimeoutRef.current = setTimeout(() => {
+      commitOffset(offsetY);
+      commitTimeoutRef.current = null;
+    }, delay);
   };
 
   const pad = (n: number) => n.toString().padStart(2, "0");
@@ -235,13 +251,14 @@ const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, the
           offset: ITEM_HEIGHT * index,
           index,
         })}
-        onMomentumScrollEnd={handleScrollEnd}
-        // Запасной вариант, если пользователь отпустил скролл очень плавно без инерции
-        onScrollEndDrag={(e) => {
-          if (e.nativeEvent.velocity?.y === 0) {
-            handleScrollEnd(e);
+        onMomentumScrollBegin={() => {
+          if (commitTimeoutRef.current) {
+            clearTimeout(commitTimeoutRef.current);
+            commitTimeoutRef.current = null;
           }
         }}
+        onMomentumScrollEnd={(e) => scheduleCommit(e.nativeEvent.contentOffset.y, 0)}
+        onScrollEndDrag={(e) => scheduleCommit(e.nativeEvent.contentOffset.y, 90)}
         contentContainerStyle={{ paddingVertical: ITEM_HEIGHT }}
         renderItem={({ item }) => (
           <View style={{ height: ITEM_HEIGHT, justifyContent: "center", alignItems: "center" }}>
