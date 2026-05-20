@@ -4,8 +4,6 @@ import { type FC, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   type FlatList as FlatListType,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
   Platform,
   Pressable,
   Modal as RNModal,
@@ -44,6 +42,8 @@ const MULTIPLIER = 100; // Эмуляция бесконечного скрол�
 const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, theme, visible }) => {
   const listRef = useRef<FlatListType<number>>(null);
   const commitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isProgrammaticScrollRef = useRef(false);
+  const lastOffsetRef = useRef(0);
   const data = useMemo(() => {
     const arr = [];
     for (let i = 0; i < MULTIPLIER; i++) {
@@ -59,13 +59,24 @@ const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, the
 
   const middleIndex = getCenteredIndex(value);
 
+  const scrollToValue = (targetValue: number) => {
+    const centeredIndex = getCenteredIndex(targetValue);
+    const nextOffset = centeredIndex * ITEM_HEIGHT;
+    isProgrammaticScrollRef.current = true;
+    lastOffsetRef.current = nextOffset;
+    listRef.current?.scrollToOffset({
+      offset: nextOffset,
+      animated: false,
+    });
+    requestAnimationFrame(() => {
+      isProgrammaticScrollRef.current = false;
+    });
+  };
+
   useEffect(() => {
     if (!visible) return;
     const timeout = setTimeout(() => {
-      listRef.current?.scrollToOffset({
-        offset: middleIndex * ITEM_HEIGHT,
-        animated: false,
-      });
+      scrollToValue(value);
     }, 0);
 
     return () => {
@@ -82,18 +93,15 @@ const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, the
     const normalizedIndex = ((index % items.length) + items.length) % items.length;
     const val = items[normalizedIndex];
     if (val !== undefined) {
-      onChange(val);
-      const centeredIndex = getCenteredIndex(val);
-      requestAnimationFrame(() => {
-        listRef.current?.scrollToOffset({
-          offset: centeredIndex * ITEM_HEIGHT,
-          animated: false,
-        });
-      });
+      if (val !== value) {
+        onChange(val);
+      } else {
+        scrollToValue(val);
+      }
     }
   };
 
-  const scheduleCommit = (offsetY: number, delay: number) => {
+  const scheduleCommit = (offsetY: number, delay = 120) => {
     if (commitTimeoutRef.current) {
       clearTimeout(commitTimeoutRef.current);
     }
@@ -143,14 +151,23 @@ const InfiniteWheelPicker: FC<WheelPickerProps> = ({ items, value, onChange, the
           offset: ITEM_HEIGHT * index,
           index,
         })}
-        onMomentumScrollBegin={() => {
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          const offsetY = e.nativeEvent.contentOffset.y;
+          lastOffsetRef.current = offsetY;
+          if (isProgrammaticScrollRef.current) return;
+          scheduleCommit(offsetY);
+        }}
+        onScrollBeginDrag={() => {
           if (commitTimeoutRef.current) {
             clearTimeout(commitTimeoutRef.current);
             commitTimeoutRef.current = null;
           }
         }}
-        onMomentumScrollEnd={(e) => scheduleCommit(e.nativeEvent.contentOffset.y, 0)}
-        onScrollEndDrag={(e) => scheduleCommit(e.nativeEvent.contentOffset.y, 90)}
+        onMomentumScrollEnd={() => {
+          if (isProgrammaticScrollRef.current) return;
+          scheduleCommit(lastOffsetRef.current, 0);
+        }}
         contentContainerStyle={{ paddingVertical: ITEM_HEIGHT }}
         renderItem={({ item }) => (
           <View style={{ height: ITEM_HEIGHT, justifyContent: "center", alignItems: "center" }}>
