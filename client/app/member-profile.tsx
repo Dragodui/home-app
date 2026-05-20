@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/components/ui/alert";
 import { billApi, homeApi, taskApi } from "@/lib/api";
 import type { HomeMembership } from "@/lib/types";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useTheme } from "@/stores/themeStore";
@@ -34,6 +35,7 @@ export default function MemberProfileScreen() {
   const { alert } = useAlert();
   const params = useLocalSearchParams<{ userId?: string }>();
   const targetUserID = Number(params.userId);
+  const { isDesktop, horizontalPadding } = useResponsiveLayout();
 
   const [member, setMember] = useState<HomeMembership | null>(null);
   const [stats, setStats] = useState<MemberStats | null>(null);
@@ -162,7 +164,14 @@ export default function MemberProfileScreen() {
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 36, paddingTop: insets.top + 16 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: 36,
+          paddingTop: insets.top + 16,
+          width: "100%",
+          maxWidth: 960,
+          alignSelf: "center",
+        }}
         showsVerticalScrollIndicator={false}
       >
         <View className="flex-row items-center mb-8">
@@ -255,8 +264,8 @@ export default function MemberProfileScreen() {
                 </Text>
               </View>
             ) : (
-              <View className="gap-3">
-                <View className="rounded-3xl p-4" style={{ backgroundColor: theme.surface }}>
+              <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 12 }}>
+                <View className="rounded-3xl p-4" style={{ backgroundColor: theme.surface, flex: 1 }}>
                   <Text className="text-base font-manrope-semibold mb-3" style={{ color: theme.text }}>
                     Task stats
                   </Text>
@@ -286,7 +295,7 @@ export default function MemberProfileScreen() {
                   </View>
                 </View>
 
-                <View className="rounded-3xl p-4" style={{ backgroundColor: theme.surface }}>
+                <View className="rounded-3xl p-4" style={{ backgroundColor: theme.surface, flex: 1 }}>
                   <Text className="text-base font-manrope-semibold mb-3" style={{ color: theme.text }}>
                     Budget stats
                   </Text>

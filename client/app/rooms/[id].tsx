@@ -10,6 +10,7 @@ import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
 import { smarthomeApi, taskApi } from "@/lib/api";
 import type { HAState, SmartDevice, Task } from "@/lib/types";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
@@ -22,6 +23,7 @@ export default function RoomDetailScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
+  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [devices, setDevices] = useState<SmartDevice[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -261,7 +263,10 @@ export default function RoomDetailScreen() {
   return (
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-6 mb-6" style={{ paddingTop: insets.top + 16 }}>
+      <View
+        className="flex-row items-center justify-between mb-6"
+        style={{ paddingTop: insets.top + 16, paddingHorizontal: horizontalPadding, width: "100%", maxWidth: contentMaxWidth, alignSelf: "center" }}
+      >
         <TouchableOpacity
           onPress={() => router.back()}
           className="w-12 h-12 rounded-16 justify-center items-center"
@@ -290,8 +295,14 @@ export default function RoomDetailScreen() {
 
       {/* Content */}
       <ScrollView
-        className="flex-1 px-6"
-        contentContainerStyle={{ paddingBottom: 40 }}
+        className="flex-1"
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: 40,
+          width: "100%",
+          maxWidth: contentMaxWidth,
+          alignSelf: "center",
+        }}
         showsVerticalScrollIndicator={false}
       >
         {loading || loadingTasks ? (
@@ -325,7 +336,8 @@ export default function RoomDetailScreen() {
               </View>
             </View>
 
-            <View className="mb-6">
+            <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 24, alignItems: "flex-start" }}>
+            <View className="mb-6" style={{ flex: isDesktop ? 1 : undefined, width: "100%" }}>
               <View className="flex-row items-center justify-between mb-3">
                 <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
                   Room Tasks
@@ -419,7 +431,7 @@ export default function RoomDetailScreen() {
               )}
             </View>
 
-            <View className="mb-4">
+            <View className="mb-4" style={{ flex: isDesktop ? 1 : undefined, width: "100%" }}>
               <Text className="text-lg font-manrope-bold mb-3" style={{ color: theme.text }}>
                 Devices
               </Text>
@@ -430,6 +442,7 @@ export default function RoomDetailScreen() {
               ) : (
                 devices.map((device) => <View key={device.id}>{renderDevice({ item: device })}</View>)
               )}
+            </View>
             </View>
           </>
         )}

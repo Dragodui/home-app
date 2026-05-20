@@ -11,6 +11,7 @@ import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
 import { pollApi } from "@/lib/api";
 import type { Poll, PollOption } from "@/lib/types";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
@@ -25,6 +26,7 @@ export default function PollsScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
+  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [polls, setPolls] = useState<Poll[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -240,7 +242,14 @@ export default function PollsScreen() {
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: insets.top + 24 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: isDesktop ? 48 : 120,
+          paddingTop: insets.top + 24,
+          width: "100%",
+          maxWidth: contentMaxWidth,
+          alignSelf: "center",
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
         showsVerticalScrollIndicator={false}
       >
@@ -267,94 +276,103 @@ export default function PollsScreen() {
             </Text>
           </View>
         ) : (
-          polls.map((poll, index) => {
-            const voted = hasUserVoted(poll);
-            const userVote = getUserVote(poll);
-            const pollColor = POLL_COLORS[index % POLL_COLORS.length];
+          <View
+            className="gap-4"
+            style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+          >
+            {polls.map((poll, index) => {
+              const voted = hasUserVoted(poll);
+              const userVote = getUserVote(poll);
+              const pollColor = POLL_COLORS[index % POLL_COLORS.length];
 
-            return (
-              <View key={poll.id} className="rounded-3xl p-6 mb-4" style={{ backgroundColor: pollColor }}>
-                {/* Poll Header */}
-                <View className="flex-row justify-between items-center mb-4">
-                  <View className="bg-white/60 px-3 py-1.5 rounded-xl">
-                    <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">{getTimeRemaining(poll)}</Text>
-                  </View>
-                  <View className="flex-row items-center gap-2">
-                    {isAdmin && (
-                      <TouchableOpacity
-                        className="w-8 h-8 rounded-lg justify-center items-center"
-                        onPress={() => handleDeletePoll(poll.id)}
-                        activeOpacity={0.7}
-                      >
-                        <Trash2 size={16} color="#1C1C1E" />
-                      </TouchableOpacity>
-                    )}
+              return (
+                <View
+                  key={poll.id}
+                  className="rounded-3xl p-6"
+                  style={{ backgroundColor: pollColor, width: isDesktop ? "49%" : "100%" }}
+                >
+                  {/* Poll Header */}
+                  <View className="flex-row justify-between items-center mb-4">
                     <View className="bg-white/60 px-3 py-1.5 rounded-xl">
-                      <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">{poll.type}</Text>
+                      <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">{getTimeRemaining(poll)}</Text>
+                    </View>
+                    <View className="flex-row items-center gap-2">
+                      {isAdmin && (
+                        <TouchableOpacity
+                          className="w-8 h-8 rounded-lg justify-center items-center"
+                          onPress={() => handleDeletePoll(poll.id)}
+                          activeOpacity={0.7}
+                        >
+                          <Trash2 size={16} color="#1C1C1E" />
+                        </TouchableOpacity>
+                      )}
+                      <View className="bg-white/60 px-3 py-1.5 rounded-xl">
+                        <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">{poll.type}</Text>
+                      </View>
                     </View>
                   </View>
-                </View>
 
-                {/* Poll Question */}
-                <Text className="text-[22px] font-manrope-bold text-[#1C1C1E] leading-7 mb-5">{poll.question}</Text>
+                  {/* Poll Question */}
+                  <Text className="text-[22px] font-manrope-bold text-[#1C1C1E] leading-7 mb-5">{poll.question}</Text>
 
-                {/* Poll Options */}
-                <View className="gap-2.5">
-                  {poll.options?.map((option) => {
-                    const isSelected = userVote === option.id;
-                    const voteCount = option.votes?.length || 0;
+                  {/* Poll Options */}
+                  <View className="gap-2.5">
+                    {poll.options?.map((option) => {
+                      const isSelected = userVote === option.id;
+                      const voteCount = option.votes?.length || 0;
 
-                    return (
-                      <TouchableOpacity
-                        key={option.id}
-                        className={`rounded-xl p-4 flex-row justify-between items-center ${
-                          isSelected ? "bg-[#1C1C1E]" : "bg-white/60"
-                        }`}
-                        onPress={() => !voted && handleVote(poll.id, option.id)}
-                        onLongPress={() =>
-                          poll.type === "public" && (option.votes?.length ?? 0) > 0 && setVotersOption(option)
-                        }
-                        disabled={voted && poll.type !== "public"}
-                        activeOpacity={voted ? 1 : 0.8}
-                      >
-                        <Text
-                          className={`text-[15px] font-manrope-semibold ${
-                            isSelected ? "text-white" : "text-[#1C1C1E]"
+                      return (
+                        <TouchableOpacity
+                          key={option.id}
+                          className={`rounded-xl p-4 flex-row justify-between items-center ${
+                            isSelected ? "bg-[#1C1C1E]" : "bg-white/60"
                           }`}
+                          onPress={() => !voted && handleVote(poll.id, option.id)}
+                          onLongPress={() =>
+                            poll.type === "public" && (option.votes?.length ?? 0) > 0 && setVotersOption(option)
+                          }
+                          disabled={voted && poll.type !== "public"}
+                          activeOpacity={voted ? 1 : 0.8}
                         >
-                          {option.title}
-                        </Text>
-                        <View className="flex-row items-center gap-2">
-                          {isSelected && <Check size={16} color="#FFFFFF" />}
                           <Text
-                            className={`text-[13px] font-manrope-medium ${
-                              isSelected ? "text-white/70" : "text-black/50"
+                            className={`text-[15px] font-manrope-semibold ${
+                              isSelected ? "text-white" : "text-[#1C1C1E]"
                             }`}
                           >
-                            {voteCount} {voteCount !== 1 ? t.polls.votes : t.polls.vote}
+                            {option.title}
                           </Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                          <View className="flex-row items-center gap-2">
+                            {isSelected && <Check size={16} color="#FFFFFF" />}
+                            <Text
+                              className={`text-[13px] font-manrope-medium ${
+                                isSelected ? "text-white/70" : "text-black/50"
+                              }`}
+                            >
+                              {voteCount} {voteCount !== 1 ? t.polls.votes : t.polls.vote}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
 
-                {/* Unvote button */}
-                {voted && poll.allowRevote && (
-                  <TouchableOpacity
-                    className="flex-row items-center justify-center gap-2 py-3 mt-3 bg-white/60 rounded-xl"
-                    onPress={() => handleUnvote(poll.id)}
-                    activeOpacity={0.8}
-                  >
-                    <RotateCcw size={16} color="#1C1C1E" />
-                    <Text className="text-sm font-manrope-semibold text-[#1C1C1E]">
-                      {t.polls.removeVote || "Remove Vote"}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            );
-          })
+                  {/* Unvote button */}
+                  {voted && poll.allowRevote && (
+                    <TouchableOpacity
+                      className="flex-row items-center justify-center gap-2 py-3 mt-3 bg-white/60 rounded-xl"
+                      onPress={() => handleUnvote(poll.id)}
+                      activeOpacity={0.8}
+                    >
+                      <RotateCcw size={16} color="#1C1C1E" />
+                      <Text className="text-sm font-manrope-semibold text-[#1C1C1E]">
+                        {t.polls.removeVote || "Remove Vote"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })}
+          </View>
         )}
       </ScrollView>
 

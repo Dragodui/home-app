@@ -40,6 +40,7 @@ import Modal from "@/components/ui/modal";
 import Colors from "@/constants/colors";
 import { shoppingApi } from "@/lib/api";
 import type { ShoppingCategory, ShoppingItem } from "@/lib/types";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
@@ -178,6 +179,7 @@ export default function ShoppingScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
+  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [categories, setCategories] = useState<ShoppingCategory[]>([]);
   const [items, setItems] = useState<Record<number, ShoppingItem[]>>({});
@@ -465,7 +467,14 @@ export default function ShoppingScreen() {
       <View className="flex-1" style={{ backgroundColor: theme.background }}>
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: insets.top + 16 }}
+          contentContainerStyle={{
+            paddingHorizontal: horizontalPadding,
+            paddingBottom: isDesktop ? 48 : 120,
+            paddingTop: insets.top + 16,
+            width: "100%",
+            maxWidth: isDesktop ? 960 : contentMaxWidth,
+            alignSelf: "center",
+          }}
           showsVerticalScrollIndicator={false}
         >
           {/* Detail Header */}
@@ -636,7 +645,14 @@ export default function ShoppingScreen() {
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: insets.top + 24 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: isDesktop ? 48 : 120,
+          paddingTop: insets.top + 24,
+          width: "100%",
+          maxWidth: contentMaxWidth,
+          alignSelf: "center",
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
         showsVerticalScrollIndicator={false}
       >
@@ -661,7 +677,7 @@ export default function ShoppingScreen() {
         </View>
 
         {/* Category Grid - matches PDF layout */}
-        <View className="flex-row flex-wrap gap-3">
+        <View className="flex-row flex-wrap gap-3" style={{ justifyContent: isDesktop ? "flex-start" : "space-between" }}>
           {categories.map((category) => {
             const categoryColor = category.color || CATEGORY_COLORS[0];
             const itemCount = items[category.id]?.length || 0;
@@ -670,7 +686,11 @@ export default function ShoppingScreen() {
               <TouchableOpacity
                 key={category.id}
                 className="w-[47%] rounded-3xl p-[18px] justify-between"
-                style={{ backgroundColor: categoryColor, aspectRatio: 0.9 }}
+                style={{
+                  backgroundColor: categoryColor,
+                  aspectRatio: 0.9,
+                  width: isDesktop ? "23.8%" : "47%",
+                }}
                 onPress={() => setActiveCategory(category)}
                 onLongPress={() => openCategoryActions(category)}
                 activeOpacity={0.9}

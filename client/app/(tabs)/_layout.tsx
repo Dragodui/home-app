@@ -2,12 +2,14 @@ import { Tabs } from "expo-router";
 import { ChartColumn, CheckCircle, DollarSign, Home, ShoppingBag, User } from "lucide-react-native";
 import { View } from "react-native";
 import fonts from "@/constants/fonts";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
 export default function TabLayout() {
   const { theme } = useTheme();
   const { t } = useI18n();
+  const { isDesktop } = useResponsiveLayout();
 
   return (
     <Tabs
@@ -19,14 +21,17 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: theme.surface,
           borderTopWidth: 0,
-          height: 90,
-          paddingTop: 16,
-          paddingBottom: 28,
+          height: isDesktop ? 84 : 90,
+          paddingTop: isDesktop ? 12 : 16,
+          paddingBottom: isDesktop ? 16 : 28,
           paddingHorizontal: 16,
           position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
+          bottom: isDesktop ? 20 : 0,
+          left: isDesktop ? undefined : 0,
+          right: isDesktop ? undefined : 0,
+          alignSelf: isDesktop ? "center" : undefined,
+          width: isDesktop ? 720 : undefined,
+          borderRadius: isDesktop ? 28 : 0,
           elevation: 0,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: -4 },

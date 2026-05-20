@@ -1,6 +1,6 @@
 {
-  "name": "Household Manager",
-  "short_name": "HomeManager",
+  "name": "HŌME",
+  "short_name": "HŌME",
   "description": "Manage your household tasks, budget, shopping and more",
   "start_url": "/",
   "scope": "/",

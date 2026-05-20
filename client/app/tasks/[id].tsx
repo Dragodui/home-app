@@ -7,6 +7,7 @@ import { useAlert } from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import { taskApi } from "@/lib/api";
 import type { Task } from "@/lib/types";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
@@ -23,6 +24,7 @@ export default function TaskDetailScreen() {
   const { user } = useAuth();
   const { home, isAdmin } = useHome();
   const { alert } = useAlert();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
@@ -158,7 +160,14 @@ export default function TaskDetailScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 120 }}
+        contentContainerStyle={{
+          paddingTop: insets.top + 16,
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: 120,
+          width: "100%",
+          maxWidth: 960,
+          alignSelf: "center",
+        }}
       >
         <View className="flex-row items-center justify-between mb-4 gap-2">
           <TouchableOpacity

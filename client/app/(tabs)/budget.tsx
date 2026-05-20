@@ -43,6 +43,7 @@ import Modal from "@/components/ui/modal";
 import { billApi, billCategoryApi, imageApi, ocrApi } from "@/lib/api";
 import { formatCurrencyAmount, getHomeCurrency } from "@/lib/currency";
 import type { Bill, BillCategory, BillSplit, HomeMembership, OCRResult } from "@/lib/types";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
@@ -297,6 +298,7 @@ export default function BudgetScreen() {
   const { user } = useAuth();
   const { t } = useI18n();
   const { alert } = useAlert();
+  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [allBills, setAllBills] = useState<Bill[]>([]);
   const [categories, setCategories] = useState<BillCategory[]>([]);
@@ -1040,7 +1042,14 @@ export default function BudgetScreen() {
   return (
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100, paddingTop: insets.top + 24 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: isDesktop ? 48 : 100,
+          paddingTop: insets.top + 24,
+          width: "100%",
+          maxWidth: isDesktop ? 1180 : contentMaxWidth,
+          alignSelf: "center",
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
       >
         <View className="flex-row justify-between items-center mb-6">
@@ -1230,7 +1239,10 @@ export default function BudgetScreen() {
         </View>
 
         {/* Bills list */}
-        <View className="gap-3">
+        <View
+          className="gap-3"
+          style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+        >
           {visibleBills.map((bill) => {
             const isExpanded = expandedBillId === bill.id;
             const splits = bill.splits ?? [];
@@ -1241,7 +1253,7 @@ export default function BudgetScreen() {
               <TouchableOpacity
                 key={bill.id}
                 className="p-4 rounded-2xl"
-                style={{ backgroundColor: theme.surface }}
+                style={{ backgroundColor: theme.surface, width: isDesktop ? "49%" : "100%" }}
                 onPress={() => setExpandedBillId(isExpanded ? null : bill.id)}
                 onLongPress={() => openBillActions(bill)}
                 activeOpacity={0.7}

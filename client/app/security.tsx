@@ -8,6 +8,7 @@ import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
 import { authApi } from "@/lib/api";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
@@ -19,6 +20,7 @@ export default function SecurityScreen() {
   const { t } = useI18n();
   const { user } = useAuth();
   const { alert } = useAlert();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -63,7 +65,14 @@ export default function SecurityScreen() {
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: insets.top + 16 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: 40,
+          paddingTop: insets.top + 16,
+          width: "100%",
+          maxWidth: 960,
+          alignSelf: "center",
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}

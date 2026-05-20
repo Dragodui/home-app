@@ -12,6 +12,7 @@ import Modal from "@/components/ui/modal";
 import { userColors } from "@/constants/colors";
 import { taskApi, taskScheduleApi } from "@/lib/api";
 import type { Task, TaskAssignment } from "@/lib/types";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
@@ -29,6 +30,7 @@ export default function TasksScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
+  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [assignments, setAssignments] = useState<TaskAssignment[]>([]);
@@ -386,7 +388,11 @@ export default function TasksScreen() {
     const completedDate = completed ? getTaskCompletedDate(task) : "";
     const hasSchedule = !!task.schedule;
     return (
-      <View key={task.id} className="rounded-24 p-5" style={{ backgroundColor: theme.surface }}>
+      <View
+        key={task.id}
+        className="rounded-24 p-5"
+        style={{ backgroundColor: theme.surface, width: isDesktop ? "49%" : "100%" }}
+      >
         <View className="flex-row items-center gap-4">
           <TouchableOpacity
             className="w-8 h-8 rounded-16 border-2 justify-center items-center"
@@ -496,7 +502,14 @@ export default function TasksScreen() {
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: insets.top + 24 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: isDesktop ? 48 : 120,
+          paddingTop: insets.top + 24,
+          width: "100%",
+          maxWidth: contentMaxWidth,
+          alignSelf: "center",
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
         showsVerticalScrollIndicator={false}
       >
@@ -521,7 +534,7 @@ export default function TasksScreen() {
         </View>
 
         {/* Filter Tabs */}
-        <View className="flex-row gap-2.5 mb-6">
+        <View className="flex-row gap-2.5 mb-6" style={{ flexWrap: isDesktop ? "wrap" : "nowrap" }}>
           {[
             { key: "All" as FilterType, label: t.tasks.filters.all },
             { key: "My" as FilterType, label: t.tasks.filters.my },
@@ -561,7 +574,12 @@ export default function TasksScreen() {
             </Text>
           </View>
         ) : (
-          <View className="gap-3">{getFilteredTasks().map((task, index) => renderTaskItem(task, index))}</View>
+          <View
+            className="gap-3"
+            style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+          >
+            {getFilteredTasks().map((task, index) => renderTaskItem(task, index))}
+          </View>
         )}
       </ScrollView>
 

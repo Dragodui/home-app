@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import { useGoogleAuth } from "@/lib/useGoogleAuth";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
@@ -16,6 +17,7 @@ export default function RegisterScreen() {
   const { register, googleSignIn } = useAuth();
   const { theme } = useTheme();
   const { t } = useI18n();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -96,7 +98,14 @@ export default function RegisterScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: insets.top + 60 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingHorizontal: horizontalPadding,
+          paddingTop: insets.top + 60,
+          width: "100%",
+          maxWidth: 640,
+          alignSelf: "center",
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

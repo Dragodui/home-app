@@ -27,6 +27,7 @@ import { useAlert } from "@/components/ui/alert";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
 import { roomApi } from "@/lib/api";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
@@ -107,6 +108,7 @@ export default function RoomsScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
+  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [roomName, setRoomName] = useState("");
@@ -210,7 +212,14 @@ export default function RoomsScreen() {
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40, paddingTop: insets.top + 16 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: 40,
+          paddingTop: insets.top + 16,
+          width: "100%",
+          maxWidth: contentMaxWidth,
+          alignSelf: "center",
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
@@ -258,7 +267,7 @@ export default function RoomsScreen() {
             </Text>
           </View>
         ) : (
-          <View className="flex-row flex-wrap gap-4">
+          <View className="flex-row flex-wrap gap-4" style={{ justifyContent: isDesktop ? "flex-start" : "space-between" }}>
             {rooms.map((room, index) => {
               const ROOM_COLORS = [
                 theme.accent.yellow,
@@ -276,7 +285,7 @@ export default function RoomsScreen() {
                 <TouchableOpacity
                   key={room.id}
                   className="rounded-28 p-6 relative"
-                  style={{ backgroundColor, width: "47%", minHeight: 160 }}
+                  style={{ backgroundColor, width: isDesktop ? "23.8%" : "47%", minHeight: 160 }}
                   onPress={() =>
                     router.push({ pathname: "/rooms/[id]", params: { id: String(room.id), name: room.name } })
                   }

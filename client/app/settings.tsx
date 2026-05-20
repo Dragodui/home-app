@@ -8,6 +8,7 @@ import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
 import { smarthomeApi } from "@/lib/api";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
@@ -19,6 +20,7 @@ export default function SettingsScreen() {
   const { t, language, setLanguage, languageNames, availableLanguages } = useI18n();
   const { home, leaveHome, isAdmin } = useHome();
   const { alert } = useAlert();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -103,7 +105,14 @@ export default function SettingsScreen() {
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: insets.top + 16 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: 40,
+          paddingTop: insets.top + 16,
+          width: "100%",
+          maxWidth: 960,
+          alignSelf: "center",
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}

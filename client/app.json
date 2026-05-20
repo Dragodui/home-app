@@ -26,8 +26,8 @@
     },
     "web": {
       "favicon": "./assets/images/icon.png",
-      "name": "Household Manager",
-      "shortName": "HomeManager",
+      "name": "HŌME",
+      "shortName": "HŌME",
       "themeColor": "#1C1C1E",
       "backgroundColor": "#FFFFFF",
       "display": "standalone",

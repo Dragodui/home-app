@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useTheme } from "@/stores/themeStore";
 
 interface ModalProps {
@@ -24,8 +25,19 @@ interface ModalProps {
 const Modal: FC<ModalProps> = ({ visible, onClose, title, children, height = "full" }) => {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { isDesktop } = useResponsiveLayout();
 
   const getHeightStyle = () => {
+    if (isDesktop) {
+      if (height === "full") {
+        return { maxHeight: "88%" as const };
+      }
+      if (height === "auto") {
+        return { maxHeight: "85%" as const };
+      }
+      return { height: `${height}%` as const, maxHeight: "88%" as const };
+    }
+
     if (height === "full") {
       return { height: "95%" as const };
     }
@@ -46,14 +58,21 @@ const Modal: FC<ModalProps> = ({ visible, onClose, title, children, height = "fu
         />
       </TouchableWithoutFeedback>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 justify-end">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className={`flex-1 ${isDesktop ? "justify-center items-center px-5" : "justify-end"}`}
+      >
         <View
-          className="rounded-t-40 pt-8 px-6"
+          className={isDesktop ? "rounded-40 pt-8 px-6" : "rounded-t-40 pt-8 px-6"}
           style={[
             getHeightStyle(),
             {
               paddingBottom: insets.bottom + 16,
               backgroundColor: theme.surface,
+              width: "100%",
+              maxWidth: isDesktop ? 760 : undefined,
+              alignSelf: isDesktop ? "center" : undefined,
+              marginHorizontal: isDesktop ? 20 : undefined,
             },
           ]}
         >

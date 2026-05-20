@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, Vie
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useTheme } from "@/stores/themeStore";
 
@@ -13,6 +14,7 @@ export default function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
   const { forgotPassword } = useAuth();
   const { theme } = useTheme();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +51,7 @@ export default function ForgotPasswordScreen() {
           <ArrowLeft size={24} color={theme.text} />
         </TouchableOpacity>
 
-        <View className="flex-1 justify-center items-center px-8">
+        <View className="flex-1 justify-center items-center" style={{ paddingHorizontal: horizontalPadding, width: "100%", maxWidth: 640, alignSelf: "center" }}>
           <View
             className="w-[120px] h-[120px] rounded-full justify-center items-center mb-8"
             style={{ backgroundColor: `${theme.accent.purple}20` }}
@@ -78,7 +80,14 @@ export default function ForgotPasswordScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 32, paddingTop: insets.top + 16 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingHorizontal: horizontalPadding,
+          paddingTop: insets.top + 16,
+          width: "100%",
+          maxWidth: 640,
+          alignSelf: "center",
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
