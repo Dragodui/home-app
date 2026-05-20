@@ -1028,6 +1028,7 @@ export default function BudgetScreen() {
   };
 
   const canNavigatePeriod = budgetPeriod !== "all";
+  const formattedPeriodMonth = `${t.common.months[periodCursor.getMonth()] || t.common.months[new Date().getMonth()]} ${periodCursor.getFullYear()}`;
   const periodTitle =
     budgetPeriod === "month"
       ? t.budget.currentMonth
@@ -1171,12 +1172,12 @@ export default function BudgetScreen() {
             >
               <ChevronLeft size={20} color={canNavigatePeriod ? theme.text : theme.textSecondary} />
             </TouchableOpacity>
-            <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
-              {budgetPeriod === "month"
-                ? new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(periodCursor)
-                : budgetPeriod === "year"
-                  ? String(periodCursor.getFullYear())
-                  : t.budget.allTime}
+              <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                {budgetPeriod === "month"
+                  ? formattedPeriodMonth
+                  : budgetPeriod === "year"
+                    ? String(periodCursor.getFullYear())
+                    : t.budget.allTime}
             </Text>
             <TouchableOpacity
               className="w-11 h-11 rounded-full items-center justify-center"

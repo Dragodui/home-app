@@ -1,10 +1,12 @@
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { type FC, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   type FlatList as FlatListType,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  Platform,
   Pressable,
   Modal as RNModal,
   StyleSheet,
@@ -26,116 +28,6 @@ interface DatePickerProps {
   title?: string;
   confirmLabel?: string;
 }
-
-const WEEKDAYS_BY_LANGUAGE = {
-  en: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
-  pl: ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"],
-  de: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
-  fr: ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"],
-  it: ["Lu", "Ma", "Me", "Gi", "Ve", "Sa", "Do"],
-  uk: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"],
-  be: ["Пн", "Аў", "Ср", "Чц", "Пт", "Сб", "Нд"],
-} as const;
-const MONTHS_BY_LANGUAGE = {
-  en: [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ],
-  pl: [
-    "styczeń",
-    "luty",
-    "marzec",
-    "kwiecień",
-    "maj",
-    "czerwiec",
-    "lipiec",
-    "sierpień",
-    "wrzesień",
-    "październik",
-    "listopad",
-    "grudzień",
-  ],
-  de: [
-    "Januar",
-    "Februar",
-    "März",
-    "April",
-    "Mai",
-    "Juni",
-    "Juli",
-    "August",
-    "September",
-    "Oktober",
-    "November",
-    "Dezember",
-  ],
-  fr: [
-    "janvier",
-    "février",
-    "mars",
-    "avril",
-    "mai",
-    "juin",
-    "juillet",
-    "août",
-    "septembre",
-    "octobre",
-    "novembre",
-    "décembre",
-  ],
-  it: [
-    "gennaio",
-    "febbraio",
-    "marzo",
-    "aprile",
-    "maggio",
-    "giugno",
-    "luglio",
-    "agosto",
-    "settembre",
-    "ottobre",
-    "novembre",
-    "dicembre",
-  ],
-  uk: [
-    "січень",
-    "лютий",
-    "березень",
-    "квітень",
-    "травень",
-    "червень",
-    "липень",
-    "серпень",
-    "вересень",
-    "жовтень",
-    "листопад",
-    "грудень",
-  ],
-  be: [
-    "студзень",
-    "люты",
-    "сакавік",
-    "красавік",
-    "май",
-    "чэрвень",
-    "ліпень",
-    "жнівень",
-    "верасень",
-    "кастрычнік",
-    "лістапад",
-    "снежань",
-  ],
-} as const;
 
 // --- Компонент бесконечного барабана ---
 interface WheelPickerProps {
@@ -287,7 +179,7 @@ const DatePicker: FC<DatePickerProps> = ({
   confirmLabel = "Done",
 }) => {
   const { theme } = useTheme();
-  const { language } = useI18n();
+  const { t } = useI18n();
   const [viewDate, setViewDate] = useState(() => value ?? new Date());
   const [selectedDate, setSelectedDate] = useState(() => value ?? new Date());
   const [selectedHour, setSelectedHour] = useState(() => (value ?? new Date()).getHours());
@@ -307,8 +199,8 @@ const DatePicker: FC<DatePickerProps> = ({
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
-  const monthName = `${MONTHS_BY_LANGUAGE[language]?.[month] || MONTHS_BY_LANGUAGE.en[month]} ${year}`;
-  const weekdays = WEEKDAYS_BY_LANGUAGE[language] || WEEKDAYS_BY_LANGUAGE.en;
+  const monthName = `${t.common.months[month] || t.common.months[new Date().getMonth()]} ${year}`;
+  const weekdays = t.common.weekdaysShort;
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1);
@@ -465,27 +357,45 @@ const DatePicker: FC<DatePickerProps> = ({
           {/* Time picker */}
           {mode === "datetime" && (
             <View className="mt-4 pt-4" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
-              <View className="flex-row items-center justify-center gap-4">
-                <InfiniteWheelPicker
-                  items={HOURS}
-                  value={selectedHour}
-                  onChange={setSelectedHour}
-                  theme={theme}
-                  visible={visible}
-                />
+              {Platform.OS === "web" ? (
+                <View className="flex-row items-center justify-center gap-4">
+                  <InfiniteWheelPicker
+                    items={HOURS}
+                    value={selectedHour}
+                    onChange={setSelectedHour}
+                    theme={theme}
+                    visible={visible}
+                  />
 
-                <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
-                  :
-                </Text>
+                  <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
+                    :
+                  </Text>
 
-                <InfiniteWheelPicker
-                  items={MINUTES}
-                  value={selectedMinute}
-                  onChange={setSelectedMinute}
-                  theme={theme}
-                  visible={visible}
-                />
-              </View>
+                  <InfiniteWheelPicker
+                    items={MINUTES}
+                    value={selectedMinute}
+                    onChange={setSelectedMinute}
+                    theme={theme}
+                    visible={visible}
+                  />
+                </View>
+              ) : (
+                <View className="items-center">
+                  <DateTimePicker
+                    value={new Date(year, month, selectedDate.getDate(), selectedHour, selectedMinute)}
+                    mode="time"
+                    display="spinner"
+                    onChange={(_event, nextValue) => {
+                      if (!nextValue) return;
+                      setSelectedHour(nextValue.getHours());
+                      setSelectedMinute(nextValue.getMinutes());
+                    }}
+                    textColor={theme.text}
+                    accentColor={theme.accent.pink}
+                    themeVariant={theme.isDark ? "dark" : "light"}
+                  />
+                </View>
+              )}
             </View>
           )}
 

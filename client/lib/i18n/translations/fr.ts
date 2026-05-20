@@ -18,6 +18,8 @@ export default {
     copied: "Copié !",
     success: "Succès",
     all: "Tous",
+    months: ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+    weekdaysShort: ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"],
   },
 
   // Auth
