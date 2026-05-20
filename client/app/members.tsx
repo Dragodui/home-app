@@ -7,6 +7,7 @@ import { MembersSkeleton } from "@/components/skeletons";
 import { useAlert } from "@/components/ui/alert";
 import { homeApi } from "@/lib/api";
 import type { HomeMembership } from "@/lib/types";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
@@ -21,6 +22,7 @@ export default function MembersScreen() {
   const { home, isAdmin, removeMember } = useHome();
   const { user } = useAuth();
   const { alert } = useAlert();
+  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [members, setMembers] = useState<HomeMembership[]>([]);
   const [pendingMembers, setPendingMembers] = useState<HomeMembership[]>([]);
@@ -152,7 +154,11 @@ export default function MembersScreen() {
     const isMemberAdmin = member.role === "admin";
 
     return (
-      <View key={member.id} className="flex-row items-center p-4 rounded-20" style={{ backgroundColor: theme.surface }}>
+      <View
+        key={member.id}
+        className="flex-row items-center p-4 rounded-20"
+        style={{ backgroundColor: theme.surface, width: isDesktop ? "49%" : "100%" }}
+      >
         <TouchableOpacity
           className="flex-row items-center flex-1"
           activeOpacity={0.8}
@@ -279,9 +285,12 @@ export default function MembersScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: horizontalPadding,
           paddingBottom: 40,
           paddingTop: insets.top + 16,
+          width: "100%",
+          maxWidth: contentMaxWidth,
+          alignSelf: "center",
         }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
@@ -312,7 +321,12 @@ export default function MembersScreen() {
                 <Text className="text-lg font-manrope-bold mb-3" style={{ color: theme.text }}>
                   {t.members.pendingRequests} ({pendingMembers.length})
                 </Text>
-                <View className="gap-3">{pendingMembers.map((member) => renderMemberCard(member, true))}</View>
+                <View
+                  className="gap-3"
+                  style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+                >
+                  {pendingMembers.map((member) => renderMemberCard(member, true))}
+                </View>
               </View>
             )}
 
@@ -325,7 +339,12 @@ export default function MembersScreen() {
                 </Text>
               </View>
             ) : (
-              <View className="gap-3">{members.map((member) => renderMemberCard(member))}</View>
+              <View
+                className="gap-3"
+                style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+              >
+                {members.map((member) => renderMemberCard(member))}
+              </View>
             )}
           </>
         )}

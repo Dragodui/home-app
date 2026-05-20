@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { useGoogleAuth } from "@/lib/useGoogleAuth";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
@@ -18,6 +19,7 @@ export default function LoginScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
   const { show } = useToast();
+  const { horizontalPadding } = useResponsiveLayout();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +91,14 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: insets.top + 60 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingHorizontal: horizontalPadding,
+          paddingTop: insets.top + 60,
+          width: "100%",
+          maxWidth: 640,
+          alignSelf: "center",
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

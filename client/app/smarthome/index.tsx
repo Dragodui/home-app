@@ -21,6 +21,7 @@ import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
 import { type HAState, type SmartDevice, smarthomeApi } from "@/lib/api";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
@@ -32,6 +33,7 @@ export default function SmartHomeDashboard() {
   const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
+  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [devices, setDevices] = useState<SmartDevice[]>([]);
   const [deviceStates, setDeviceStates] = useState<Record<string, HAState>>({});
@@ -204,7 +206,10 @@ export default function SmartHomeDashboard() {
     const roomName = rooms.find((r) => r.id === item.roomId)?.name || "No Room";
 
     return (
-      <View className="flex-row items-center p-4 rounded-20 mb-3" style={{ backgroundColor: theme.surface }}>
+      <View
+        className="flex-row items-center p-4 rounded-20 mb-3"
+        style={{ backgroundColor: theme.surface, width: isDesktop ? "49%" : "100%" }}
+      >
         <View className="w-10 h-10 justify-center items-center bg-black/5 rounded-12 mr-4">
           {getIcon(item.type, 24, isOn ? theme.accent.yellow : theme.text)}
         </View>
@@ -265,7 +270,10 @@ export default function SmartHomeDashboard() {
   return (
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-6 mb-6" style={{ paddingTop: insets.top + 16 }}>
+      <View
+        className="flex-row items-center justify-between mb-6"
+        style={{ paddingTop: insets.top + 16, paddingHorizontal: horizontalPadding, width: "100%", maxWidth: contentMaxWidth, alignSelf: "center" }}
+      >
         <TouchableOpacity
           onPress={() => router.back()}
           className="w-12 h-12 rounded-16 justify-center items-center"
@@ -295,8 +303,8 @@ export default function SmartHomeDashboard() {
       {/* Status Banner */}
       {haStatus && (
         <View
-          className="mx-6 mb-6 p-4 rounded-20 flex-row items-center justify-between"
-          style={{ backgroundColor: haStatus.connected ? `${theme.accent.cyan}20` : `${theme.accent.danger}20` }}
+          className="mb-6 p-4 rounded-20 flex-row items-center justify-between"
+          style={{ width: "100%", maxWidth: contentMaxWidth, alignSelf: "center", backgroundColor: haStatus.connected ? `${theme.accent.cyan}20` : `${theme.accent.danger}20` }}
         >
           <View className="flex-row items-center gap-3">
             {haStatus.connected ? (
@@ -327,7 +335,7 @@ export default function SmartHomeDashboard() {
       )}
 
       {/* Content */}
-      <View className="flex-1 px-6">
+      <View className="flex-1" style={{ width: "100%", maxWidth: contentMaxWidth, alignSelf: "center", paddingHorizontal: horizontalPadding }}>
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
             All Devices
@@ -369,6 +377,9 @@ export default function SmartHomeDashboard() {
             data={devices}
             renderItem={renderDevice}
             keyExtractor={(item) => item.id.toString()}
+            key={isDesktop ? "desktop" : "mobile"}
+            numColumns={isDesktop ? 2 : 1}
+            columnWrapperStyle={isDesktop ? { justifyContent: "space-between", gap: 12 } : undefined}
             contentContainerStyle={{ paddingBottom: 40 }}
           />
         )}

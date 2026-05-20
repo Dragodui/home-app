@@ -5,6 +5,7 @@ import { ActivityIndicator, AppState, Text, TouchableOpacity, View } from "react
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Button from "@/components/ui/button";
 import { userApi } from "@/lib/api";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
@@ -16,6 +17,7 @@ export default function VerifyEmailScreen() {
   const { verifyEmail, resendVerification } = useAuth();
   const { t } = useI18n();
   const { theme } = useTheme();
+  const { horizontalPadding } = useResponsiveLayout();
 
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(status === "success");
@@ -87,7 +89,10 @@ export default function VerifyEmailScreen() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <View className="flex-1 px-8" style={{ backgroundColor: theme.background, paddingTop: insets.top + 40 }}>
+        <View
+          className="flex-1"
+          style={{ backgroundColor: theme.background, paddingTop: insets.top + 40, paddingHorizontal: horizontalPadding, width: "100%", maxWidth: 640, alignSelf: "center" }}
+        >
           <View className="flex-1 justify-center items-center pb-20">
             {loading ? (
               <ActivityIndicator size="large" color={theme.accent.purple} />
@@ -128,7 +133,10 @@ export default function VerifyEmailScreen() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <View className="flex-1 px-8" style={{ backgroundColor: theme.background, paddingTop: insets.top + 40 }}>
+        <View
+          className="flex-1"
+          style={{ backgroundColor: theme.background, paddingTop: insets.top + 40, paddingHorizontal: horizontalPadding, width: "100%", maxWidth: 640, alignSelf: "center" }}
+        >
           <View className="flex-1 justify-center items-center pb-20">
             <View
               className="w-24 h-24 rounded-full justify-center items-center mb-6"
@@ -161,7 +169,10 @@ export default function VerifyEmailScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 px-8" style={{ backgroundColor: theme.background, paddingTop: insets.top + 20 }}>
+      <View
+        className="flex-1"
+        style={{ backgroundColor: theme.background, paddingTop: insets.top + 20, paddingHorizontal: horizontalPadding, width: "100%", maxWidth: 640, alignSelf: "center" }}
+      >
         <TouchableOpacity
           className="w-12 h-12 rounded-3xl justify-center items-center"
           style={{ backgroundColor: theme.surface }}

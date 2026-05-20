@@ -8,6 +8,7 @@ import Card from "@/components/ui/card";
 import { billApi, notificationApi, pollApi, taskApi } from "@/lib/api";
 import { formatCurrencyAmount, getHomeCurrency } from "@/lib/currency";
 import type { Poll, TaskAssignment } from "@/lib/types";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
@@ -22,6 +23,7 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const { t } = useI18n();
   const homeCurrency = getHomeCurrency(home);
+  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [nextAssignment, setNextAssignment] = useState<TaskAssignment | null>(null);
   const [polls, setPolls] = useState<Poll[]>([]);
@@ -172,7 +174,14 @@ export default function HomeScreen() {
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: insets.top + 24 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: isDesktop ? 48 : 120,
+          paddingTop: insets.top + 24,
+          width: "100%",
+          maxWidth: contentMaxWidth,
+          alignSelf: "center",
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
         showsVerticalScrollIndicator={false}
       >
@@ -225,142 +234,146 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Hero Card - Up Next Task */}
-        <Card
-          variant="yellow"
-          borderRadius={32}
-          padding={28}
-          onPress={() => router.push("/(tabs)/tasks")}
-          className="mb-4"
-        >
-          <View className="flex-row justify-between items-start mb-4">
-            <Text className="text-xs font-manrope-bold tracking-widest text-black/40">{t.home.upNext}</Text>
-            <View className="w-12 h-12 rounded-24 bg-black/[0.08] justify-center items-center">
-              <Zap size={24} color="#1C1C1E" fill="#1C1C1E" />
-            </View>
+        <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 16, alignItems: "stretch" }}>
+          <View style={{ flex: isDesktop ? 1.35 : undefined }}>
+            {/* Hero Card - Up Next Task */}
+            <Card
+              variant="yellow"
+              borderRadius={32}
+              padding={28}
+              onPress={() => router.push("/(tabs)/tasks")}
+              className="mb-4"
+              style={{ minHeight: isDesktop ? 260 : undefined }}
+            >
+              <View className="flex-row justify-between items-start mb-4">
+                <Text className="text-xs font-manrope-bold tracking-widest text-black/40">{t.home.upNext}</Text>
+                <View className="w-12 h-12 rounded-24 bg-black/[0.08] justify-center items-center">
+                  <Zap size={24} color="#1C1C1E" fill="#1C1C1E" />
+                </View>
+              </View>
+              {nextAssignment ? (
+                <>
+                  <Text className="text-2xl font-manrope-extrabold text-primary leading-[34px] mb-6">
+                    {nextAssignment.task?.name || t.home.currentTask}
+                  </Text>
+                  <View className="flex-row justify-between items-center" style={{ marginTop: "auto" }}>
+                    <View className="bg-black/[0.08] px-4 py-3 rounded-14">
+                      <Text className="text-sm font-manrope-semibold text-primary">
+                        {formatTaskTime(nextAssignment.assignedDate)}
+                      </Text>
+                    </View>
+                    <ArrowRight size={24} color="#1C1C1E" />
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text className="text-2xl font-manrope-extrabold text-primary leading-[34px] mb-6">
+                    {t.home.allCaughtUp}
+                  </Text>
+                  <View className="flex-row justify-between items-center" style={{ marginTop: "auto" }}>
+                    <View className="bg-black/[0.08] px-4 py-3 rounded-14">
+                      <Text className="text-sm font-manrope-semibold text-primary">{t.home.noPendingTasks}</Text>
+                    </View>
+                    <ArrowRight size={24} color="#1C1C1E" />
+                  </View>
+                </>
+              )}
+            </Card>
+
+            {/* Smart Home Card */}
+            <Card
+              variant="surface"
+              borderRadius={28}
+              padding={20}
+              onPress={() => router.push("/smarthome")}
+              className="mb-4"
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-4">
+                  <View className="w-11 h-11 rounded-22 bg-accent-cyan justify-center items-center">
+                    <Zap size={22} color="#FFFFFF" />
+                  </View>
+                  <View>
+                    <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
+                      Smart Home
+                    </Text>
+                    <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
+                      Manage devices
+                    </Text>
+                  </View>
+                </View>
+                <ArrowRight size={20} color={theme.text} />
+              </View>
+            </Card>
           </View>
-          {nextAssignment ? (
-            <>
-              <Text className="text-2xl font-manrope-extrabold text-primary leading-[34px] mb-6">
-                {nextAssignment.task?.name || t.home.currentTask}
-              </Text>
-              <View className="flex-row justify-between items-center">
-                <View className="bg-black/[0.08] px-4 py-3 rounded-14">
-                  <Text className="text-sm font-manrope-semibold text-primary">
-                    {formatTaskTime(nextAssignment.assignedDate)}
+
+          <View style={{ flex: isDesktop ? 1 : undefined }}>
+            {/* Grid Cards */}
+            <View className="flex-row gap-3 mb-4">
+              <Card
+                variant="surface"
+                borderRadius={28}
+                padding={20}
+                onPress={() => router.push("/rooms")}
+                style={{ flex: 1, height: 180, justifyContent: "space-between" }}
+              >
+                <View
+                  className="w-11 h-11 rounded-22 border-2 justify-center items-center"
+                  style={{ borderColor: theme.borderLight }}
+                >
+                  <HomeIcon size={22} color={theme.text} />
+                </View>
+                <View className="flex-1 justify-end">
+                  <Text className="text-xl font-manrope-bold leading-[26px]" style={{ color: theme.text }}>
+                    {t.home.myRooms}
+                  </Text>
+                  <Text className="text-sm font-manrope mt-1" style={{ color: theme.textSecondary }}>
+                    {interpolate(t.home.spaces, { count: rooms.length })}
                   </Text>
                 </View>
-                <ArrowRight size={24} color="#1C1C1E" />
+              </Card>
+
+              <Card
+                variant="purple"
+                borderRadius={28}
+                padding={20}
+                onPress={() => router.push("/(tabs)/polls")}
+                style={{ flex: 1, height: 180, justifyContent: "space-between" }}
+              >
+                <View className="w-11 h-11 rounded-22 border-2 border-black/10 justify-center items-center">
+                  <BarChart2 size={22} color="#1C1C1E" />
+                </View>
+                <View className="flex-1 justify-end">
+                  <Text className="text-xl font-manrope-bold text-primary leading-[26px]">{t.home.activePolls}</Text>
+                  <Text className="text-sm font-manrope text-black/50 mt-1">
+                    {interpolate(t.home.pending, { count: polls.length })}
+                  </Text>
+                </View>
+              </Card>
+            </View>
+
+            <Card
+              variant="white"
+              borderRadius={32}
+              padding={28}
+              onPress={() => router.push("/(tabs)/budget")}
+              className="mb-6"
+            >
+              <View className="flex-row justify-between items-start mb-2">
+                <Text className="text-xs font-manrope-semibold text-muted tracking-widest">{t.home.monthlySpend}</Text>
               </View>
-            </>
-          ) : (
-            <>
-              <Text className="text-2xl font-manrope-extrabold text-primary leading-[34px] mb-6">
-                {t.home.allCaughtUp}
+              <Text className="text-5xl font-manrope-extrabold text-primary mb-5">
+                {formatCurrencyAmount(monthlySpend, homeCurrency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </Text>
               <View className="flex-row justify-between items-center">
-                <View className="bg-black/[0.08] px-4 py-3 rounded-14">
-                  <Text className="text-sm font-manrope-semibold text-primary">{t.home.noPendingTasks}</Text>
+                <View className="bg-accent-pink/15 px-4 py-3 rounded-14">
+                  <Text className="text-[13px] font-manrope-bold text-accent-pink">{t.home.totalExpenses}</Text>
                 </View>
                 <ArrowRight size={24} color="#1C1C1E" />
               </View>
-            </>
-          )}
-        </Card>
-
-        {/* Grid Cards */}
-        <View className="flex-row gap-3 mb-4">
-          {/* Rooms Card */}
-          <Card
-            variant="surface"
-            borderRadius={28}
-            padding={20}
-            onPress={() => router.push("/rooms")}
-            style={{ flex: 1, height: 180, justifyContent: "space-between" }}
-          >
-            <View
-              className="w-11 h-11 rounded-22 border-2 justify-center items-center"
-              style={{ borderColor: theme.borderLight }}
-            >
-              <HomeIcon size={22} color={theme.text} />
-            </View>
-            <View className="flex-1 justify-end">
-              <Text className="text-xl font-manrope-bold leading-[26px]" style={{ color: theme.text }}>
-                {t.home.myRooms}
-              </Text>
-              <Text className="text-sm font-manrope mt-1" style={{ color: theme.textSecondary }}>
-                {interpolate(t.home.spaces, { count: rooms.length })}
-              </Text>
-            </View>
-          </Card>
-
-          {/* Polls Card */}
-          <Card
-            variant="purple"
-            borderRadius={28}
-            padding={20}
-            onPress={() => router.push("/(tabs)/polls")}
-            style={{ flex: 1, height: 180, justifyContent: "space-between" }}
-          >
-            <View className="w-11 h-11 rounded-22 border-2 border-black/10 justify-center items-center">
-              <BarChart2 size={22} color="#1C1C1E" />
-            </View>
-            <View className="flex-1 justify-end">
-              <Text className="text-xl font-manrope-bold text-primary leading-[26px]">{t.home.activePolls}</Text>
-              <Text className="text-sm font-manrope text-black/50 mt-1">
-                {interpolate(t.home.pending, { count: polls.length })}
-              </Text>
-            </View>
-          </Card>
+            </Card>
+          </View>
         </View>
-
-        {/* Smart Home Card */}
-        <Card
-          variant="surface"
-          borderRadius={28}
-          padding={20}
-          onPress={() => router.push("/smarthome")}
-          className="mb-4"
-        >
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-4">
-              <View className="w-11 h-11 rounded-22 bg-accent-cyan justify-center items-center">
-                <Zap size={22} color="#FFFFFF" />
-              </View>
-              <View>
-                <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
-                  Smart Home
-                </Text>
-                <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                  Manage devices
-                </Text>
-              </View>
-            </View>
-            <ArrowRight size={20} color={theme.text} />
-          </View>
-        </Card>
-
-        {/* Budget Card */}
-        <Card
-          variant="white"
-          borderRadius={32}
-          padding={28}
-          onPress={() => router.push("/(tabs)/budget")}
-          className="mb-6"
-        >
-          <View className="flex-row justify-between items-start mb-2">
-            <Text className="text-xs font-manrope-semibold text-muted tracking-widest">{t.home.monthlySpend}</Text>
-          </View>
-          <Text className="text-5xl font-manrope-extrabold text-primary mb-5">
-            {formatCurrencyAmount(monthlySpend, homeCurrency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          </Text>
-          <View className="flex-row justify-between items-center">
-            <View className="bg-accent-pink/15 px-4 py-3 rounded-14">
-              <Text className="text-[13px] font-manrope-bold text-accent-pink">{t.home.totalExpenses}</Text>
-            </View>
-            <ArrowRight size={24} color="#1C1C1E" />
-          </View>
-        </Card>
       </ScrollView>
     </View>
   );

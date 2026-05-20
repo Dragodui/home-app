@@ -24,6 +24,7 @@ import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { imageApi } from "@/lib/api";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
@@ -38,6 +39,7 @@ export default function ProfileScreen() {
   const { t } = useI18n();
   const { alert } = useAlert();
   const { show } = useToast();
+  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -235,11 +237,19 @@ export default function ProfileScreen() {
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, paddingTop: insets.top + 40 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: isDesktop ? 48 : 120,
+          paddingTop: insets.top + 40,
+          width: "100%",
+          maxWidth: contentMaxWidth,
+          alignSelf: "center",
+        }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Avatar */}
-        <View className="items-center mb-10">
+        <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 24, alignItems: "stretch" }}>
+          {/* Profile Avatar */}
+          <View className="items-center mb-10" style={{ flex: isDesktop ? 0.9 : undefined }}>
           <TouchableOpacity
             className="w-[140px] h-[140px] rounded-full border-[3px] overflow-hidden mb-5"
             style={{ borderColor: theme.accent.purple }}
@@ -346,10 +356,11 @@ export default function ProfileScreen() {
               </View>
             </TouchableOpacity>
           )}
-        </View>
+          </View>
 
-        {/* Menu Items */}
-        <View className="gap-3 mb-8">
+          <View style={{ flex: isDesktop ? 1.1 : undefined }}>
+            {/* Menu Items */}
+            <View className="gap-3 mb-8">
           {MENU_ITEMS.map((item, index) => {
             const Icon = item.icon;
             return (
@@ -373,10 +384,10 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             );
           })}
-        </View>
+            </View>
 
-        {/* My Homes */}
-        <View className="mb-8">
+            {/* My Homes */}
+            <View className="mb-8">
           <Text
             className="text-[12px] font-manrope-bold tracking-widest mb-3 ml-1"
             style={{ color: theme.textSecondary }}
@@ -435,31 +446,33 @@ export default function ProfileScreen() {
               icon={<Plus size={18} color="#1C1C1E" />}
             />
           </View>
+            </View>
+
+            {/* Leave Home Button */}
+            {home && (
+              <TouchableOpacity
+                className="flex-row items-center justify-center gap-2.5 mb-3 py-[18px] rounded-[20px]"
+                style={{ backgroundColor: theme.accent.dangerLight }}
+                onPress={leaveHome}
+                activeOpacity={0.8}
+              >
+                <Text className="text-[16px] font-manrope-bold text-white">{t.auth.leaveHome}</Text>
+                <LogOut size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+
+            {/* Logout Button */}
+            <TouchableOpacity
+              className="flex-row items-center justify-center gap-2.5 py-[18px] rounded-[20px]"
+              style={{ backgroundColor: theme.accent.dangerLight }}
+              onPress={handleLogout}
+              activeOpacity={0.8}
+            >
+              <Text className="text-[16px] font-manrope-bold text-white">{t.auth.logOut}</Text>
+              <LogOut size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
-
-        {/* Leave Home Button */}
-        {home && (
-          <TouchableOpacity
-            className="flex-row items-center justify-center gap-2.5 mb-3 py-[18px] rounded-[20px]"
-            style={{ backgroundColor: theme.accent.dangerLight }}
-            onPress={leaveHome}
-            activeOpacity={0.8}
-          >
-            <Text className="text-[16px] font-manrope-bold text-white">{t.auth.leaveHome}</Text>
-            <LogOut size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        )}
-
-        {/* Logout Button */}
-        <TouchableOpacity
-          className="flex-row items-center justify-center gap-2.5 py-[18px] rounded-[20px]"
-          style={{ backgroundColor: theme.accent.dangerLight }}
-          onPress={handleLogout}
-          activeOpacity={0.8}
-        >
-          <Text className="text-[16px] font-manrope-bold text-white">{t.auth.logOut}</Text>
-          <LogOut size={20} color="#FFFFFF" />
-        </TouchableOpacity>
       </ScrollView>
 
       {/* Create Home Modal */}

@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { notificationApi } from "@/lib/api";
 import type { HomeNotification, Notification } from "@/lib/types";
 import { getPushState, subscribeToPush, isPushSupported, type PushPermissionState } from "@/lib/pushUtils";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
@@ -24,6 +25,7 @@ export default function NotificationsScreen() {
   const { home } = useHome();
   const { user } = useAuth();
   const { show } = useToast();
+  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [notifications, setNotifications] = useState<(Notification | HomeNotification)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -192,7 +194,14 @@ export default function NotificationsScreen() {
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: insets.top + 16 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: 40,
+          paddingTop: insets.top + 16,
+          width: "100%",
+          maxWidth: contentMaxWidth,
+          alignSelf: "center",
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
         showsVerticalScrollIndicator={false}
       >
@@ -263,85 +272,89 @@ export default function NotificationsScreen() {
             </Text>
           </View>
         ) : (
-          <View className="gap-3">
+          <View
+            className="gap-3"
+            style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+          >
             {notifications.map((notification) => (
-              <Swipeable
-                key={getSwipeableKey(notification)}
-                ref={(ref) => {
-                  swipeRefs.current[getSwipeableKey(notification)] = ref;
-                }}
-                overshootLeft={false}
-                overshootRight={false}
-                onSwipeableOpen={(direction) => {
-                  if (direction === "left") {
-                    closeSwipeable(notification);
-                    handleDelete(notification);
-                    return;
-                  }
-                  if (direction === "right" && !notification.read) {
-                    closeSwipeable(notification);
-                    handleMarkAsRead(notification);
-                  }
-                }}
-                renderLeftActions={() => (
-                  <TouchableOpacity
-                    className="justify-center items-center rounded-l-16 px-5 mb-1"
-                    style={{ backgroundColor: theme.accent.pink }}
-                    onPress={() => {
+              <View key={getSwipeableKey(notification)} style={{ width: isDesktop ? "49%" : "100%" }}>
+                <Swipeable
+                  ref={(ref) => {
+                    swipeRefs.current[getSwipeableKey(notification)] = ref;
+                  }}
+                  overshootLeft={false}
+                  overshootRight={false}
+                  onSwipeableOpen={(direction) => {
+                    if (direction === "left") {
                       closeSwipeable(notification);
                       handleDelete(notification);
-                    }}
-                  >
-                    <Trash2 size={18} color="#1C1C1E" />
-                    <Text className="text-xs font-manrope-semibold mt-1" style={{ color: "#1C1C1E" }}>
-                      Delete
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                renderRightActions={() =>
-                  notification.read ? null : (
+                      return;
+                    }
+                    if (direction === "right" && !notification.read) {
+                      closeSwipeable(notification);
+                      handleMarkAsRead(notification);
+                    }
+                  }}
+                  renderLeftActions={() => (
                     <TouchableOpacity
-                      className="justify-center items-center rounded-r-16 px-5 mb-1"
-                      style={{ backgroundColor: theme.accent.mint }}
+                      className="justify-center items-center rounded-l-16 px-5 mb-1"
+                      style={{ backgroundColor: theme.accent.pink }}
                       onPress={() => {
                         closeSwipeable(notification);
-                        handleMarkAsRead(notification);
+                        handleDelete(notification);
                       }}
                     >
-                      <Check size={18} color="#1C1C1E" />
+                      <Trash2 size={18} color="#1C1C1E" />
                       <Text className="text-xs font-manrope-semibold mt-1" style={{ color: "#1C1C1E" }}>
-                        Read
+                        Delete
                       </Text>
                     </TouchableOpacity>
-                  )
-                }
-              >
-                <View
-                  className="p-4 rounded-16 mb-1"
-                  style={{
-                    backgroundColor: theme.surface,
-                    borderLeftWidth: !notification.read ? 3 : 0,
-                    borderLeftColor: !notification.read ? theme.accent.purple : undefined,
-                  }}
+                  )}
+                  renderRightActions={() =>
+                    notification.read ? null : (
+                      <TouchableOpacity
+                        className="justify-center items-center rounded-r-16 px-5 mb-1"
+                        style={{ backgroundColor: theme.accent.mint }}
+                        onPress={() => {
+                          closeSwipeable(notification);
+                          handleMarkAsRead(notification);
+                        }}
+                      >
+                        <Check size={18} color="#1C1C1E" />
+                        <Text className="text-xs font-manrope-semibold mt-1" style={{ color: "#1C1C1E" }}>
+                          Read
+                        </Text>
+                      </TouchableOpacity>
+                    )
+                  }
                 >
-                  <View className="flex-row items-start gap-3">
-                    <View
-                      className="w-10 h-10 rounded-full justify-center items-center"
-                      style={{ backgroundColor: theme.accent.purple }}
-                    >
-                      <Bell size={18} color="#1C1C1E" />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-15 font-manrope-medium mb-1" style={{ color: theme.text, lineHeight: 22 }}>
-                        {notification.description}
-                      </Text>
-                      <Text className="text-13 font-manrope" style={{ color: theme.textSecondary }}>
-                        {formatDate(notification.createdAt)}
-                      </Text>
+                  <View
+                    className="p-4 rounded-16 mb-1"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderLeftWidth: !notification.read ? 3 : 0,
+                      borderLeftColor: !notification.read ? theme.accent.purple : undefined,
+                    }}
+                  >
+                    <View className="flex-row items-start gap-3">
+                      <View
+                        className="w-10 h-10 rounded-full justify-center items-center"
+                        style={{ backgroundColor: theme.accent.purple }}
+                      >
+                        <Bell size={18} color="#1C1C1E" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-15 font-manrope-medium mb-1" style={{ color: theme.text, lineHeight: 22 }}>
+                          {notification.description}
+                        </Text>
+                        <Text className="text-13 font-manrope" style={{ color: theme.textSecondary }}>
+                          {formatDate(notification.createdAt)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-              </Swipeable>
+                </Swipeable>
+              </View>
             ))}
           </View>
         )}
