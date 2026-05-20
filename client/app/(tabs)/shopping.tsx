@@ -29,7 +29,7 @@ import {
   Wine,
   Wrench,
 } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ShoppingSkeleton } from "@/components/skeletons";
@@ -210,6 +210,7 @@ export default function ShoppingScreen() {
   const [showEditItemModal, setShowEditItemModal] = useState(false);
   const [editItemName, setEditItemName] = useState("");
   const [savingItemEdit, setSavingItemEdit] = useState(false);
+  const suppressRealtimeRefreshUntilRef = useRef(0);
 
   const loadShoppingData = useCallback(async () => {
     if (!home) {
@@ -242,7 +243,14 @@ export default function ShoppingScreen() {
     loadShoppingData();
   }, [loadShoppingData]);
 
-  useRealtimeRefresh(["SHOPPING_CATEGORY", "SHOPPING_ITEM"], loadShoppingData);
+  const handleRealtimeRefresh = useCallback(() => {
+    if (Date.now() < suppressRealtimeRefreshUntilRef.current) {
+      return;
+    }
+    loadShoppingData();
+  }, [loadShoppingData]);
+
+  useRealtimeRefresh(["SHOPPING_CATEGORY", "SHOPPING_ITEM"], handleRealtimeRefresh);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -355,6 +363,7 @@ export default function ShoppingScreen() {
 
     const previousCategoryItems = categoryItems;
     const nowIso = new Date().toISOString();
+    suppressRealtimeRefreshUntilRef.current = Date.now() + 1200;
 
     setItems((prev) => ({
       ...prev,
@@ -375,6 +384,7 @@ export default function ShoppingScreen() {
       await shoppingApi.markBought(home.id, itemId);
     } catch (error) {
       console.error("Error toggling item:", error);
+      suppressRealtimeRefreshUntilRef.current = 0;
       setItems((prev) => ({
         ...prev,
         [categoryId]: previousCategoryItems,
