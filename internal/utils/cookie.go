@@ -8,8 +8,8 @@ const (
 	// AuthCookieName is the name of the authentication cookie
 	AuthCookieName = "auth_token"
 
-	// AuthCookieMaxAge is the maximum age of the auth cookie (24 hours)
-	AuthCookieMaxAge = 24 * 60 * 60 // 24 hours in seconds
+	// AuthCookieMaxAge is the maximum age of the auth cookie (30 days)
+	AuthCookieMaxAge = 30 * 24 * 60 * 60 // 30 days in seconds
 )
 
 // SetAuthCookie sets a secure HTTP-only cookie with the JWT token
