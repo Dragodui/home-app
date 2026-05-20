@@ -196,7 +196,7 @@ export default function ProfileScreen() {
     },
     {
       icon: User,
-      label: "My stats",
+      label: t.profile.myStats,
       color: theme.accent.purple,
       onPress: () =>
         user &&
@@ -207,7 +207,7 @@ export default function ProfileScreen() {
     },
     {
       icon: Zap,
-      label: "Smart Home",
+      label: t.profile.smartHome,
       color: theme.accent.cyan,
       onPress: () => router.push("/smarthome"),
     },

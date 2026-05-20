@@ -52,6 +52,7 @@ export interface Task {
   description: string;
   scheduleType: string;
   dueDate?: string;
+  reminderMinutes: number;
   createdAt: string;
   room?: Room;
   assignments?: TaskAssignment[];
@@ -84,6 +85,7 @@ export interface TaskAssignment {
   status: "assigned" | "completed";
   assignedDate: string;
   completeDate?: string;
+  reminderSentAt?: string;
   createdAt: string;
   task?: Task;
   user?: User;
@@ -239,6 +241,7 @@ export interface CreateTaskForm {
   description: string;
   scheduleType: string;
   dueDate?: string;
+  reminderMinutes?: number;
   homeId: number;
   roomId?: number;
   assignUserIds?: number[];

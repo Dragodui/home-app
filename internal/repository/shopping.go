@@ -80,8 +80,13 @@ func (r *shoppingRepo) CreateItem(ctx context.Context, i *models.ShoppingItem) e
 
 func (r *shoppingRepo) FindItemsByCategoryID(ctx context.Context, id int) ([]models.ShoppingItem, error) {
 	var items []models.ShoppingItem
-	// Use Find() instead of First() to get all items, not just one
-	if err := r.db.WithContext(ctx).Preload("User").Where("category_id = ?", id).Find(&items).Error; err != nil {
+	if err := r.db.WithContext(ctx).
+		Preload("User").
+		Where("category_id = ?", id).
+		Order("CASE WHEN is_bought THEN 1 ELSE 0 END ASC").
+		Order("CASE WHEN is_bought THEN bought_date END DESC NULLS LAST").
+		Order("CASE WHEN is_bought THEN NULL ELSE created_at END ASC").
+		Find(&items).Error; err != nil {
 		return nil, err
 	}
 

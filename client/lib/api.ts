@@ -427,7 +427,7 @@ export const taskApi = {
   update: async (
     homeId: number,
     taskId: number,
-    data: { name?: string; description?: string; roomId?: number; dueDate?: string },
+    data: { name?: string; description?: string; roomId?: number; dueDate?: string; reminderMinutes?: number },
   ): Promise<{ message: string }> => {
     const response = await api.put<{ status: boolean; message: string }>(`/homes/${homeId}/tasks/${taskId}`, data);
     return { message: response.data.message };

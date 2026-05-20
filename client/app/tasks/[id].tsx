@@ -70,6 +70,12 @@ export default function TaskDetailScreen() {
     return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   }, [task?.dueDate, t.tasks.noDueDate]);
 
+  const reminderText = useMemo(() => {
+    if (!task?.dueDate) return t.tasks.noReminder;
+    if ((task.reminderMinutes ?? 30) === 0) return t.tasks.reminderAtDue;
+    return `${task.reminderMinutes ?? 30} ${t.tasks.reminderMinutesSuffix}`;
+  }, [task?.dueDate, task?.reminderMinutes, t.tasks.noReminder, t.tasks.reminderAtDue, t.tasks.reminderMinutesSuffix]);
+
   const assigneesText = useMemo(() => {
     if (!task?.assignments?.length) return t.tasks.unassigned;
     const names = task.assignments.map((assignment) => assignment.user?.name).filter(Boolean) as string[];
@@ -191,7 +197,7 @@ export default function TaskDetailScreen() {
           </Text>
         </View>
 
-        <View className="rounded-3xl p-5 mb-4 gap-3" style={{ backgroundColor: theme.surface }}>
+          <View className="rounded-3xl p-5 mb-4 gap-3" style={{ backgroundColor: theme.surface }}>
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <Calendar size={16} color={theme.textSecondary} />
@@ -231,7 +237,7 @@ export default function TaskDetailScreen() {
             </Text>
           </View>
 
-          {task.room && (
+            {task.room && (
             <View className="flex-row items-center justify-between">
               <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
                 {t.tasks.room}
@@ -257,8 +263,16 @@ export default function TaskDetailScreen() {
                 {scheduleLabel}
               </Text>
             </View>
-          )}
-        </View>
+            )}
+            <View className="flex-row items-center justify-between">
+              <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                {t.tasks.reminderLabel}
+              </Text>
+              <Text className="text-sm font-manrope-semibold text-right flex-1 ml-3" style={{ color: theme.text }}>
+                {reminderText}
+              </Text>
+            </View>
+          </View>
 
         <Button
           title={completed ? "Undo complete" : t.tasks.complete}

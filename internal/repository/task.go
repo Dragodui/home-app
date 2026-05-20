@@ -21,10 +21,13 @@ type TaskRepository interface {
 	AssignUser(ctx context.Context, taskID, userID int, date time.Time) error
 	FindAssignmentsForUser(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
 	FindClosestAssignmentForUser(ctx context.Context, userID int) (*models.TaskAssignment, error)
+	FindAssignmentsNeedingReminder(ctx context.Context, windowStart, windowEnd time.Time) ([]models.TaskAssignment, error)
 	FindAssignmentByTaskAndUser(ctx context.Context, taskID, userID int) (*models.TaskAssignment, error)
 	FindAssignmentByID(ctx context.Context, assignmentID int) (*models.TaskAssignment, error)
 	MarkCompleted(ctx context.Context, assignmentID int) error
 	MarkUncompleted(ctx context.Context, assignmentID int) error
+	MarkReminderSent(ctx context.Context, assignmentID int, sentAt time.Time) error
+	ResetReminderStateForTask(ctx context.Context, taskID int) error
 	FindUserByAssignmentID(ctx context.Context, assignmentID int) (*models.User, error)
 	DeleteAssignment(ctx context.Context, assignmentID int) error
 }
@@ -125,6 +128,26 @@ func (r *taskRepo) FindClosestAssignmentForUser(ctx context.Context, userID int)
 	return &assignment, nil
 }
 
+func (r *taskRepo) FindAssignmentsNeedingReminder(ctx context.Context, windowStart, windowEnd time.Time) ([]models.TaskAssignment, error) {
+	var assignments []models.TaskAssignment
+
+	err := r.db.WithContext(ctx).
+		Model(&models.TaskAssignment{}).
+		Preload("Task").
+		Where("task_assignments.status != ?", "completed").
+		Where("task_assignments.reminder_sent_at IS NULL").
+		Joins("JOIN tasks ON task_assignments.task_id = tasks.id").
+		Where("tasks.due_date IS NOT NULL").
+		Where("(tasks.due_date - (tasks.reminder_minutes * interval '1 minute')) > ?", windowStart).
+		Where("(tasks.due_date - (tasks.reminder_minutes * interval '1 minute')) <= ?", windowEnd).
+		Find(&assignments).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return assignments, nil
+}
+
 func (r *taskRepo) MarkUncompleted(ctx context.Context, assignmentID int) error {
 	var assignment models.TaskAssignment
 	if err := r.db.WithContext(ctx).First(&assignment, assignmentID).Error; err != nil {
@@ -139,6 +162,20 @@ func (r *taskRepo) MarkUncompleted(ctx context.Context, assignmentID int) error 
 	}
 
 	return nil
+}
+
+func (r *taskRepo) MarkReminderSent(ctx context.Context, assignmentID int, sentAt time.Time) error {
+	return r.db.WithContext(ctx).
+		Model(&models.TaskAssignment{}).
+		Where("id = ?", assignmentID).
+		Update("reminder_sent_at", sentAt).Error
+}
+
+func (r *taskRepo) ResetReminderStateForTask(ctx context.Context, taskID int) error {
+	return r.db.WithContext(ctx).
+		Model(&models.TaskAssignment{}).
+		Where("task_id = ? AND status != ?", taskID, "completed").
+		Update("reminder_sent_at", nil).Error
 }
 
 func (r *taskRepo) FindAssignmentByTaskAndUser(ctx context.Context, taskID, userID int) (*models.TaskAssignment, error) {

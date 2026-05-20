@@ -16,21 +16,24 @@ import (
 
 // Mock TaskRepository
 type mockTaskRepo struct {
-	CreateFunc                       func(ctx context.Context, t *models.Task) error
-	FindByIDFunc                     func(ctx context.Context, id int) (*models.Task, error)
-	FindByHomeIDFunc                 func(ctx context.Context, homeID int) (*[]models.Task, error)
-	UpdateFunc                       func(ctx context.Context, t *models.Task) error
-	DeleteFunc                       func(ctx context.Context, id int) error
-	ReassignRoomFunc                 func(ctx context.Context, taskID, roomID int) error
-	AssignUserFunc                   func(ctx context.Context, taskID, userID int, date time.Time) error
-	FindAssignmentsForUserFunc       func(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
-	FindClosestAssignmentForUserFunc func(ctx context.Context, userID int) (*models.TaskAssignment, error)
-	FindAssignmentByTaskAndUserFunc  func(ctx context.Context, taskID, userID int) (*models.TaskAssignment, error)
-	FindAssignmentByIDFunc           func(ctx context.Context, assignmentID int) (*models.TaskAssignment, error)
-	MarkCompletedFunc                func(ctx context.Context, assignmentID int) error
-	MarkUncompletedFunc              func(ctx context.Context, assignmentID int) error
-	FindUserByAssignmentIDFunc       func(ctx context.Context, assignmentID int) (*models.User, error)
-	DeleteAssignmentFunc             func(ctx context.Context, assignmentID int) error
+	CreateFunc                         func(ctx context.Context, t *models.Task) error
+	FindByIDFunc                       func(ctx context.Context, id int) (*models.Task, error)
+	FindByHomeIDFunc                   func(ctx context.Context, homeID int) (*[]models.Task, error)
+	UpdateFunc                         func(ctx context.Context, t *models.Task) error
+	DeleteFunc                         func(ctx context.Context, id int) error
+	ReassignRoomFunc                   func(ctx context.Context, taskID, roomID int) error
+	AssignUserFunc                     func(ctx context.Context, taskID, userID int, date time.Time) error
+	FindAssignmentsForUserFunc         func(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
+	FindClosestAssignmentForUserFunc   func(ctx context.Context, userID int) (*models.TaskAssignment, error)
+	FindAssignmentsNeedingReminderFunc func(ctx context.Context, windowStart, windowEnd time.Time) ([]models.TaskAssignment, error)
+	FindAssignmentByTaskAndUserFunc    func(ctx context.Context, taskID, userID int) (*models.TaskAssignment, error)
+	FindAssignmentByIDFunc             func(ctx context.Context, assignmentID int) (*models.TaskAssignment, error)
+	MarkCompletedFunc                  func(ctx context.Context, assignmentID int) error
+	MarkUncompletedFunc                func(ctx context.Context, assignmentID int) error
+	MarkReminderSentFunc               func(ctx context.Context, assignmentID int, sentAt time.Time) error
+	ResetReminderStateForTaskFunc      func(ctx context.Context, taskID int) error
+	FindUserByAssignmentIDFunc         func(ctx context.Context, assignmentID int) (*models.User, error)
+	DeleteAssignmentFunc               func(ctx context.Context, assignmentID int) error
 }
 
 func (m *mockTaskRepo) Create(ctx context.Context, t *models.Task) error {
@@ -96,6 +99,13 @@ func (m *mockTaskRepo) FindClosestAssignmentForUser(ctx context.Context, userID 
 	return nil, nil
 }
 
+func (m *mockTaskRepo) FindAssignmentsNeedingReminder(ctx context.Context, windowStart, windowEnd time.Time) ([]models.TaskAssignment, error) {
+	if m.FindAssignmentsNeedingReminderFunc != nil {
+		return m.FindAssignmentsNeedingReminderFunc(ctx, windowStart, windowEnd)
+	}
+	return nil, nil
+}
+
 func (m *mockTaskRepo) FindAssignmentByTaskAndUser(ctx context.Context, taskID, userID int) (*models.TaskAssignment, error) {
 	if m.FindAssignmentByTaskAndUserFunc != nil {
 		return m.FindAssignmentByTaskAndUserFunc(ctx, taskID, userID)
@@ -120,6 +130,20 @@ func (m *mockTaskRepo) MarkCompleted(ctx context.Context, assignmentID int) erro
 func (m *mockTaskRepo) MarkUncompleted(ctx context.Context, assignmentID int) error {
 	if m.MarkUncompletedFunc != nil {
 		return m.MarkUncompletedFunc(ctx, assignmentID)
+	}
+	return nil
+}
+
+func (m *mockTaskRepo) MarkReminderSent(ctx context.Context, assignmentID int, sentAt time.Time) error {
+	if m.MarkReminderSentFunc != nil {
+		return m.MarkReminderSentFunc(ctx, assignmentID, sentAt)
+	}
+	return nil
+}
+
+func (m *mockTaskRepo) ResetReminderStateForTask(ctx context.Context, taskID int) error {
+	if m.ResetReminderStateForTaskFunc != nil {
+		return m.ResetReminderStateForTaskFunc(ctx, taskID)
 	}
 	return nil
 }
@@ -162,7 +186,7 @@ func TestTaskService_CreateTask_Success(t *testing.T) {
 	}
 
 	svc := setupTaskService(t, repo)
-	err := svc.CreateTask(context.Background(), 1, &roomID, "Clean Kitchen", "Deep clean the kitchen", "once", &dueDate, 1, nil)
+	err := svc.CreateTask(context.Background(), 1, &roomID, "Clean Kitchen", "Deep clean the kitchen", "once", &dueDate, nil, 1, nil)
 	assert.NoError(t, err)
 }
 
@@ -182,7 +206,7 @@ func TestTaskService_CreateTask_WithMultipleUsers(t *testing.T) {
 	}
 
 	svc := setupTaskService(t, repo)
-	err := svc.CreateTask(context.Background(), 1, nil, "Shared Task", "For multiple users", "once", nil, 1, []int{2, 3, 5})
+	err := svc.CreateTask(context.Background(), 1, nil, "Shared Task", "For multiple users", "once", nil, nil, 1, []int{2, 3, 5})
 	assert.NoError(t, err)
 	assert.Equal(t, []int{2, 3, 5}, assignedUsers)
 }
@@ -197,7 +221,7 @@ func TestTaskService_CreateTask_WithoutRoomID(t *testing.T) {
 	}
 
 	svc := setupTaskService(t, repo)
-	err := svc.CreateTask(context.Background(), 1, nil, "General Task", "Not room-specific", "weekly", nil, 1, nil)
+	err := svc.CreateTask(context.Background(), 1, nil, "General Task", "Not room-specific", "weekly", nil, nil, 1, nil)
 	assert.NoError(t, err)
 }
 
@@ -209,7 +233,7 @@ func TestTaskService_CreateTask_RepositoryError(t *testing.T) {
 	}
 
 	svc := setupTaskService(t, repo)
-	err := svc.CreateTask(context.Background(), 1, nil, "Task", "Description", "once", nil, 1, nil)
+	err := svc.CreateTask(context.Background(), 1, nil, "Task", "Description", "once", nil, nil, 1, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "database error")
 }

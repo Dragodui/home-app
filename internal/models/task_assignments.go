@@ -5,13 +5,14 @@ import (
 )
 
 type TaskAssignment struct {
-	ID           int        `gorm:"autoIncrement; primaryKey" json:"id"`
-	TaskID       int        `gorm:"not null" json:"task_id"`
-	UserID       int        `gorm:"not null" json:"user_id"`
-	Status       string     `gorm:"not null;size:64;default:assigned" json:"status"`
-	AssignedDate time.Time  `gorm:"autoCreateTime" json:"assigned_date"`
-	CompleteDate *time.Time `json:"complete_date"`
-	CreatedAt    time.Time  `gorm:"autoCreateTime" json:"created_at"`
+	ID             int        `gorm:"autoIncrement; primaryKey" json:"id"`
+	TaskID         int        `gorm:"not null" json:"task_id"`
+	UserID         int        `gorm:"not null" json:"user_id"`
+	Status         string     `gorm:"not null;size:64;default:assigned" json:"status"`
+	AssignedDate   time.Time  `gorm:"autoCreateTime" json:"assigned_date"`
+	CompleteDate   *time.Time `json:"complete_date"`
+	ReminderSentAt *time.Time `json:"reminder_sent_at"`
+	CreatedAt      time.Time  `gorm:"autoCreateTime" json:"created_at"`
 
 	// relations
 	Task *Task `gorm:"foreignKey:TaskID;constraint:OnDelete:CASCADE" json:"task,omitempty"`

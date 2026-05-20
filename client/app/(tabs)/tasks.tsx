@@ -43,6 +43,7 @@ export default function TasksScreen() {
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  const [reminderMinutesInput, setReminderMinutesInput] = useState("30");
   const [creating, setCreating] = useState(false);
 
   // Schedule modal state
@@ -59,8 +60,17 @@ export default function TasksScreen() {
   const [editTaskDescription, setEditTaskDescription] = useState("");
   const [editTaskRoomId, setEditTaskRoomId] = useState<number | null>(null);
   const [editTaskDate, setEditTaskDate] = useState<Date | null>(null);
+  const [editReminderMinutesInput, setEditReminderMinutesInput] = useState("30");
   const [savingEditTask, setSavingEditTask] = useState(false);
   const [isEditDatePickerVisible, setIsEditDatePickerVisible] = useState(false);
+
+  const parseReminderMinutes = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return 30;
+    const parsed = Number.parseInt(trimmed, 10);
+    if (Number.isNaN(parsed) || parsed < 0) return 30;
+    return parsed;
+  };
 
   const loadTasks = useCallback(async () => {
     if (!home || !user) {
@@ -173,6 +183,7 @@ export default function TasksScreen() {
         description: newTaskDescription.trim(),
         scheduleType: "once",
         dueDate: selectedDate ? selectedDate.toISOString() : undefined,
+        reminderMinutes: parseReminderMinutes(reminderMinutesInput),
         homeId: home.id,
         roomId: selectedRoomId || undefined,
         assignUserIds: selectedUserIds.length > 0 ? selectedUserIds : undefined,
@@ -183,6 +194,7 @@ export default function TasksScreen() {
       setSelectedDate(null);
       setSelectedRoomId(null);
       setSelectedUserIds([]);
+      setReminderMinutesInput("30");
       setShowCreateModal(false);
       await loadTasks();
     } catch (error) {
@@ -212,6 +224,7 @@ export default function TasksScreen() {
     setEditTaskDescription(task.description || "");
     setEditTaskRoomId(task.roomId ?? null);
     setEditTaskDate(task.dueDate ? new Date(task.dueDate) : null);
+    setEditReminderMinutesInput(String(task.reminderMinutes ?? 30));
     setShowEditTaskModal(true);
   };
 
@@ -224,6 +237,7 @@ export default function TasksScreen() {
         description: editTaskDescription.trim(),
         roomId: editTaskRoomId || undefined,
         dueDate: editTaskDate ? editTaskDate.toISOString() : undefined,
+        reminderMinutes: parseReminderMinutes(editReminderMinutesInput),
       });
       setShowEditTaskModal(false);
       setEditingTaskId(null);
@@ -339,6 +353,12 @@ export default function TasksScreen() {
     return t.tasks.noDueDate;
   };
 
+  const getReminderText = (task: Task) => {
+    if (!task.dueDate) return null;
+    if (task.reminderMinutes === 0) return t.tasks.reminderAtDue;
+    return `${task.reminderMinutes} ${t.tasks.reminderMinutesSuffix}`;
+  };
+
   const getTaskCompletedDate = (task: Task) => {
     let assignment = task.assignments?.find((a) => a.userId === user?.id);
     if (!assignment) {
@@ -440,6 +460,16 @@ export default function TasksScreen() {
                     {getTaskDueText(task)}
                   </Text>
                 </View>
+                {getReminderText(task) && (
+                  <>
+                    <Text className="text-[10px]" style={{ color: theme.textSecondary }}>
+                      •
+                    </Text>
+                    <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                      {t.tasks.reminderLabel}: {getReminderText(task)}
+                    </Text>
+                  </>
+                )}
                 {completed && completedDate && (
                   <>
                     <Text className="text-[10px]" style={{ color: theme.textSecondary }}>
@@ -593,6 +623,14 @@ export default function TasksScreen() {
               title={t.tasks.selectDateTime}
             />
           </View>
+
+          <Input
+            label={t.tasks.reminderBefore}
+            placeholder="30"
+            value={reminderMinutesInput}
+            onChangeText={(value) => setReminderMinutesInput(value.replace(/[^0-9]/g, ""))}
+            keyboardType="number-pad"
+          />
 
           {rooms.length > 0 && (
             <View className="mb-6">
@@ -826,6 +864,14 @@ export default function TasksScreen() {
             value={editTaskDate ?? undefined}
             mode="datetime"
             title={t.tasks.selectDateTime}
+          />
+
+          <Input
+            label={t.tasks.reminderBefore}
+            placeholder="30"
+            value={editReminderMinutesInput}
+            onChangeText={(value) => setEditReminderMinutesInput(value.replace(/[^0-9]/g, ""))}
+            keyboardType="number-pad"
           />
 
           {rooms.length > 0 && (

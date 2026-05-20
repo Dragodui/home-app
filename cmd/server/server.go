@@ -162,6 +162,7 @@ func NewServer() (*Server, error) {
 
 	// Start task schedule processor (checks every minute for due schedules)
 	go runTaskScheduler(taskScheduleSvc)
+	go runTaskReminderScheduler(taskSvc)
 
 	httpServer := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -227,6 +228,17 @@ func runTaskScheduler(svc *services.TaskScheduleService) {
 		ctx := context.Background()
 		if err := svc.ProcessDueSchedules(ctx); err != nil {
 			logger.Info.Printf("[Scheduler] Error processing due schedules: %v", err)
+		}
+	}
+}
+
+func runTaskReminderScheduler(svc *services.TaskService) {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		ctx := context.Background()
+		if err := svc.ProcessTaskReminders(ctx); err != nil {
+			logger.Info.Printf("[TaskReminderScheduler] Error processing reminders: %v", err)
 		}
 	}
 }

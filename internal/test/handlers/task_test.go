@@ -20,10 +20,10 @@ import (
 
 // Mock service
 type mockTaskService struct {
-	CreateTaskFunc                  func(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, createdBy int, userIDs []int) error
+	CreateTaskFunc                  func(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, reminderMinutes *int, createdBy int, userIDs []int) error
 	GetTaskByIDFunc                 func(ctx context.Context, taskID int) (*models.Task, error)
 	GetTasksByHomeIDFunc            func(ctx context.Context, homeID int) (*[]models.Task, error)
-	UpdateTaskFunc                  func(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time) error
+	UpdateTaskFunc                  func(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time, reminderMinutes *int) error
 	DeleteTaskFunc                  func(ctx context.Context, taskID int) error
 	AssignUserFunc                  func(ctx context.Context, taskID, userID, homeID int, date time.Time) error
 	GetAssignmentsForUserFunc       func(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
@@ -35,9 +35,9 @@ type mockTaskService struct {
 	ReassignRoomFunc                func(ctx context.Context, taskID, roomID int) error
 }
 
-func (m *mockTaskService) CreateTask(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, createdBy int, userIDs []int) error {
+func (m *mockTaskService) CreateTask(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, reminderMinutes *int, createdBy int, userIDs []int) error {
 	if m.CreateTaskFunc != nil {
-		return m.CreateTaskFunc(ctx, homeID, roomID, name, description, scheduleType, dueDate, createdBy, userIDs)
+		return m.CreateTaskFunc(ctx, homeID, roomID, name, description, scheduleType, dueDate, reminderMinutes, createdBy, userIDs)
 	}
 	return nil
 }
@@ -63,9 +63,9 @@ func (m *mockTaskService) DeleteTask(ctx context.Context, taskID int) error {
 	return nil
 }
 
-func (m *mockTaskService) UpdateTask(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time) error {
+func (m *mockTaskService) UpdateTask(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time, reminderMinutes *int) error {
 	if m.UpdateTaskFunc != nil {
-		return m.UpdateTaskFunc(ctx, taskID, name, description, roomID, dueDate)
+		return m.UpdateTaskFunc(ctx, taskID, name, description, roomID, dueDate, reminderMinutes)
 	}
 	return nil
 }
@@ -177,19 +177,20 @@ func TestTaskHandler_Create(t *testing.T) {
 	tests := []struct {
 		name           string
 		body           interface{}
-		mockFunc       func(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, createdBy int, userIDs []int) error
+		mockFunc       func(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, reminderMinutes *int, createdBy int, userIDs []int) error
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
 			name: "Success",
 			body: validCreateTaskReq,
-			mockFunc: func(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, createdBy int, userIDs []int) error {
+			mockFunc: func(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, reminderMinutes *int, createdBy int, userIDs []int) error {
 				assert.Equal(t, 1, homeID)
 				assert.Equal(t, "Clean Kitchen", name)
 				assert.Equal(t, "Daily cleaning", description)
 				assert.Equal(t, "daily", scheduleType)
 				assert.Nil(t, dueDate)
+				assert.Nil(t, reminderMinutes)
 				return nil
 			},
 			expectedStatus: http.StatusCreated,
@@ -205,7 +206,7 @@ func TestTaskHandler_Create(t *testing.T) {
 		{
 			name: "Service Error",
 			body: validCreateTaskReq,
-			mockFunc: func(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, createdBy int, userIDs []int) error {
+			mockFunc: func(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, reminderMinutes *int, createdBy int, userIDs []int) error {
 				return errors.New("service error")
 			},
 			expectedStatus: http.StatusBadRequest,

@@ -48,7 +48,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.CreateTask(r.Context(), req.HomeID, req.RoomID, req.Name, req.Description, req.ScheduleType, req.DueDate, userID, req.UserIDs); err != nil {
+	if err := h.svc.CreateTask(r.Context(), req.HomeID, req.RoomID, req.Name, req.Description, req.ScheduleType, req.DueDate, req.ReminderMinutes, userID, req.UserIDs); err != nil {
 		utils.JSONError(w, "Invalid data", http.StatusBadRequest)
 		return
 	}
@@ -213,7 +213,7 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.UpdateTask(r.Context(), taskID, req.Name, req.Description, req.RoomID, req.DueDate); err != nil {
+	if err := h.svc.UpdateTask(r.Context(), taskID, req.Name, req.Description, req.RoomID, req.DueDate, req.ReminderMinutes); err != nil {
 		utils.SafeError(w, err, "Failed to update task", http.StatusInternalServerError)
 		return
 	}

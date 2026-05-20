@@ -148,6 +148,30 @@ const COLOR_OPTIONS = [
   "#6EE7B7",
 ];
 
+const getItemTimestamp = (value?: string) => {
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const sortShoppingItems = (shoppingItems: ShoppingItem[]) =>
+  [...shoppingItems].sort((left, right) => {
+    if (left.isBought !== right.isBought) {
+      return left.isBought ? 1 : -1;
+    }
+
+    if (!left.isBought) {
+      return getItemTimestamp(left.createdAt) - getItemTimestamp(right.createdAt);
+    }
+
+    const boughtDiff = getItemTimestamp(right.boughtDate) - getItemTimestamp(left.boughtDate);
+    if (boughtDiff !== 0) {
+      return boughtDiff;
+    }
+
+    return getItemTimestamp(right.createdAt) - getItemTimestamp(left.createdAt);
+  });
+
 export default function ShoppingScreen() {
   const insets = useSafeAreaInsets();
   const { home } = useHome();
@@ -201,7 +225,7 @@ export default function ShoppingScreen() {
         );
         const itemsData: Record<number, ShoppingItem[]> = {};
         categoriesData.forEach((category, i) => {
-          itemsData[category.id] = results[i] || [];
+          itemsData[category.id] = sortShoppingItems(results[i] || []);
         });
         setItems(itemsData);
       }
@@ -319,19 +343,40 @@ export default function ShoppingScreen() {
   const toggleItemBought = async (itemId: number) => {
     if (!home) return;
 
+    const categoryEntry = Object.entries(items).find(([, categoryItems]) => categoryItems.some((item) => item.id === itemId));
+    if (!categoryEntry) return;
+
+    const [categoryKey, categoryItems] = categoryEntry;
+    const categoryId = Number(categoryKey);
+    const currentItem = categoryItems.find((item) => item.id === itemId);
+    if (!currentItem) return;
+
+    const previousCategoryItems = categoryItems;
+    const nowIso = new Date().toISOString();
+
+    setItems((prev) => ({
+      ...prev,
+      [categoryId]: sortShoppingItems(
+        (prev[categoryId] || []).map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                isBought: !item.isBought,
+                boughtDate: item.isBought ? undefined : nowIso,
+              }
+            : item,
+        ),
+      ),
+    }));
+
     try {
       await shoppingApi.markBought(home.id, itemId);
-      setItems((prev) => {
-        const updated = { ...prev };
-        for (const catId in updated) {
-          updated[catId] = updated[catId].map((item) =>
-            item.id === itemId ? { ...item, isBought: !item.isBought } : item,
-          );
-        }
-        return updated;
-      });
     } catch (error) {
       console.error("Error toggling item:", error);
+      setItems((prev) => ({
+        ...prev,
+        [categoryId]: previousCategoryItems,
+      }));
     }
   };
 
@@ -412,6 +457,8 @@ export default function ShoppingScreen() {
   // List detail view
   if (activeCategory) {
     const categoryItems = getActiveItems();
+    const pendingItems = categoryItems.filter((item) => !item.isBought);
+    const boughtItems = categoryItems.filter((item) => item.isBought);
     const categoryColor = activeCategory.color || CATEGORY_COLORS[0];
 
     return (
@@ -443,7 +490,39 @@ export default function ShoppingScreen() {
 
           {/* Items List */}
           <View className="gap-4">
-            {categoryItems.map((item) => (
+            {pendingItems.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                className="flex-row items-center gap-4 py-2"
+                onPress={() => toggleItemBought(item.id)}
+                onLongPress={() => openItemActions(item)}
+                activeOpacity={0.95}
+              >
+                <View
+                  className="w-8 h-8 rounded-full border-2 justify-center items-center"
+                  style={[{ borderColor: theme.textSecondary }]}
+                />
+                <View className="flex-1">
+                  <Text className="text-lg font-manrope-semibold" style={{ color: theme.text }}>
+                    {item.name}
+                  </Text>
+                  {item.user?.name && (
+                    <Text className="text-xs font-manrope mt-0.5" style={{ color: theme.textSecondary }}>
+                      {t.shopping.addedByUser}: {item.user.name}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+
+            {pendingItems.length > 0 && boughtItems.length > 0 && (
+              <View
+                className="mt-3 pt-4"
+                style={{ borderTopWidth: 1, borderTopColor: theme.border }}
+              />
+            )}
+
+            {boughtItems.map((item) => (
               <TouchableOpacity
                 key={item.id}
                 className="flex-row items-center gap-4 py-2"
@@ -455,35 +534,27 @@ export default function ShoppingScreen() {
                   className="w-8 h-8 rounded-full border-2 justify-center items-center"
                   style={[
                     { borderColor: theme.textSecondary },
-                    item.isBought && {
+                    {
                       backgroundColor: theme.accent.purple,
                       borderColor: theme.accent.purple,
                     },
                   ]}
                 >
-                  {item.isBought && <Check size={16} color="#1C1C1E" strokeWidth={3} />}
+                  <Check size={16} color="#1C1C1E" strokeWidth={3} />
                 </View>
                 <View className="flex-1">
-                  <Text
-                    className={`text-lg font-manrope-semibold ${item.isBought ? "line-through opacity-50" : ""}`}
-                    style={{ color: theme.text }}
-                  >
+                  <Text className="text-lg font-manrope-semibold line-through opacity-50" style={{ color: theme.text }}>
                     {item.name}
                   </Text>
                   {item.user?.name && (
-                    <Text
-                      className={`text-xs font-manrope mt-0.5 ${item.isBought ? "opacity-50" : ""}`}
-                      style={{ color: theme.textSecondary }}
-                    >
+                    <Text className="text-xs font-manrope mt-0.5 opacity-50" style={{ color: theme.textSecondary }}>
                       {t.shopping.addedByUser}: {item.user.name}
                     </Text>
                   )}
                 </View>
-                {item.isBought && (
-                  <TouchableOpacity className="p-2" onPress={() => handleDeleteItem(item.id)}>
-                    <Trash2 size={18} color={theme.textSecondary} />
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity className="p-2" onPress={() => handleDeleteItem(item.id)}>
+                  <Trash2 size={18} color={theme.textSecondary} />
+                </TouchableOpacity>
               </TouchableOpacity>
             ))}
           </View>

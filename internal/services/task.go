@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Dragodui/diploma-server/internal/event"
@@ -22,10 +23,10 @@ type TaskService struct {
 }
 
 type ITaskService interface {
-	CreateTask(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, createdBy int, userIDs []int) error
+	CreateTask(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, reminderMinutes *int, createdBy int, userIDs []int) error
 	GetTaskByID(ctx context.Context, taskID int) (*models.Task, error)
 	GetTasksByHomeID(ctx context.Context, homeID int) (*[]models.Task, error)
-	UpdateTask(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time) error
+	UpdateTask(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time, reminderMinutes *int) error
 	DeleteTask(ctx context.Context, taskID int) error
 	AssignUser(ctx context.Context, taskID, userID, homeID int, date time.Time) error
 	GetAssignmentsForUser(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
@@ -42,20 +43,39 @@ func NewTaskService(repo repository.TaskRepository, cache *redis.Client, notifSv
 	return &TaskService{repo: repo, cache: cache, notifSvc: notifSvc}
 }
 
-func (s *TaskService) CreateTask(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, createdBy int, userIDs []int) error {
+func normalizeReminderMinutes(value *int) (int, error) {
+	if value == nil {
+		return 30, nil
+	}
+	if *value < 0 {
+		return 0, errors.New("reminder_minutes must be greater than or equal to 0")
+	}
+	if *value > 10080 {
+		return 0, errors.New("reminder_minutes must be less than or equal to 10080")
+	}
+	return *value, nil
+}
+
+func (s *TaskService) CreateTask(ctx context.Context, homeID int, roomID *int, name, description, scheduleType string, dueDate *time.Time, reminderMinutes *int, createdBy int, userIDs []int) error {
 	tasksKey := utils.GetTasksForHomeKey(homeID)
 	if err := utils.DeleteFromCache(ctx, tasksKey, s.cache); err != nil {
 		logger.Info.Printf("Failed to delete redis cache for key %s: %v", tasksKey, err)
 	}
 
+	normalizedReminderMinutes, err := normalizeReminderMinutes(reminderMinutes)
+	if err != nil {
+		return err
+	}
+
 	task := &models.Task{
-		Name:         name,
-		Description:  description,
-		HomeID:       homeID,
-		RoomID:       roomID,
-		CreatedBy:    createdBy,
-		ScheduleType: scheduleType,
-		DueDate:      dueDate,
+		Name:            name,
+		Description:     description,
+		HomeID:          homeID,
+		RoomID:          roomID,
+		CreatedBy:       createdBy,
+		ScheduleType:    scheduleType,
+		DueDate:         dueDate,
+		ReminderMinutes: normalizedReminderMinutes,
 	}
 	if err := s.repo.Create(ctx, task); err != nil {
 		return err
@@ -180,7 +200,7 @@ func (s *TaskService) DeleteTask(ctx context.Context, taskID int) error {
 	return nil
 }
 
-func (s *TaskService) UpdateTask(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time) error {
+func (s *TaskService) UpdateTask(ctx context.Context, taskID int, name, description *string, roomID *int, dueDate *time.Time, reminderMinutes *int) error {
 	task, err := s.repo.FindByID(ctx, taskID)
 	if err != nil {
 		return err
@@ -201,9 +221,21 @@ func (s *TaskService) UpdateTask(ctx context.Context, taskID int, name, descript
 	if dueDate != nil {
 		task.DueDate = dueDate
 	}
+	if reminderMinutes != nil {
+		normalizedReminderMinutes, err := normalizeReminderMinutes(reminderMinutes)
+		if err != nil {
+			return err
+		}
+		task.ReminderMinutes = normalizedReminderMinutes
+	}
 
 	if err := s.repo.Update(ctx, task); err != nil {
 		return err
+	}
+	if dueDate != nil || reminderMinutes != nil {
+		if err := s.repo.ResetReminderStateForTask(ctx, task.ID); err != nil {
+			return err
+		}
 	}
 
 	taskKey := utils.GetTaskKey(taskID)
@@ -220,6 +252,38 @@ func (s *TaskService) UpdateTask(ctx context.Context, taskID int, name, descript
 		Action: event.ActionUpdated,
 		Data:   task,
 	})
+
+	return nil
+}
+
+func (s *TaskService) ProcessTaskReminders(ctx context.Context) error {
+	windowEnd := time.Now().UTC()
+	windowStart := windowEnd.Add(-1 * time.Minute)
+
+	assignments, err := s.repo.FindAssignmentsNeedingReminder(ctx, windowStart, windowEnd)
+	if err != nil {
+		return err
+	}
+
+	for _, assignment := range assignments {
+		if assignment.Task == nil || assignment.Task.DueDate == nil {
+			continue
+		}
+
+		description := fmt.Sprintf("Task \"%s\" is due in %d minute(s).", assignment.Task.Name, assignment.Task.ReminderMinutes)
+		if assignment.Task.ReminderMinutes == 0 {
+			description = fmt.Sprintf("Task \"%s\" is due now.", assignment.Task.Name)
+		}
+
+		if err := s.notifSvc.Create(ctx, nil, assignment.UserID, description); err != nil {
+			logger.Info.Printf("Failed to create reminder notification for assignment %d: %v", assignment.ID, err)
+			continue
+		}
+
+		if err := s.repo.MarkReminderSent(ctx, assignment.ID, windowEnd); err != nil {
+			logger.Info.Printf("Failed to mark reminder sent for assignment %d: %v", assignment.ID, err)
+		}
+	}
 
 	return nil
 }

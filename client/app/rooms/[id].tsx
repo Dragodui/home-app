@@ -41,6 +41,7 @@ export default function RoomDetailScreen() {
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [reminderMinutesInput, setReminderMinutesInput] = useState("30");
   const [creatingTask, setCreatingTask] = useState(false);
 
   const roomId = parseInt(id, 10);
@@ -147,6 +148,14 @@ export default function RoomDetailScreen() {
     hideDatePicker();
   };
 
+  const parseReminderMinutes = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return 30;
+    const parsed = Number.parseInt(trimmed, 10);
+    if (Number.isNaN(parsed) || parsed < 0) return 30;
+    return parsed;
+  };
+
   const handleCreateTask = async () => {
     if (!home || !newTaskName.trim()) return;
 
@@ -157,6 +166,7 @@ export default function RoomDetailScreen() {
         description: newTaskDescription.trim(),
         scheduleType: "once",
         dueDate: selectedDate ? selectedDate.toISOString() : undefined,
+        reminderMinutes: parseReminderMinutes(reminderMinutesInput),
         homeId: home.id,
         roomId: roomId,
       });
@@ -164,6 +174,7 @@ export default function RoomDetailScreen() {
       setNewTaskName("");
       setNewTaskDescription("");
       setSelectedDate(null);
+      setReminderMinutesInput("30");
       await fetchDashboardData();
     } catch (_error) {
       alert(t.common.error, t.tasks.couldNotCreate);
@@ -478,6 +489,13 @@ export default function RoomDetailScreen() {
               title={t.tasks.selectDateTime}
             />
           </View>
+          <Input
+            label={t.tasks.reminderBefore}
+            placeholder="30"
+            value={reminderMinutesInput}
+            onChangeText={(value) => setReminderMinutesInput(value.replace(/[^0-9]/g, ""))}
+            keyboardType="number-pad"
+          />
           <Button
             title={t.tasks.createTask}
             onPress={handleCreateTask}
