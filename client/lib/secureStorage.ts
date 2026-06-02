@@ -2,12 +2,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-const WEB_NON_PERSISTENT_KEYS = new Set(["auth_token"]);
+const WEB_NON_PERSISTENT_KEYS = new Set<string>([]);
 
 /**
  * Wrapper around expo-secure-store for sensitive data (auth token, user info).
- * On web, auth tokens are intentionally not persisted because SecureStore is not available.
- * Non-sensitive preferences (theme, language, home ID) should continue using AsyncStorage.
+ * On web, we use AsyncStorage as a fallback for SecureStore.
+ * Non-sensitive preferences (theme, language, home ID) also use AsyncStorage.
  */
 export const secureStorage = {
   getItem: async (key: string): Promise<string | null> => {

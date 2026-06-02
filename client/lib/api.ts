@@ -87,13 +87,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 async function getAuthHeaders() {
-  if (Platform.OS === "web") {
-    return {
-      token: null,
-      headers: null,
-    };
-  }
-
   const token = await secureStorage.getItem("auth_token");
   return {
     token,

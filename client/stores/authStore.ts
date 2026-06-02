@@ -44,25 +44,21 @@ export const useAuthStore = create<AuthState>()(
 
     init: async () => {
       try {
-        if (Platform.OS === "web") {
-          await secureStorage.removeItem("auth_token");
-          try {
-            const user = await userApi.getMe();
-            await secureStorage.setItem("user", JSON.stringify(user));
-            set({ user, token: null, isLoading: false, isAuthenticated: true });
-          } catch {
-            await secureStorage.removeItem("user");
-            set({ user: null, token: null, isLoading: false, isAuthenticated: false });
-          }
-          return;
-        }
-
         const token = await secureStorage.getItem("auth_token");
         const userJson = await secureStorage.getItem("user");
 
         if (token && userJson) {
           const user = JSON.parse(userJson) as User;
           set({ user, token, isLoading: false, isAuthenticated: true });
+        } else if (Platform.OS === "web") {
+          // Fallback for web if token is in cookie but not in storage
+          try {
+            const user = await userApi.getMe();
+            await secureStorage.setItem("user", JSON.stringify(user));
+            set({ user, token: null, isLoading: false, isAuthenticated: true });
+          } catch {
+            set({ user: null, token: null, isLoading: false, isAuthenticated: false });
+          }
         } else {
           set({ user: null, token: null, isLoading: false, isAuthenticated: false });
         }
@@ -77,7 +73,7 @@ export const useAuthStore = create<AuthState>()(
         const response = await authApi.login(email, password);
         set({
           user: response.user,
-          token: Platform.OS === "web" ? null : response.token,
+          token: response.token,
           isLoading: false,
           isAuthenticated: true,
         });
@@ -187,7 +183,7 @@ export const useAuthStore = create<AuthState>()(
         const response = await authApi.googleSignIn(accessToken);
         set({
           user: response.user,
-          token: Platform.OS === "web" ? null : response.token,
+          token: response.token,
           isLoading: false,
           isAuthenticated: true,
         });
