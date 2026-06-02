@@ -67,6 +67,7 @@ func NewServer() (*Server, error) {
 		&models.Vote{},
 		&models.Notification{},
 		&models.HomeNotification{},
+		&models.AuditEvent{},
 		&models.Room{},
 		&models.HomeAssistantConfig{},
 		&models.SmartDevice{},
@@ -107,6 +108,7 @@ func NewServer() (*Server, error) {
 	shoppingRepo := repository.NewShoppingRepository(db)
 	pollRepo := repository.NewPollRepository(db)
 	notificationRepo := repository.NewNotificationRepository(db)
+	auditRepo := repository.NewAuditRepository(db)
 	smartHomeRepo := repository.NewSmartHomeRepository(db)
 	taskScheduleRepo := repository.NewTaskScheduleRepository(db)
 	pushSubRepo := repository.NewPushSubscriptionRepository(db)
@@ -114,6 +116,7 @@ func NewServer() (*Server, error) {
 	// services
 	pushSubSvc := services.NewPushSubscriptionService(pushSubRepo, cfg.VapidPublicKey, cfg.VapidPrivateKey, cfg.VapidSubject)
 	notificationSvc := services.NewNotificationService(notificationRepo, cacheClient, pushSubSvc, homeRepo)
+	auditSvc := services.NewAuditService(auditRepo)
 	authSvc := services.NewAuthService(userRepo, []byte(cfg.JWTSecret), cacheClient, 30*24*time.Hour, cfg.ClientURL, cfg.ServerURL, mailer)
 	homeSvc := services.NewHomeService(homeRepo, cacheClient, notificationSvc)
 	roomSvc := services.NewRoomService(roomRepo, cacheClient)
@@ -135,7 +138,9 @@ func NewServer() (*Server, error) {
 
 	// handlers
 	authHandler := handlers.NewAuthHandler(authSvc, cfg.ClientURL, cfg.Mode != "dev")
+	authHandler.SetAuditService(auditSvc)
 	homeHandler := handlers.NewHomeHandler(homeSvc)
+	homeHandler.SetAuditService(auditSvc)
 	roomHandler := handlers.NewRoomHandler(roomSvc, homeRepo)
 	taskHandler := handlers.NewTaskHandler(taskSvc, homeRepo)
 	billHandler := handlers.NewBillHandler(billSvc, homeRepo)
@@ -144,6 +149,7 @@ func NewServer() (*Server, error) {
 	imageHandler := handlers.NewImageHandler(imageService)
 	pollHandler := handlers.NewPollHandler(pollSvc, homeRepo)
 	notificationHandler := handlers.NewNotificationHandler(notificationSvc)
+	auditHandler := handlers.NewAuditHandler(auditSvc)
 	userHandler := handlers.NewUserHandler(userService, imageService)
 	ocrHandler := handlers.NewOCRHandler(ocrSvc)
 	smartHomeHandler := handlers.NewSmartHomeHandler(smartHomeSvc)
@@ -151,7 +157,7 @@ func NewServer() (*Server, error) {
 	pushSubHandler := handlers.NewPushSubscriptionHandler(pushSubSvc)
 
 	// setup all routes
-	router := router.SetupRoutes(cfg, authHandler, homeHandler, taskHandler, taskScheduleHandler, billHandler, billCategoryHandler, roomHandler, shoppingHandler, imageHandler, pollHandler, notificationHandler, userHandler, ocrHandler, smartHomeHandler, pushSubHandler, cacheClient, homeRepo)
+	router := router.SetupRoutes(cfg, authHandler, homeHandler, taskHandler, taskScheduleHandler, billHandler, billCategoryHandler, roomHandler, shoppingHandler, imageHandler, pollHandler, notificationHandler, auditHandler, userHandler, ocrHandler, smartHomeHandler, pushSubHandler, cacheClient, homeRepo)
 
 	// Set startup metrics
 	metrics.ServerStartTime.Set(float64(time.Now().Unix()))

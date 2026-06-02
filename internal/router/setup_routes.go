@@ -36,6 +36,7 @@ func SetupRoutes(
 	imageHandler *handlers.ImageHandler,
 	pollHandler *handlers.PollHandler,
 	notificationHandler *handlers.NotificationHandler,
+	auditHandler *handlers.AuditHandler,
 	userHandler *handlers.UserHandler,
 	ocrHandler *handlers.OCRHandler,
 	smartHomeHandler *handlers.SmartHomeHandler,
@@ -137,6 +138,8 @@ func SetupRoutes(
 				// Logout (authenticated)
 				r.Post("/auth/logout", authHandler.Logout)
 
+				r.Get("/audit/my", auditHandler.GetMyEvents)
+
 				// User routes
 				r.Post("/user", userHandler.GetMe)
 				r.Patch("/user", userHandler.Update)
@@ -179,6 +182,7 @@ func SetupRoutes(
 						r.With(middleware.RequireAdmin(homeRepo)).Patch("/members/{user_id}/role", homeHandler.UpdateMemberRole)
 						r.With(middleware.RequireAdmin(homeRepo)).Patch("/currency", homeHandler.UpdateCurrency)
 						r.With(middleware.RequireAdmin(homeRepo)).Post("/regenerate_code", homeHandler.RegenerateInviteCode)
+						r.With(middleware.RequireAdmin(homeRepo)).Get("/audit", auditHandler.GetByHomeID)
 
 						// Notifications for home
 						r.Route("/notifications", func(r chi.Router) {

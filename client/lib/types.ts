@@ -32,6 +32,21 @@ export interface HomeMembership {
   home?: Home;
 }
 
+export interface AuditEvent {
+  id: number;
+  homeId?: number;
+  actorUserId?: number;
+  eventType: string;
+  entityType: string;
+  entityId?: number;
+  metadata?: Record<string, unknown>;
+  ip?: string;
+  userAgent?: string;
+  createdAt: string;
+  home?: Home;
+  actorUser?: User;
+}
+
 // Room types
 export interface Room {
   id: number;

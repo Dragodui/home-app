@@ -4,6 +4,7 @@ import { deepCamelToSnake, deepSnakeToCamel } from "./caseConverter";
 import { secureStorage } from "./secureStorage";
 import type {
   AddDeviceRequest,
+  AuditEvent,
   AuthResponse,
   Bill,
   BillCategory,
@@ -805,6 +806,22 @@ export const notificationApi = {
   },
 };
 
+export const auditApi = {
+  getMyEvents: async (limit?: number): Promise<AuditEvent[]> => {
+    const response = await api.get<{ status: boolean; events: AuditEvent[] }>("/audit/my", {
+      params: limit ? { limit } : undefined,
+    });
+    return response.data.events || [];
+  },
+
+  getHomeEvents: async (homeId: number, limit?: number): Promise<AuditEvent[]> => {
+    const response = await api.get<{ status: boolean; events: AuditEvent[] }>(`/homes/${homeId}/audit`, {
+      params: limit ? { limit } : undefined,
+    });
+    return response.data.events || [];
+  },
+};
+
 // ============ Smart Home API ============
 export const smarthomeApi = {
   connect: async (homeId: number, url: string, token: string): Promise<{ message: string }> => {
@@ -939,6 +956,7 @@ export const ocrApi = {
 // Re-export types for convenience
 export type {
   AddDeviceRequest,
+  AuditEvent,
   Bill,
   BillSplit,
   ControlDeviceRequest,

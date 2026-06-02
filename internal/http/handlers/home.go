@@ -14,11 +14,16 @@ import (
 )
 
 type HomeHandler struct {
-	svc services.IHomeService
+	svc      services.IHomeService
+	auditSvc services.IAuditService
 }
 
 func NewHomeHandler(svc services.IHomeService) *HomeHandler {
-	return &HomeHandler{svc}
+	return &HomeHandler{svc: svc}
+}
+
+func (h *HomeHandler) SetAuditService(auditSvc services.IAuditService) {
+	h.auditSvc = auditSvc
 }
 
 // Create godoc
@@ -83,6 +88,8 @@ func (h *HomeHandler) RegenerateInviteCode(w http.ResponseWriter, r *http.Reques
 		utils.SafeError(w, err, "Failed to regenerate invite code", http.StatusBadRequest)
 		return
 	}
+
+	h.recordAudit(r, services.AuditEventInviteRegenerate, homeID, "home", &homeID, nil)
 
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Invite code regenerated successfully"})
 }
@@ -252,6 +259,7 @@ func (h *HomeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		utils.SafeError(w, err, "Error delete home", http.StatusInternalServerError)
 		return
 	}
+	h.recordAuditWithoutHome(r, services.AuditEventHomeDeleted, "home", &homeID, map[string]any{"deleted_home_id": homeID})
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Deleted successfully"})
 }
 
@@ -284,6 +292,8 @@ func (h *HomeHandler) Leave(w http.ResponseWriter, r *http.Request) {
 		utils.SafeError(w, err, "Error leave home", http.StatusBadRequest)
 		return
 	}
+
+	h.recordAudit(r, services.AuditEventMemberLeft, homeID, "user", &userID, nil)
 
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Left successfully"})
 }
@@ -356,6 +366,8 @@ func (h *HomeHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.recordAudit(r, services.AuditEventMemberRemoved, homeID, "user", &userID, map[string]any{"removed_user_id": userID})
+
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "User removed successfully"})
 }
 
@@ -421,6 +433,8 @@ func (h *HomeHandler) ApproveMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.recordAudit(r, services.AuditEventMemberApproved, homeID, "user", &userID, map[string]any{"approved_user_id": userID})
+
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Member approved successfully"})
 }
 
@@ -455,6 +469,8 @@ func (h *HomeHandler) RejectMember(w http.ResponseWriter, r *http.Request) {
 		utils.SafeError(w, err, "Error rejecting member", http.StatusBadRequest)
 		return
 	}
+
+	h.recordAudit(r, services.AuditEventMemberRejected, homeID, "user", &userID, map[string]any{"rejected_user_id": userID})
 
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Member rejected successfully"})
 }
@@ -504,6 +520,8 @@ func (h *HomeHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.recordAudit(r, services.AuditEventRoleUpdated, homeID, "user", &userID, map[string]any{"role": req.Role})
+
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Role updated successfully"})
 }
 
@@ -544,5 +562,46 @@ func (h *HomeHandler) UpdateCurrency(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.recordAudit(r, services.AuditEventCurrencyUpdated, homeID, "home", &homeID, map[string]any{"currency": req.Currency})
+
 	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Currency updated successfully"})
+}
+
+func (h *HomeHandler) recordAudit(r *http.Request, eventType string, homeID int, entityType string, entityID *int, metadata map[string]any) {
+	if h.auditSvc == nil {
+		return
+	}
+	actorUserID := middleware.GetUserID(r)
+	record := services.AuditRecord{
+		HomeID:     &homeID,
+		EventType:  eventType,
+		EntityType: entityType,
+		EntityID:   entityID,
+		Metadata:   metadata,
+		IP:         AuditRequestIP(r),
+		UserAgent:  AuditUserAgent(r),
+	}
+	if actorUserID != 0 {
+		record.ActorUserID = &actorUserID
+	}
+	h.auditSvc.RecordBestEffort(r.Context(), record)
+}
+
+func (h *HomeHandler) recordAuditWithoutHome(r *http.Request, eventType string, entityType string, entityID *int, metadata map[string]any) {
+	if h.auditSvc == nil {
+		return
+	}
+	actorUserID := middleware.GetUserID(r)
+	record := services.AuditRecord{
+		EventType:  eventType,
+		EntityType: entityType,
+		EntityID:   entityID,
+		Metadata:   metadata,
+		IP:         AuditRequestIP(r),
+		UserAgent:  AuditUserAgent(r),
+	}
+	if actorUserID != 0 {
+		record.ActorUserID = &actorUserID
+	}
+	h.auditSvc.RecordBestEffort(r.Context(), record)
 }

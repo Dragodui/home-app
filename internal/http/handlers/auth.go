@@ -16,12 +16,17 @@ import (
 
 type AuthHandler struct {
 	svc       services.IAuthService
+	auditSvc  services.IAuditService
 	clientURL string
 	isSecure  bool
 }
 
 func NewAuthHandler(svc services.IAuthService, clientURL string, isSecure bool) *AuthHandler {
 	return &AuthHandler{svc: svc, clientURL: clientURL, isSecure: isSecure}
+}
+
+func (h *AuthHandler) SetAuditService(auditSvc services.IAuditService) {
+	h.auditSvc = auditSvc
 }
 
 // RegenerateVerify godoc
@@ -151,6 +156,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.SetAuthCookie(w, token, h.isSecure)
+	h.recordAudit(r, services.AuditEventLogin, user.ID, map[string]any{"email": user.Email})
 
 	// Response to client
 	utils.JSON(w, http.StatusAccepted, map[string]interface{}{"status": true,
@@ -322,6 +328,8 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.recordAudit(r, services.AuditEventPasswordChanged, userID, nil)
+
 	utils.JSON(w, http.StatusOK, map[string]interface{}{
 		"status":  true,
 		"message": "Password changed successfully",
@@ -347,6 +355,11 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.svc.Logout(r.Context(), tokenStr); err != nil {
 		utils.SafeError(w, err, "Logout failed", http.StatusBadRequest)
 		return
+	}
+
+	userID := middleware.GetUserID(r)
+	if userID != 0 {
+		h.recordAudit(r, services.AuditEventLogout, userID, nil)
 	}
 
 	utils.ClearAuthCookie(w, h.isSecure)
@@ -387,10 +400,26 @@ func (h *AuthHandler) GoogleSignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.SetAuthCookie(w, token, h.isSecure)
+	h.recordAudit(r, services.AuditEventOAuthLogin, user.ID, map[string]any{"provider": "google", "email": user.Email})
 
 	utils.JSON(w, http.StatusOK, map[string]interface{}{
 		"status": true,
 		"token":  token,
 		"user":   user,
+	})
+}
+
+func (h *AuthHandler) recordAudit(r *http.Request, eventType string, actorUserID int, metadata map[string]any) {
+	if h.auditSvc == nil || actorUserID == 0 {
+		return
+	}
+	h.auditSvc.RecordBestEffort(r.Context(), services.AuditRecord{
+		ActorUserID: &actorUserID,
+		EventType:   eventType,
+		EntityType:  "user",
+		EntityID:    &actorUserID,
+		Metadata:    metadata,
+		IP:          AuditRequestIP(r),
+		UserAgent:   AuditUserAgent(r),
 	})
 }
