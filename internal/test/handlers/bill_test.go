@@ -42,7 +42,7 @@ func (m *mockBillService) GetBillByID(ctx context.Context, billID int) (*models.
 	if m.GetBillByIDFunc != nil {
 		return m.GetBillByIDFunc(ctx, billID)
 	}
-	return nil, nil
+	return &models.Bill{ID: billID, HomeID: 1, UploadedBy: 123}, nil
 }
 
 func (m *mockBillService) GetBillsByHomeID(ctx context.Context, homeId int, categoryID *int) ([]models.Bill, error) {
@@ -117,9 +117,9 @@ func setupBillRouter(h *handlers.BillHandler) *chi.Mux {
 			next.ServeHTTP(w, r)
 		})
 	})
-	r.Get("/bills/{bill_id}", h.GetByID)
+	r.Get("/homes/{home_id}/bills/{bill_id}", h.GetByID)
 	r.Delete("/homes/{home_id}/bills/{bill_id}", h.Delete)
-	r.Put("/bills/{bill_id}/mark-payed", h.MarkPayed)
+	r.Put("/homes/{home_id}/bills/{bill_id}/mark-payed", h.MarkPayed)
 	r.Put("/homes/{home_id}/bills/{bill_id}/splits", h.UpdateSplits)
 	r.Patch("/homes/{home_id}/bills/{bill_id}/splits/{split_id}/paid", h.MarkSplitPaid)
 	return r
@@ -221,7 +221,7 @@ func TestBillHandler_GetByID(t *testing.T) {
 			billID: "1",
 			mockFunc: func(ctx context.Context, billID int) (*models.Bill, error) {
 				require.Equal(t, 1, billID)
-				return &models.Bill{ID: 1, Type: "electricity", TotalAmount: 100.50}, nil
+				return &models.Bill{ID: 1, HomeID: 1, Type: "electricity", TotalAmount: 100.50}, nil
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   "electricity",
@@ -253,7 +253,7 @@ func TestBillHandler_GetByID(t *testing.T) {
 			h := setupBillHandler(svc)
 			r := setupBillRouter(h)
 
-			req := httptest.NewRequest(http.MethodGet, "/bills/"+tt.billID, nil)
+			req := httptest.NewRequest(http.MethodGet, "/homes/1/bills/"+tt.billID, nil)
 			rr := httptest.NewRecorder()
 
 			r.ServeHTTP(rr, req)
@@ -366,7 +366,7 @@ func TestBillHandler_MarkPayed(t *testing.T) {
 			h := setupBillHandler(svc)
 			r := setupBillRouter(h)
 
-			req := httptest.NewRequest(http.MethodPut, "/bills/"+tt.billID+"/mark-payed", nil)
+			req := httptest.NewRequest(http.MethodPut, "/homes/1/bills/"+tt.billID+"/mark-payed", nil)
 			rr := httptest.NewRecorder()
 
 			r.ServeHTTP(rr, req)

@@ -209,6 +209,10 @@ func TestPollService_GetAllPollsByHomeID_Empty(t *testing.T) {
 // ClosePoll Tests
 func TestPollService_ClosePoll_Success(t *testing.T) {
 	repo := &mockPollRepo{
+		FindPollByIDFunc: func(ctx context.Context, id int) (*models.Poll, error) {
+			require.Equal(t, 1, id)
+			return &models.Poll{ID: id, HomeID: 1, Status: "open"}, nil
+		},
 		ClosePollFunc: func(ctx context.Context, id int) error {
 			require.Equal(t, 1, id)
 			return nil
@@ -224,6 +228,10 @@ func TestPollService_ClosePoll_Success(t *testing.T) {
 // DeletePoll Tests
 func TestPollService_Delete_Success(t *testing.T) {
 	repo := &mockPollRepo{
+		FindPollByIDFunc: func(ctx context.Context, id int) (*models.Poll, error) {
+			require.Equal(t, 1, id)
+			return &models.Poll{ID: id, HomeID: 1, Status: "open"}, nil
+		},
 		DeleteFunc: func(ctx context.Context, id int) error {
 			require.Equal(t, 1, id)
 			return nil

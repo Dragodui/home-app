@@ -16,24 +16,26 @@ import (
 
 // Mock TaskRepository
 type mockTaskRepo struct {
-	CreateFunc                         func(ctx context.Context, t *models.Task) error
-	FindByIDFunc                       func(ctx context.Context, id int) (*models.Task, error)
-	FindByHomeIDFunc                   func(ctx context.Context, homeID int) (*[]models.Task, error)
-	UpdateFunc                         func(ctx context.Context, t *models.Task) error
-	DeleteFunc                         func(ctx context.Context, id int) error
-	ReassignRoomFunc                   func(ctx context.Context, taskID, roomID int) error
-	AssignUserFunc                     func(ctx context.Context, taskID, userID int, date time.Time) error
-	FindAssignmentsForUserFunc         func(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
-	FindClosestAssignmentForUserFunc   func(ctx context.Context, userID int) (*models.TaskAssignment, error)
-	FindAssignmentsNeedingReminderFunc func(ctx context.Context, windowStart, windowEnd time.Time) ([]models.TaskAssignment, error)
-	FindAssignmentByTaskAndUserFunc    func(ctx context.Context, taskID, userID int) (*models.TaskAssignment, error)
-	FindAssignmentByIDFunc             func(ctx context.Context, assignmentID int) (*models.TaskAssignment, error)
-	MarkCompletedFunc                  func(ctx context.Context, assignmentID int) error
-	MarkUncompletedFunc                func(ctx context.Context, assignmentID int) error
-	MarkReminderSentFunc               func(ctx context.Context, assignmentID int, sentAt time.Time) error
-	ResetReminderStateForTaskFunc      func(ctx context.Context, taskID int) error
-	FindUserByAssignmentIDFunc         func(ctx context.Context, assignmentID int) (*models.User, error)
-	DeleteAssignmentFunc               func(ctx context.Context, assignmentID int) error
+	CreateFunc                             func(ctx context.Context, t *models.Task) error
+	FindByIDFunc                           func(ctx context.Context, id int) (*models.Task, error)
+	FindByHomeIDFunc                       func(ctx context.Context, homeID int) (*[]models.Task, error)
+	UpdateFunc                             func(ctx context.Context, t *models.Task) error
+	DeleteFunc                             func(ctx context.Context, id int) error
+	ReassignRoomFunc                       func(ctx context.Context, taskID, roomID int) error
+	AssignUserFunc                         func(ctx context.Context, taskID, userID int, date time.Time) error
+	FindAssignmentsForUserFunc             func(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
+	FindClosestAssignmentForUserFunc       func(ctx context.Context, userID int) (*models.TaskAssignment, error)
+	FindClosestAssignmentForUserInHomeFunc func(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error)
+	FindAssignmentsNeedingReminderFunc     func(ctx context.Context, windowStart, windowEnd time.Time) ([]models.TaskAssignment, error)
+	FindAssignmentByTaskAndUserFunc        func(ctx context.Context, taskID, userID int) (*models.TaskAssignment, error)
+	FindAssignmentByIDFunc                 func(ctx context.Context, assignmentID int) (*models.TaskAssignment, error)
+	MarkCompletedFunc                      func(ctx context.Context, assignmentID int) error
+	MarkUncompletedFunc                    func(ctx context.Context, assignmentID int) error
+	MarkReminderSentFunc                   func(ctx context.Context, assignmentID int, sentAt time.Time) error
+	ResetReminderStateForTaskFunc          func(ctx context.Context, taskID int) error
+	FindUserByAssignmentIDFunc             func(ctx context.Context, assignmentID int) (*models.User, error)
+	DeleteAssignmentFunc                   func(ctx context.Context, assignmentID int) error
+	RoomBelongsToHomeFunc                  func(ctx context.Context, roomID, homeID int) (bool, error)
 }
 
 func (m *mockTaskRepo) Create(ctx context.Context, t *models.Task) error {
@@ -93,6 +95,16 @@ func (m *mockTaskRepo) FindAssignmentsForUser(ctx context.Context, userID int, h
 }
 
 func (m *mockTaskRepo) FindClosestAssignmentForUser(ctx context.Context, userID int) (*models.TaskAssignment, error) {
+	if m.FindClosestAssignmentForUserFunc != nil {
+		return m.FindClosestAssignmentForUserFunc(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *mockTaskRepo) FindClosestAssignmentForUserInHome(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error) {
+	if m.FindClosestAssignmentForUserInHomeFunc != nil {
+		return m.FindClosestAssignmentForUserInHomeFunc(ctx, userID, homeID)
+	}
 	if m.FindClosestAssignmentForUserFunc != nil {
 		return m.FindClosestAssignmentForUserFunc(ctx, userID)
 	}
@@ -160,6 +172,13 @@ func (m *mockTaskRepo) DeleteAssignment(ctx context.Context, assignmentID int) e
 		return m.DeleteAssignmentFunc(ctx, assignmentID)
 	}
 	return nil
+}
+
+func (m *mockTaskRepo) RoomBelongsToHome(ctx context.Context, roomID, homeID int) (bool, error) {
+	if m.RoomBelongsToHomeFunc != nil {
+		return m.RoomBelongsToHomeFunc(ctx, roomID, homeID)
+	}
+	return true, nil
 }
 
 // Test helpers
@@ -346,6 +365,10 @@ func TestTaskService_AssignUser_Success(t *testing.T) {
 	assignDate := time.Now().Add(24 * time.Hour)
 
 	repo := &mockTaskRepo{
+		FindByIDFunc: func(ctx context.Context, id int) (*models.Task, error) {
+			require.Equal(t, 10, id)
+			return &models.Task{ID: id, HomeID: 1, Name: "Clean Kitchen"}, nil
+		},
 		AssignUserFunc: func(ctx context.Context, taskID, userID int, date time.Time) error {
 			require.Equal(t, 10, taskID)
 			require.Equal(t, 5, userID)
@@ -405,14 +428,15 @@ func TestTaskService_GetClosestAssignmentForUser_Success(t *testing.T) {
 	}
 
 	repo := &mockTaskRepo{
-		FindClosestAssignmentForUserFunc: func(ctx context.Context, userID int) (*models.TaskAssignment, error) {
+		FindClosestAssignmentForUserInHomeFunc: func(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error) {
 			require.Equal(t, 5, userID)
+			require.Equal(t, 1, homeID)
 			return closestAssignment, nil
 		},
 	}
 
 	svc := setupTaskService(t, repo)
-	assignment, err := svc.GetClosestAssignmentForUser(context.Background(), 5)
+	assignment, err := svc.GetClosestAssignmentForUser(context.Background(), 5, 1)
 
 	assert.NoError(t, err)
 	assert.Equal(t, closestAssignment.ID, assignment.ID)
@@ -421,13 +445,13 @@ func TestTaskService_GetClosestAssignmentForUser_Success(t *testing.T) {
 
 func TestTaskService_GetClosestAssignmentForUser_NotFound(t *testing.T) {
 	repo := &mockTaskRepo{
-		FindClosestAssignmentForUserFunc: func(ctx context.Context, userID int) (*models.TaskAssignment, error) {
+		FindClosestAssignmentForUserInHomeFunc: func(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error) {
 			return nil, errors.New("no assignments found")
 		},
 	}
 
 	svc := setupTaskService(t, repo)
-	_, err := svc.GetClosestAssignmentForUser(context.Background(), 999)
+	_, err := svc.GetClosestAssignmentForUser(context.Background(), 999, 1)
 
 	assert.Error(t, err)
 }

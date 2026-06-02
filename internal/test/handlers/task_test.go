@@ -27,7 +27,8 @@ type mockTaskService struct {
 	DeleteTaskFunc                  func(ctx context.Context, taskID int) error
 	AssignUserFunc                  func(ctx context.Context, taskID, userID, homeID int, date time.Time) error
 	GetAssignmentsForUserFunc       func(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
-	GetClosestAssignmentForUserFunc func(ctx context.Context, userID int) (*models.TaskAssignment, error)
+	GetClosestAssignmentForUserFunc func(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error)
+	GetAssignmentByIDFunc           func(ctx context.Context, assignmentID int) (*models.TaskAssignment, error)
 	MarkAssignmentCompletedFunc     func(ctx context.Context, assignmentID int) error
 	MarkAssignmentUncompletedFunc   func(ctx context.Context, assignmentID int) error
 	MarkTaskCompletedForUserFunc    func(ctx context.Context, taskID, userID, homeID int) error
@@ -84,11 +85,23 @@ func (m *mockTaskService) GetAssignmentsForUser(ctx context.Context, userID int,
 	return nil, nil
 }
 
-func (m *mockTaskService) GetClosestAssignmentForUser(ctx context.Context, userID int) (*models.TaskAssignment, error) {
+func (m *mockTaskService) GetClosestAssignmentForUser(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error) {
 	if m.GetClosestAssignmentForUserFunc != nil {
-		return m.GetClosestAssignmentForUserFunc(ctx, userID)
+		return m.GetClosestAssignmentForUserFunc(ctx, userID, homeID)
 	}
 	return nil, nil
+}
+
+func (m *mockTaskService) GetAssignmentByID(ctx context.Context, assignmentID int) (*models.TaskAssignment, error) {
+	if m.GetAssignmentByIDFunc != nil {
+		return m.GetAssignmentByIDFunc(ctx, assignmentID)
+	}
+	return &models.TaskAssignment{
+		ID:     assignmentID,
+		TaskID: 1,
+		Task:   &models.Task{ID: 1, HomeID: 1},
+		UserID: 123,
+	}, nil
 }
 
 func (m *mockTaskService) MarkAssignmentCompleted(ctx context.Context, assignmentID int) error {
@@ -164,12 +177,15 @@ func setupTaskRouter(h *handlers.TaskHandler) *chi.Mux {
 			next.ServeHTTP(w, r)
 		})
 	})
-	r.Get("/tasks/{task_id}", h.GetByID)
+	r.Post("/homes/{home_id}/tasks", h.Create)
+	r.Get("/homes/{home_id}/tasks/{task_id}", h.GetByID)
 	r.Get("/homes/{home_id}/tasks", h.GetTasksByHomeID)
 	r.Delete("/homes/{home_id}/tasks/{task_id}", h.DeleteTask)
+	r.Post("/homes/{home_id}/tasks/{task_id}/assign", h.AssignUser)
 	r.Get("/homes/{home_id}/users/{user_id}/assignments", h.GetAssignmentsForUser)
-	r.Get("/users/{user_id}/assignments/closest", h.GetClosestAssignmentForUser)
-	r.Delete("/assignments/{assignment_id}", h.DeleteAssignment)
+	r.Get("/homes/{home_id}/users/{user_id}/assignments/closest", h.GetClosestAssignmentForUser)
+	r.Delete("/homes/{home_id}/tasks/{task_id}/assignments/{assignment_id}", h.DeleteAssignment)
+	r.Patch("/homes/{home_id}/tasks/{task_id}/reassign-room", h.ReassignRoom)
 	return r
 }
 
@@ -221,17 +237,17 @@ func TestTaskHandler_Create(t *testing.T) {
 			}
 
 			h := setupTaskHandler(svc)
+			r := setupTaskRouter(h)
 
 			var req *http.Request
 			if tt.name == "Invalid JSON" {
-				req = httptest.NewRequest(http.MethodPost, "/tasks", bytes.NewBufferString("{bad json}"))
+				req = httptest.NewRequest(http.MethodPost, "/homes/1/tasks", bytes.NewBufferString("{bad json}"))
 			} else {
-				req = makeJSONRequest(http.MethodPost, "/tasks", tt.body)
+				req = makeJSONRequest(http.MethodPost, "/homes/1/tasks", tt.body)
 			}
-			req = req.WithContext(utils.WithUserID(req.Context(), 123))
 
 			rr := httptest.NewRecorder()
-			h.Create(rr, req)
+			r.ServeHTTP(rr, req)
 
 			assertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
 		})
@@ -251,7 +267,7 @@ func TestTaskHandler_GetByID(t *testing.T) {
 			taskID: "1",
 			mockFunc: func(ctx context.Context, taskID int) (*models.Task, error) {
 				require.Equal(t, 1, taskID)
-				return &models.Task{ID: 1, Name: "Clean Kitchen"}, nil
+				return &models.Task{ID: 1, HomeID: 1, Name: "Clean Kitchen"}, nil
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   "Clean Kitchen",
@@ -283,7 +299,7 @@ func TestTaskHandler_GetByID(t *testing.T) {
 			h := setupTaskHandler(svc)
 			r := setupTaskRouter(h)
 
-			req := httptest.NewRequest(http.MethodGet, "/tasks/"+tt.taskID, nil)
+			req := httptest.NewRequest(http.MethodGet, "/homes/1/tasks/"+tt.taskID, nil)
 			rr := httptest.NewRecorder()
 
 			r.ServeHTTP(rr, req)
@@ -455,16 +471,17 @@ func TestTaskHandler_AssignUser(t *testing.T) {
 			}
 
 			h := setupTaskHandler(svc)
+			r := setupTaskRouter(h)
 
 			var req *http.Request
 			if tt.name == "Invalid JSON" {
-				req = httptest.NewRequest(http.MethodPost, "/tasks/assign", bytes.NewBufferString("{bad json}"))
+				req = httptest.NewRequest(http.MethodPost, "/homes/3/tasks/1/assign", bytes.NewBufferString("{bad json}"))
 			} else {
-				req = makeJSONRequest(http.MethodPost, "/tasks/assign", tt.body)
+				req = makeJSONRequest(http.MethodPost, "/homes/3/tasks/1/assign", tt.body)
 			}
 
 			rr := httptest.NewRecorder()
-			h.AssignUser(rr, req)
+			r.ServeHTTP(rr, req)
 
 			assertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
 		})
@@ -547,15 +564,16 @@ func TestTaskHandler_GetClosestAssignmentForUser(t *testing.T) {
 	tests := []struct {
 		name           string
 		userID         string
-		mockFunc       func(ctx context.Context, userID int) (*models.TaskAssignment, error)
+		mockFunc       func(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error)
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
 			name:   "Success",
 			userID: "123",
-			mockFunc: func(ctx context.Context, userID int) (*models.TaskAssignment, error) {
+			mockFunc: func(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error) {
 				require.Equal(t, 123, userID)
+				require.Equal(t, 1, homeID)
 				return &models.TaskAssignment{ID: 1, TaskID: 1, UserID: 123}, nil
 			},
 			expectedStatus: http.StatusOK,
@@ -571,7 +589,7 @@ func TestTaskHandler_GetClosestAssignmentForUser(t *testing.T) {
 		{
 			name:   "Service Error",
 			userID: "123",
-			mockFunc: func(ctx context.Context, userID int) (*models.TaskAssignment, error) {
+			mockFunc: func(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error) {
 				return nil, errors.New("service error")
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -588,7 +606,7 @@ func TestTaskHandler_GetClosestAssignmentForUser(t *testing.T) {
 			h := setupTaskHandler(svc)
 			r := setupTaskRouter(h)
 
-			req := httptest.NewRequest(http.MethodGet, "/users/"+tt.userID+"/assignments/closest", nil)
+			req := httptest.NewRequest(http.MethodGet, "/homes/1/users/"+tt.userID+"/assignments/closest", nil)
 			rr := httptest.NewRecorder()
 
 			r.ServeHTTP(rr, req)
@@ -711,7 +729,7 @@ func TestTaskHandler_DeleteAssignment(t *testing.T) {
 			h := setupTaskHandler(svc)
 			r := setupTaskRouter(h)
 
-			req := httptest.NewRequest(http.MethodDelete, "/assignments/"+tt.assignmentID, nil)
+			req := httptest.NewRequest(http.MethodDelete, "/homes/1/tasks/1/assignments/"+tt.assignmentID, nil)
 			rr := httptest.NewRecorder()
 
 			r.ServeHTTP(rr, req)
@@ -762,19 +780,23 @@ func TestTaskHandler_ReassignRoom(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := &mockTaskService{
 				ReassignRoomFunc: tt.mockFunc,
+				GetTaskByIDFunc: func(ctx context.Context, taskID int) (*models.Task, error) {
+					return &models.Task{ID: taskID, HomeID: 1, CreatedBy: 123}, nil
+				},
 			}
 
 			h := setupTaskHandler(svc)
+			r := setupTaskRouter(h)
 
 			var req *http.Request
 			if tt.name == "Invalid JSON" {
-				req = httptest.NewRequest(http.MethodPut, "/tasks/reassign-room", bytes.NewBufferString("{bad json}"))
+				req = httptest.NewRequest(http.MethodPatch, "/homes/1/tasks/1/reassign-room", bytes.NewBufferString("{bad json}"))
 			} else {
-				req = makeJSONRequest(http.MethodPut, "/tasks/reassign-room", tt.body)
+				req = makeJSONRequest(http.MethodPatch, "/homes/1/tasks/1/reassign-room", tt.body)
 			}
 
 			rr := httptest.NewRecorder()
-			h.ReassignRoom(rr, req)
+			r.ServeHTTP(rr, req)
 
 			assertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
 		})

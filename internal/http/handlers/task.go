@@ -48,7 +48,13 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.CreateTask(r.Context(), req.HomeID, req.RoomID, req.Name, req.Description, req.ScheduleType, req.DueDate, req.ReminderMinutes, userID, req.UserIDs); err != nil {
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.CreateTask(r.Context(), homeID, req.RoomID, req.Name, req.Description, req.ScheduleType, req.DueDate, req.ReminderMinutes, userID, req.UserIDs); err != nil {
 		utils.JSONError(w, "Invalid data", http.StatusBadRequest)
 		return
 	}
@@ -70,6 +76,12 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/tasks/{task_id} [get]
 func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
 	taskIDStr := chi.URLParam(r, "task_id")
 	taskID, err := strconv.Atoi(taskIDStr)
 	if err != nil {
@@ -80,6 +92,10 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	task, err := h.svc.GetTaskByID(r.Context(), taskID)
 	if err != nil {
 		utils.SafeError(w, err, "Failed to retrieve task", http.StatusInternalServerError)
+		return
+	}
+	if task == nil || task.HomeID != homeID {
+		utils.JSONError(w, "task not found", http.StatusNotFound)
 		return
 	}
 
@@ -158,6 +174,10 @@ func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 		utils.SafeError(w, err, "Failed to find task", http.StatusInternalServerError)
 		return
 	}
+	if task == nil || task.HomeID != homeID {
+		utils.JSONError(w, "task not found", http.StatusNotFound)
+		return
+	}
 
 	if task.CreatedBy != userID {
 		isAdmin, _ := h.homeRepo.IsAdmin(r.Context(), homeID, userID)
@@ -199,6 +219,10 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		utils.SafeError(w, err, "Failed to find task", http.StatusInternalServerError)
 		return
 	}
+	if task == nil || task.HomeID != homeID {
+		utils.JSONError(w, "task not found", http.StatusNotFound)
+		return
+	}
 	if task.CreatedBy != userID {
 		isAdmin, _ := h.homeRepo.IsAdmin(r.Context(), homeID, userID)
 		if !isAdmin {
@@ -236,13 +260,24 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 // @Failure      401  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/tasks/{task_id}/assign [post]
 func (h *TaskHandler) AssignUser(w http.ResponseWriter, r *http.Request) {
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+	taskID, err := strconv.Atoi(chi.URLParam(r, "task_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid task ID", http.StatusBadRequest)
+		return
+	}
+
 	var assignUserRequest models.AssignUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&assignUserRequest); err != nil {
 		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.svc.AssignUser(r.Context(), assignUserRequest.TaskID, assignUserRequest.UserID, assignUserRequest.HomeID, assignUserRequest.Date); err != nil {
+	if err := h.svc.AssignUser(r.Context(), taskID, assignUserRequest.UserID, homeID, assignUserRequest.Date); err != nil {
 		utils.JSONError(w, "Invalid data", http.StatusBadRequest)
 		return
 	}
@@ -308,7 +343,13 @@ func (h *TaskHandler) GetClosestAssignmentForUser(w http.ResponseWriter, r *http
 		return
 	}
 
-	assignment, err := h.svc.GetClosestAssignmentForUser(r.Context(), userID)
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	assignment, err := h.svc.GetClosestAssignmentForUser(r.Context(), userID, homeID)
 	if err != nil {
 		utils.SafeError(w, err, "Failed to retrieve assignment", http.StatusInternalServerError)
 		return
@@ -358,6 +399,17 @@ func (h *TaskHandler) MarkAssignmentCompleted(w http.ResponseWriter, r *http.Req
 	homeID, err := strconv.Atoi(homeIDStr)
 	if err != nil {
 		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+	taskID, err := strconv.Atoi(chi.URLParam(r, "task_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid task ID", http.StatusBadRequest)
+		return
+	}
+
+	assignment, err := h.svc.GetAssignmentByID(r.Context(), assignmentRequest.AssignmentID)
+	if err != nil || assignment == nil || assignment.Task == nil || assignment.TaskID != taskID || assignment.Task.HomeID != homeID {
+		utils.JSONError(w, "assignment not found", http.StatusNotFound)
 		return
 	}
 
@@ -415,6 +467,17 @@ func (h *TaskHandler) MarkAssignmentUncompleted(w http.ResponseWriter, r *http.R
 	homeID, err := strconv.Atoi(homeIDStr)
 	if err != nil {
 		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+	taskID, err := strconv.Atoi(chi.URLParam(r, "task_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid task ID", http.StatusBadRequest)
+		return
+	}
+
+	assignment, err := h.svc.GetAssignmentByID(r.Context(), assignmentRequest.AssignmentID)
+	if err != nil || assignment == nil || assignment.Task == nil || assignment.TaskID != taskID || assignment.Task.HomeID != homeID {
+		utils.JSONError(w, "assignment not found", http.StatusNotFound)
 		return
 	}
 
@@ -497,10 +560,26 @@ func (h *TaskHandler) MarkTaskCompleted(w http.ResponseWriter, r *http.Request) 
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/tasks/{task_id}/assignments/{assignment_id} [delete]
 func (h *TaskHandler) DeleteAssignment(w http.ResponseWriter, r *http.Request) {
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+	taskID, err := strconv.Atoi(chi.URLParam(r, "task_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid task ID", http.StatusBadRequest)
+		return
+	}
+
 	assignmentIDStr := chi.URLParam(r, "assignment_id")
 	assignmentID, err := strconv.Atoi(assignmentIDStr)
 	if err != nil {
 		utils.JSONError(w, "invalid assignment ID", http.StatusBadRequest)
+		return
+	}
+	assignment, err := h.svc.GetAssignmentByID(r.Context(), assignmentID)
+	if err != nil || assignment == nil || assignment.Task == nil || assignment.TaskID != taskID || assignment.Task.HomeID != homeID {
+		utils.JSONError(w, "assignment not found", http.StatusNotFound)
 		return
 	}
 
@@ -527,14 +606,30 @@ func (h *TaskHandler) DeleteAssignment(w http.ResponseWriter, r *http.Request) {
 // @Failure      401  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/tasks/{task_id}/reassign-room [patch]
 func (h *TaskHandler) ReassignRoom(w http.ResponseWriter, r *http.Request) {
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+	taskID, err := strconv.Atoi(chi.URLParam(r, "task_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid task ID", http.StatusBadRequest)
+		return
+	}
+
 	var req models.ReassignRoomRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
+	task, err := h.svc.GetTaskByID(r.Context(), taskID)
+	if err != nil || task == nil || task.HomeID != homeID {
+		utils.JSONError(w, "task not found", http.StatusNotFound)
+		return
+	}
 
-	if err := h.svc.ReassignRoom(r.Context(), req.TaskID, req.RoomID); err != nil {
+	if err := h.svc.ReassignRoom(r.Context(), taskID, req.RoomID); err != nil {
 		utils.SafeError(w, err, "Failed to reassign room", http.StatusBadRequest)
 		return
 	}

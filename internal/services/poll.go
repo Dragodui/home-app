@@ -111,6 +111,14 @@ func (s *PollService) GetAllPollsByHomeID(ctx context.Context, homeID int) (*[]m
 }
 
 func (s *PollService) ClosePoll(ctx context.Context, pollID, homeID int) error {
+	poll, err := s.repo.FindPollByID(ctx, pollID)
+	if err != nil {
+		return err
+	}
+	if poll == nil || poll.HomeID != homeID {
+		return errors.New("poll not found")
+	}
+
 	pollsKey := utils.GetPollKey(pollID)
 	pollsForHomeKey := utils.GetAllPollsForHomeKey(homeID)
 
@@ -136,6 +144,14 @@ func (s *PollService) ClosePoll(ctx context.Context, pollID, homeID int) error {
 }
 
 func (s *PollService) Delete(ctx context.Context, pollID, homeID int) error {
+	poll, err := s.repo.FindPollByID(ctx, pollID)
+	if err != nil {
+		return err
+	}
+	if poll == nil || poll.HomeID != homeID {
+		return errors.New("poll not found")
+	}
+
 	pollsKey := utils.GetPollKey(pollID)
 	pollsForHomeKey := utils.GetAllPollsForHomeKey(homeID)
 
@@ -169,6 +185,9 @@ func (s *PollService) Vote(ctx context.Context, userID, optionID, homeID int) er
 		return err
 	}
 	if poll == nil {
+		return errors.New("poll not found")
+	}
+	if poll.HomeID != homeID {
 		return errors.New("poll not found")
 	}
 
@@ -213,6 +232,9 @@ func (s *PollService) Unvote(ctx context.Context, userID, pollID, homeID int) er
 		return err
 	}
 	if poll == nil {
+		return errors.New("poll not found")
+	}
+	if poll.HomeID != homeID {
 		return errors.New("poll not found")
 	}
 

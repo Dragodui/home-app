@@ -35,3 +35,4 @@ tmp/main
 *.log
 client-code.txt
 .env.prod
+security_best_practices_report.md

@@ -30,7 +30,8 @@ type ITaskService interface {
 	DeleteTask(ctx context.Context, taskID int) error
 	AssignUser(ctx context.Context, taskID, userID, homeID int, date time.Time) error
 	GetAssignmentsForUser(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
-	GetClosestAssignmentForUser(ctx context.Context, userID int) (*models.TaskAssignment, error)
+	GetClosestAssignmentForUser(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error)
+	GetAssignmentByID(ctx context.Context, assignmentID int) (*models.TaskAssignment, error)
 	MarkAssignmentCompleted(ctx context.Context, assignmentID int) error
 	MarkAssignmentUncompleted(ctx context.Context, assignmentID int) error
 	MarkTaskCompletedForUser(ctx context.Context, taskID, userID, homeID int) error
@@ -65,6 +66,15 @@ func (s *TaskService) CreateTask(ctx context.Context, homeID int, roomID *int, n
 	normalizedReminderMinutes, err := normalizeReminderMinutes(reminderMinutes)
 	if err != nil {
 		return err
+	}
+	if roomID != nil {
+		ok, err := s.repo.RoomBelongsToHome(ctx, *roomID, homeID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return errors.New("room does not belong to this home")
+		}
 	}
 
 	task := &models.Task{
@@ -208,6 +218,15 @@ func (s *TaskService) UpdateTask(ctx context.Context, taskID int, name, descript
 	if task == nil {
 		return errors.New("task not found")
 	}
+	if roomID != nil {
+		ok, err := s.repo.RoomBelongsToHome(ctx, *roomID, task.HomeID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return errors.New("room does not belong to this home")
+		}
+	}
 
 	if name != nil {
 		task.Name = *name
@@ -289,6 +308,14 @@ func (s *TaskService) ProcessTaskReminders(ctx context.Context) error {
 }
 
 func (s *TaskService) AssignUser(ctx context.Context, taskID, userID, homeID int, date time.Time) error {
+	task, err := s.repo.FindByID(ctx, taskID)
+	if err != nil {
+		return err
+	}
+	if task == nil || task.HomeID != homeID {
+		return errors.New("task not found")
+	}
+
 	// delete task from cache
 	key := utils.GetTaskKey(taskID)
 	if err := utils.DeleteFromCache(ctx, key, s.cache); err != nil {
@@ -306,11 +333,8 @@ func (s *TaskService) AssignUser(ctx context.Context, taskID, userID, homeID int
 	}
 
 	// Notify assigned user
-	task, _ := s.repo.FindByID(ctx, taskID)
-	if task != nil {
-		taskName := task.Name
-		_ = s.notifSvc.Create(ctx, nil, userID, "You have been assigned to task: "+taskName)
-	}
+	taskName := task.Name
+	_ = s.notifSvc.Create(ctx, nil, userID, "You have been assigned to task: "+taskName)
 
 	metrics.TaskOperationsTotal.WithLabelValues("assign").Inc()
 
@@ -345,14 +369,14 @@ func (s *TaskService) GetAssignmentsForUser(ctx context.Context, userID int, hom
 
 }
 
-func (s *TaskService) GetClosestAssignmentForUser(ctx context.Context, userID int) (*models.TaskAssignment, error) {
+func (s *TaskService) GetClosestAssignmentForUser(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error) {
 	// get assignment form cache if exists
-	key := utils.GetClosestAssignmentsForUserKey(userID)
+	key := fmt.Sprintf("%s:%d", utils.GetClosestAssignmentsForUserKey(userID), homeID)
 	cached, err := utils.GetFromCache[models.TaskAssignment](ctx, key, s.cache)
 	if cached != nil && err == nil {
 		return cached, nil
 	}
-	assignment, err := s.repo.FindClosestAssignmentForUser(ctx, userID)
+	assignment, err := s.repo.FindClosestAssignmentForUserInHome(ctx, userID, homeID)
 	ass_str, _ := json.Marshal(assignment)
 	logger.Info.Printf("%s", string(ass_str))
 	if err != nil {
@@ -368,6 +392,10 @@ func (s *TaskService) GetClosestAssignmentForUser(ctx context.Context, userID in
 	}
 
 	return assignment, nil
+}
+
+func (s *TaskService) GetAssignmentByID(ctx context.Context, assignmentID int) (*models.TaskAssignment, error) {
+	return s.repo.FindAssignmentByID(ctx, assignmentID)
 }
 
 func (s *TaskService) MarkAssignmentCompleted(ctx context.Context, assignmentID int) error {
@@ -465,6 +493,14 @@ func (s *TaskService) MarkAssignmentUncompleted(ctx context.Context, assignmentI
 }
 
 func (s *TaskService) MarkTaskCompletedForUser(ctx context.Context, taskID, userID, homeID int) error {
+	task, err := s.repo.FindByID(ctx, taskID)
+	if err != nil {
+		return err
+	}
+	if task == nil || task.HomeID != homeID {
+		return errors.New("task not found")
+	}
+
 	// Find assignment by task and user
 	assignment, err := s.repo.FindAssignmentByTaskAndUser(ctx, taskID, userID)
 	if err != nil {
@@ -581,6 +617,13 @@ func (s *TaskService) ReassignRoom(ctx context.Context, taskID, roomID int) erro
 	}
 	if task == nil {
 		return errors.New("task not found")
+	}
+	ok, err := s.repo.RoomBelongsToHome(ctx, roomID, task.HomeID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("room does not belong to this home")
 	}
 	homeTasksKey := utils.GetTasksForHomeKey(task.HomeID)
 	if err := utils.DeleteFromCache(ctx, homeTasksKey, s.cache); err != nil {

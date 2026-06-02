@@ -16,11 +16,13 @@ type TaskRepository interface {
 	Update(ctx context.Context, t *models.Task) error
 	Delete(ctx context.Context, id int) error
 	ReassignRoom(ctx context.Context, taskID, roomID int) error
+	RoomBelongsToHome(ctx context.Context, roomID, homeID int) (bool, error)
 
 	// task assignments
 	AssignUser(ctx context.Context, taskID, userID int, date time.Time) error
 	FindAssignmentsForUser(ctx context.Context, userID int, homeID int) (*[]models.TaskAssignment, error)
 	FindClosestAssignmentForUser(ctx context.Context, userID int) (*models.TaskAssignment, error)
+	FindClosestAssignmentForUserInHome(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error)
 	FindAssignmentsNeedingReminder(ctx context.Context, windowStart, windowEnd time.Time) ([]models.TaskAssignment, error)
 	FindAssignmentByTaskAndUser(ctx context.Context, taskID, userID int) (*models.TaskAssignment, error)
 	FindAssignmentByID(ctx context.Context, assignmentID int) (*models.TaskAssignment, error)
@@ -119,6 +121,24 @@ func (r *taskRepo) FindClosestAssignmentForUser(ctx context.Context, userID int)
 	var assignment models.TaskAssignment
 
 	if err := r.db.WithContext(ctx).Preload("Task").Where("user_id=? AND status != 'completed'", userID).Order("assigned_date asc").First(&assignment).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &assignment, nil
+}
+
+func (r *taskRepo) FindClosestAssignmentForUserInHome(ctx context.Context, userID, homeID int) (*models.TaskAssignment, error) {
+	var assignment models.TaskAssignment
+
+	if err := r.db.WithContext(ctx).
+		Preload("Task").
+		Joins("JOIN tasks ON task_assignments.task_id = tasks.id").
+		Where("task_assignments.user_id = ? AND task_assignments.status != 'completed' AND tasks.home_id = ?", userID, homeID).
+		Order("assigned_date asc").
+		First(&assignment).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -250,4 +270,15 @@ func (r *taskRepo) ReassignRoom(ctx context.Context, taskID, roomID int) error {
 	}
 
 	return nil
+}
+
+func (r *taskRepo) RoomBelongsToHome(ctx context.Context, roomID, homeID int) (bool, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).
+		Model(&models.Room{}).
+		Where("id = ? AND home_id = ?", roomID, homeID).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

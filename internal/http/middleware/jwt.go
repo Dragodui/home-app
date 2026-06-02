@@ -20,14 +20,12 @@ const tokenBlacklistPrefix = "blacklist:"
 func JWTAuth(secret []byte, cache *redis.Client) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			auth := r.Header.Get("Authorization")
-			if !strings.HasPrefix(auth, "Bearer ") {
+			tokenStr, ok := TokenFromRequest(r)
+			if !ok {
 				metrics.AuthTokensValidated.WithLabelValues("invalid").Inc()
 				utils.JSONError(w, "missing token", http.StatusUnauthorized)
 				return
 			}
-
-			tokenStr := strings.TrimPrefix(auth, "Bearer ")
 
 			// Check if token has been revoked (logout)
 			if val, err := cache.Exists(r.Context(), tokenBlacklistPrefix+tokenStr).Result(); err == nil && val > 0 {
@@ -48,6 +46,21 @@ func JWTAuth(secret []byte, cache *redis.Client) func(http.Handler) http.Handler
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func TokenFromRequest(r *http.Request) (string, bool) {
+	auth := strings.TrimSpace(r.Header.Get("Authorization"))
+	if strings.HasPrefix(auth, "Bearer ") {
+		token := strings.TrimSpace(strings.TrimPrefix(auth, "Bearer "))
+		return token, token != ""
+	}
+
+	token, err := utils.GetAuthCookie(r)
+	if err != nil {
+		return "", false
+	}
+	token = strings.TrimSpace(token)
+	return token, token != ""
 }
 
 func GetUserID(r *http.Request) int {

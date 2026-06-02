@@ -24,8 +24,8 @@ const (
 )
 
 type clientInfo struct {
-	conn   *websocket.Conn
-	userID int
+	conn    *websocket.Conn
+	userID  int
 	homeIDs []int
 }
 
@@ -77,35 +77,29 @@ type authMessage struct {
 }
 
 func (h *WSHandler) HandleWS(w http.ResponseWriter, r *http.Request, cache *redis.Client) {
-	// Support both query parameter (legacy) and first-message auth
-	tokenStr := r.URL.Query().Get("token")
-
 	conn, err := h.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
 		return
 	}
 
-	if tokenStr == "" {
-		// First-message auth: read auth message within timeout
-		conn.SetReadDeadline(time.Now().Add(authTimeout))
-		_, msg, err := conn.ReadMessage()
-		if err != nil {
-			conn.WriteMessage(websocket.CloseMessage,
-				websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "auth timeout"))
-			conn.Close()
-			return
-		}
-
-		var auth authMessage
-		if err := json.Unmarshal(msg, &auth); err != nil || auth.Token == "" {
-			conn.WriteMessage(websocket.CloseMessage,
-				websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "invalid auth message"))
-			conn.Close()
-			return
-		}
-		tokenStr = auth.Token
+	conn.SetReadDeadline(time.Now().Add(authTimeout))
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		conn.WriteMessage(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "auth timeout"))
+		conn.Close()
+		return
 	}
+
+	var auth authMessage
+	if err := json.Unmarshal(msg, &auth); err != nil || auth.Token == "" {
+		conn.WriteMessage(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "invalid auth message"))
+		conn.Close()
+		return
+	}
+	tokenStr := auth.Token
 
 	// Check if token has been revoked (logout)
 	if val, err := cache.Exists(r.Context(), "blacklist:"+tokenStr).Result(); err == nil && val > 0 {

@@ -109,12 +109,12 @@ func setupShoppingRouter(h *handlers.ShoppingHandler) *chi.Mux {
 	r.Delete("/homes/{home_id}/categories/{category_id}", h.DeleteCategory)
 
 	// Items
-	r.Post("/items", h.CreateItem)
-	r.Get("/items/{item_id}", h.GetItemByID)
-	r.Get("/categories/{category_id}/items", h.GetItemsByCategoryID)
-	r.Put("/homes/{home_id}/items/{item_id}", h.EditItem)
-	r.Delete("/homes/{home_id}/items/{item_id}", h.DeleteItem)
-	r.Put("/items/{item_id}/mark-bought", h.MarkIsBought)
+	r.Post("/homes/{home_id}/shopping/items", h.CreateItem)
+	r.Get("/homes/{home_id}/shopping/items/{item_id}", h.GetItemByID)
+	r.Get("/homes/{home_id}/shopping/categories/{category_id}/items", h.GetItemsByCategoryID)
+	r.Put("/homes/{home_id}/shopping/items/{item_id}", h.EditItem)
+	r.Delete("/homes/{home_id}/shopping/items/{item_id}", h.DeleteItem)
+	r.Put("/homes/{home_id}/shopping/items/{item_id}/mark-bought", h.MarkIsBought)
 
 	return r
 }
@@ -170,7 +170,14 @@ func (m *mockShoppingService) FindCategoryByID(ctx context.Context, categoryID, 
 	if m.FindCategoryByIDFunc != nil {
 		return m.FindCategoryByIDFunc(ctx, categoryID, homeID)
 	}
-	return nil, nil
+	return &models.ShoppingCategory{
+		ID:        categoryID,
+		Name:      validCategory.Name,
+		Icon:      validCategory.Icon,
+		Color:     validCategory.Color,
+		HomeID:    homeID,
+		CreatedBy: 123,
+	}, nil
 }
 
 func (m *mockShoppingService) DeleteCategory(ctx context.Context, categoryID, homeID int) error {
@@ -199,7 +206,15 @@ func (m *mockShoppingService) FindItemByID(ctx context.Context, itemID int) (*mo
 	if m.FindItemByIDFunc != nil {
 		return m.FindItemByIDFunc(ctx, itemID)
 	}
-	return nil, nil
+	return &models.ShoppingItem{
+		ID:         itemID,
+		CategoryID: validItem.CategoryID,
+		Name:       validItem.Name,
+		Image:      validItem.Image,
+		Link:       validItem.Link,
+		UploadedBy: validItem.UploadedBy,
+		IsBought:   validItem.IsBought,
+	}, nil
 }
 
 func (m *mockShoppingService) FindItemsByCategoryID(ctx context.Context, categoryID int) ([]models.ShoppingItem, error) {
@@ -678,17 +693,18 @@ func TestShoppingHandler_Items(t *testing.T) {
 				}
 
 				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
 
 				var req *http.Request
 				if tt.name == "Invalid JSON" {
-					req = httptest.NewRequest(http.MethodPost, "/items",
+					req = httptest.NewRequest(http.MethodPost, "/homes/1/shopping/items",
 						bytes.NewBufferString("{bad json}"))
 				} else {
-					req = makeJSONRequest(http.MethodPost, "/items", tt.body)
+					req = makeJSONRequest(http.MethodPost, "/homes/1/shopping/items", tt.body)
 				}
 
 				rr := httptest.NewRecorder()
-				h.CreateItem(rr, req)
+				r.ServeHTTP(rr, req)
 
 				assertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
 				assert.Equal(t, tt.expectedCalls, callCount)
@@ -741,7 +757,7 @@ func TestShoppingHandler_Items(t *testing.T) {
 				h := setupShoppingHandler(svc)
 				r := setupShoppingRouter(h)
 
-				req := httptest.NewRequest(http.MethodGet, "/items/"+tt.itemID, nil)
+				req := httptest.NewRequest(http.MethodGet, "/homes/1/shopping/items/"+tt.itemID, nil)
 				rr := httptest.NewRecorder()
 
 				r.ServeHTTP(rr, req)
@@ -796,7 +812,8 @@ func TestShoppingHandler_Items(t *testing.T) {
 				h := setupShoppingHandler(svc)
 				r := setupShoppingRouter(h)
 
-				req := httptest.NewRequest(http.MethodGet, "/categories/"+tt.categoryID+"/items", nil)
+				req := httptest.NewRequest(http.MethodGet,
+					"/homes/1/shopping/categories/"+tt.categoryID+"/items", nil)
 				rr := httptest.NewRecorder()
 
 				r.ServeHTTP(rr, req)
@@ -868,10 +885,10 @@ func TestShoppingHandler_Items(t *testing.T) {
 
 				var req *http.Request
 				if tt.name == "Invalid JSON" {
-					req = httptest.NewRequest(http.MethodPut, "/homes/1/items/"+tt.itemID,
+					req = httptest.NewRequest(http.MethodPut, "/homes/1/shopping/items/"+tt.itemID,
 						bytes.NewBufferString("{bad json}"))
 				} else {
-					req = makeJSONRequest(http.MethodPut, "/homes/1/items/"+tt.itemID, tt.body)
+					req = makeJSONRequest(http.MethodPut, "/homes/1/shopping/items/"+tt.itemID, tt.body)
 				}
 
 				rr := httptest.NewRecorder()
@@ -923,14 +940,14 @@ func TestShoppingHandler_Items(t *testing.T) {
 				svc := &mockShoppingService{
 					DeleteItemFunc: tt.mockFunc,
 					FindItemByIDFunc: func(ctx context.Context, itemID int) (*models.ShoppingItem, error) {
-						return &models.ShoppingItem{ID: itemID, UploadedBy: 123}, nil
+						return &models.ShoppingItem{ID: itemID, CategoryID: 1, UploadedBy: 123}, nil
 					},
 				}
 
 				h := setupShoppingHandler(svc)
 				r := setupShoppingRouter(h)
 
-				req := httptest.NewRequest(http.MethodDelete, "/homes/1/items/"+tt.itemID, nil)
+				req := httptest.NewRequest(http.MethodDelete, "/homes/1/shopping/items/"+tt.itemID, nil)
 				rr := httptest.NewRecorder()
 
 				r.ServeHTTP(rr, req)
@@ -985,7 +1002,7 @@ func TestShoppingHandler_Items(t *testing.T) {
 				h := setupShoppingHandler(svc)
 				r := setupShoppingRouter(h)
 
-				req := httptest.NewRequest(http.MethodPut, "/items/"+tt.itemID+"/mark-bought", nil)
+				req := httptest.NewRequest(http.MethodPut, "/homes/1/shopping/items/"+tt.itemID+"/mark-bought", nil)
 				rr := httptest.NewRecorder()
 
 				r.ServeHTTP(rr, req)

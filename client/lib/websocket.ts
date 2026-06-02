@@ -81,9 +81,10 @@ class WebSocketManager {
     this.disconnecting = false;
 
     try {
-      const ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`);
+      const ws = new WebSocket(WS_URL);
 
       ws.onopen = () => {
+        ws.send(JSON.stringify({ token }));
         if (__DEV__) console.log("[WS] Connected");
       };
 

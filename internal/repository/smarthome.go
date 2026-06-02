@@ -20,7 +20,9 @@ type SmartHomeRepository interface {
 	GetDeviceByID(ctx context.Context, id int) (*models.SmartDevice, error)
 	GetDevicesByHomeID(ctx context.Context, homeID int) ([]models.SmartDevice, error)
 	GetDevicesByRoomID(ctx context.Context, roomID int) ([]models.SmartDevice, error)
+	GetDevicesByRoomIDAndHomeID(ctx context.Context, roomID, homeID int) ([]models.SmartDevice, error)
 	GetDeviceByEntityID(ctx context.Context, homeID int, entityID string) (*models.SmartDevice, error)
+	RoomBelongsToHome(ctx context.Context, roomID, homeID int) (bool, error)
 	UpdateDevice(ctx context.Context, device *models.SmartDevice) error
 	DeleteDevice(ctx context.Context, id int, homeID int) error
 }
@@ -91,6 +93,14 @@ func (r *smartHomeRepo) GetDevicesByRoomID(ctx context.Context, roomID int) ([]m
 	return devices, nil
 }
 
+func (r *smartHomeRepo) GetDevicesByRoomIDAndHomeID(ctx context.Context, roomID, homeID int) ([]models.SmartDevice, error) {
+	var devices []models.SmartDevice
+	if err := r.db.WithContext(ctx).Preload("Room").Where("room_id = ? AND home_id = ?", roomID, homeID).Order("created_at DESC").Find(&devices).Error; err != nil {
+		return nil, err
+	}
+	return devices, nil
+}
+
 func (r *smartHomeRepo) GetDeviceByEntityID(ctx context.Context, homeID int, entityID string) (*models.SmartDevice, error) {
 	var device models.SmartDevice
 	if err := r.db.WithContext(ctx).Where("home_id = ? AND entity_id = ?", homeID, entityID).First(&device).Error; err != nil {
@@ -115,4 +125,15 @@ func (r *smartHomeRepo) DeleteDevice(ctx context.Context, id int, homeID int) er
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+func (r *smartHomeRepo) RoomBelongsToHome(ctx context.Context, roomID, homeID int) (bool, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).
+		Model(&models.Room{}).
+		Where("id = ? AND home_id = ?", roomID, homeID).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

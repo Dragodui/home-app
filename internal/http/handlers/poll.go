@@ -112,6 +112,12 @@ func (h *PollHandler) GetAllByHomeID(w http.ResponseWriter, r *http.Request) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/polls/{poll_id} [get]
 func (h *PollHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "Invalid home ID", http.StatusBadRequest)
+		return
+	}
+
 	pollID, err := strconv.Atoi(chi.URLParam(r, "poll_id"))
 	if err != nil {
 		utils.JSONError(w, "Invalid poll ID", http.StatusBadRequest)
@@ -124,6 +130,10 @@ func (h *PollHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if poll == nil {
+		utils.JSONError(w, "Poll not found", http.StatusNotFound)
+		return
+	}
+	if poll.HomeID != homeID {
 		utils.JSONError(w, "Poll not found", http.StatusNotFound)
 		return
 	}
@@ -202,6 +212,10 @@ func (h *PollHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if poll == nil {
+		utils.JSONError(w, "Poll not found", http.StatusNotFound)
+		return
+	}
+	if poll.HomeID != homeID {
 		utils.JSONError(w, "Poll not found", http.StatusNotFound)
 		return
 	}

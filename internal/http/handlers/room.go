@@ -70,6 +70,12 @@ func (h *RoomHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/rooms/{room_id} [get]
 func (h *RoomHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
 	roomIDStr := chi.URLParam(r, "room_id")
 	roomID, err := strconv.Atoi(roomIDStr)
 	if err != nil {
@@ -80,6 +86,10 @@ func (h *RoomHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	room, err := h.svc.GetRoomByID(r.Context(), roomID)
 	if err != nil {
 		utils.SafeError(w, err, "Failed to retrieve room", http.StatusInternalServerError)
+		return
+	}
+	if room.HomeID != homeID {
+		utils.JSONError(w, "room not found", http.StatusNotFound)
 		return
 	}
 
@@ -158,6 +168,10 @@ func (h *RoomHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		utils.SafeError(w, err, "Failed to find room", http.StatusInternalServerError)
 		return
 	}
+	if room.HomeID != homeID {
+		utils.JSONError(w, "room not found", http.StatusNotFound)
+		return
+	}
 	if room.CreatedBy != userID {
 		isAdmin, _ := h.homeRepo.IsAdmin(r.Context(), homeID, userID)
 		if !isAdmin {
@@ -197,6 +211,10 @@ func (h *RoomHandler) Update(w http.ResponseWriter, r *http.Request) {
 	room, err := h.svc.GetRoomByID(r.Context(), roomID)
 	if err != nil {
 		utils.SafeError(w, err, "Failed to find room", http.StatusInternalServerError)
+		return
+	}
+	if room.HomeID != homeID {
+		utils.JSONError(w, "room not found", http.StatusNotFound)
 		return
 	}
 	if room.CreatedBy != userID {

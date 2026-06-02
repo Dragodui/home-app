@@ -24,7 +24,7 @@ type ISmartHomeService interface {
 	RemoveDevice(ctx context.Context, deviceID int, homeID int) error
 	UpdateDevice(ctx context.Context, deviceID, homeID int, name string, roomID *int, icon *string) error
 	GetDevices(ctx context.Context, homeID int) ([]models.SmartDevice, error)
-	GetDevicesByRoom(ctx context.Context, roomID int) ([]models.SmartDevice, error)
+	GetDevicesByRoom(ctx context.Context, homeID, roomID int) ([]models.SmartDevice, error)
 	GetDeviceByID(ctx context.Context, deviceID, homeID int) (*models.SmartDevice, error)
 
 	// Device control & state
@@ -132,6 +132,16 @@ func (s *SmartHomeService) TestConnection(ctx context.Context, homeID int) error
 // Device management
 
 func (s *SmartHomeService) AddDevice(ctx context.Context, homeID int, entityID, name string, deviceType string, roomID *int, icon *string) error {
+	if roomID != nil {
+		ok, err := s.repo.RoomBelongsToHome(ctx, *roomID, homeID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("room does not belong to this home")
+		}
+	}
+
 	// Check if device already exists
 	existing, err := s.repo.GetDeviceByEntityID(ctx, homeID, entityID)
 	if err != nil {
@@ -186,6 +196,15 @@ func (s *SmartHomeService) UpdateDevice(ctx context.Context, deviceID, homeID in
 	if device == nil {
 		return fmt.Errorf("device not found")
 	}
+	if roomID != nil {
+		ok, err := s.repo.RoomBelongsToHome(ctx, *roomID, homeID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("room does not belong to this home")
+		}
+	}
 
 	device.Name = name
 	device.RoomID = roomID
@@ -198,8 +217,8 @@ func (s *SmartHomeService) GetDevices(ctx context.Context, homeID int) ([]models
 	return s.repo.GetDevicesByHomeID(ctx, homeID)
 }
 
-func (s *SmartHomeService) GetDevicesByRoom(ctx context.Context, roomID int) ([]models.SmartDevice, error) {
-	return s.repo.GetDevicesByRoomID(ctx, roomID)
+func (s *SmartHomeService) GetDevicesByRoom(ctx context.Context, homeID, roomID int) ([]models.SmartDevice, error) {
+	return s.repo.GetDevicesByRoomIDAndHomeID(ctx, roomID, homeID)
 }
 
 func (s *SmartHomeService) GetDeviceByID(ctx context.Context, deviceID, homeID int) (*models.SmartDevice, error) {

@@ -97,6 +97,7 @@ func TestJWTAuth(t *testing.T) {
 	tests := []struct {
 		name           string
 		authHeader     string
+		useCookie      bool
 		expectedStatus int
 		expectedBody   string
 		shouldCallNext bool
@@ -104,6 +105,13 @@ func TestJWTAuth(t *testing.T) {
 		{
 			name:           "Valid Token",
 			authHeader:     "", // Will be set dynamically
+			expectedStatus: http.StatusOK,
+			expectedBody:   "success",
+			shouldCallNext: true,
+		},
+		{
+			name:           "Valid Cookie Token",
+			useCookie:      true,
 			expectedStatus: http.StatusOK,
 			expectedBody:   "success",
 			shouldCallNext: true,
@@ -149,10 +157,14 @@ func TestJWTAuth(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodGet, "/protected", nil)
 
-			if tt.name == "Valid Token" {
+			if tt.name == "Valid Token" || tt.useCookie {
 				token, err := security.GenerateToken(123, "test@example.com", testJWTSecret, time.Hour)
 				require.NoError(t, err)
-				req.Header.Set("Authorization", "Bearer "+token)
+				if tt.useCookie {
+					req.AddCookie(&http.Cookie{Name: utils.AuthCookieName, Value: token})
+				} else {
+					req.Header.Set("Authorization", "Bearer "+token)
+				}
 			} else if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)
 			}

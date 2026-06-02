@@ -336,12 +336,11 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 // @Failure      401  {object}  map[string]interface{}
 // @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	auth := r.Header.Get("Authorization")
-	if len(auth) <= 7 {
+	tokenStr, ok := middleware.TokenFromRequest(r)
+	if !ok {
 		utils.JSONError(w, "missing token", http.StatusUnauthorized)
 		return
 	}
-	tokenStr := auth[7:] // trim "Bearer "
 
 	if err := h.svc.Logout(r.Context(), tokenStr); err != nil {
 		utils.SafeError(w, err, "Logout failed", http.StatusBadRequest)

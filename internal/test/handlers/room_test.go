@@ -80,7 +80,7 @@ func setupRoomRouter(h *handlers.RoomHandler) *chi.Mux {
 			next.ServeHTTP(w, r)
 		})
 	})
-	r.Get("/rooms/{room_id}", h.GetByID)
+	r.Get("/homes/{home_id}/rooms/{room_id}", h.GetByID)
 	r.Get("/homes/{home_id}/rooms", h.GetByHomeID)
 	r.Delete("/homes/{home_id}/rooms/{room_id}", h.Delete)
 	return r
@@ -162,7 +162,7 @@ func TestRoomHandler_GetByID(t *testing.T) {
 			roomID: "1",
 			mockFunc: func(ctx context.Context, roomID int) (*models.Room, error) {
 				require.Equal(t, 1, roomID)
-				return &models.Room{ID: 1, Name: "Kitchen"}, nil
+				return &models.Room{ID: 1, HomeID: 1, Name: "Kitchen"}, nil
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   "Kitchen",
@@ -194,7 +194,7 @@ func TestRoomHandler_GetByID(t *testing.T) {
 			h := setupRoomHandler(svc)
 			r := setupRoomRouter(h)
 
-			req := httptest.NewRequest(http.MethodGet, "/rooms/"+tt.roomID, nil)
+			req := httptest.NewRequest(http.MethodGet, "/homes/1/rooms/"+tt.roomID, nil)
 			rr := httptest.NewRecorder()
 
 			r.ServeHTTP(rr, req)

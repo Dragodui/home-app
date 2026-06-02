@@ -268,11 +268,20 @@ func (h *ShoppingHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := middleware.GetUserID(r)
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
 
 	var bulkReq models.CreateShoppingItemsRequest
 	if err := json.Unmarshal(rawBody, &bulkReq); err == nil && len(bulkReq.Items) > 0 {
 		if err := utils.Validate.Struct(bulkReq); err != nil {
 			utils.JSONValidationErrors(w, err)
+			return
+		}
+		if _, err := h.svc.FindCategoryByID(r.Context(), bulkReq.CategoryID, homeID); err != nil {
+			utils.JSONError(w, "category not found", http.StatusNotFound)
 			return
 		}
 
@@ -295,6 +304,10 @@ func (h *ShoppingHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 
 	if err := utils.Validate.Struct(req); err != nil {
 		utils.JSONValidationErrors(w, err)
+		return
+	}
+	if _, err := h.svc.FindCategoryByID(r.Context(), req.CategoryID, homeID); err != nil {
+		utils.JSONError(w, "category not found", http.StatusNotFound)
 		return
 	}
 
@@ -320,6 +333,12 @@ func (h *ShoppingHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/shopping/items/{item_id} [get]
 func (h *ShoppingHandler) GetItemByID(w http.ResponseWriter, r *http.Request) {
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
 	itemIDStr := chi.URLParam(r, "item_id")
 	itemID, err := strconv.Atoi(itemIDStr)
 	if err != nil {
@@ -333,6 +352,10 @@ func (h *ShoppingHandler) GetItemByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if item == nil {
+		utils.JSONError(w, "Item not found", http.StatusNotFound)
+		return
+	}
+	if _, err := h.svc.FindCategoryByID(r.Context(), item.CategoryID, homeID); err != nil {
 		utils.JSONError(w, "Item not found", http.StatusNotFound)
 		return
 	}
@@ -356,10 +379,20 @@ func (h *ShoppingHandler) GetItemByID(w http.ResponseWriter, r *http.Request) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/shopping/categories/{category_id}/items [get]
 func (h *ShoppingHandler) GetItemsByCategoryID(w http.ResponseWriter, r *http.Request) {
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
 	categoryIDStr := chi.URLParam(r, "category_id")
 	categoryID, err := strconv.Atoi(categoryIDStr)
 	if err != nil {
 		utils.JSONError(w, "invalid category ID", http.StatusBadRequest)
+		return
+	}
+	if _, err := h.svc.FindCategoryByID(r.Context(), categoryID, homeID); err != nil {
+		utils.JSONError(w, "category not found", http.StatusNotFound)
 		return
 	}
 
@@ -418,6 +451,10 @@ func (h *ShoppingHandler) DeleteItem(w http.ResponseWriter, r *http.Request) {
 		utils.JSONError(w, "Item not found", http.StatusNotFound)
 		return
 	}
+	if _, err := h.svc.FindCategoryByID(r.Context(), item.CategoryID, homeID); err != nil {
+		utils.JSONError(w, "Item not found", http.StatusNotFound)
+		return
+	}
 	if item.UploadedBy != userID {
 		isAdmin, _ := h.homeRepo.IsAdmin(r.Context(), homeID, userID)
 		if !isAdmin {
@@ -448,10 +485,25 @@ func (h *ShoppingHandler) DeleteItem(w http.ResponseWriter, r *http.Request) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/shopping/items/{item_id} [patch]
 func (h *ShoppingHandler) MarkIsBought(w http.ResponseWriter, r *http.Request) {
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
 	itemIDStr := chi.URLParam(r, "item_id")
 	itemID, err := strconv.Atoi(itemIDStr)
 	if err != nil {
 		utils.JSONError(w, "invalid item ID", http.StatusBadRequest)
+		return
+	}
+	item, err := h.svc.FindItemByID(r.Context(), itemID)
+	if err != nil || item == nil {
+		utils.JSONError(w, "Item not found", http.StatusNotFound)
+		return
+	}
+	if _, err := h.svc.FindCategoryByID(r.Context(), item.CategoryID, homeID); err != nil {
+		utils.JSONError(w, "Item not found", http.StatusNotFound)
 		return
 	}
 
@@ -489,6 +541,20 @@ func (h *ShoppingHandler) EditItem(w http.ResponseWriter, r *http.Request) {
 	itemID, err := strconv.Atoi(itemIDStr)
 	if err != nil {
 		utils.JSONError(w, "invalid item ID", http.StatusBadRequest)
+		return
+	}
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+	item, err := h.svc.FindItemByID(r.Context(), itemID)
+	if err != nil || item == nil {
+		utils.JSONError(w, "Item not found", http.StatusNotFound)
+		return
+	}
+	if _, err := h.svc.FindCategoryByID(r.Context(), item.CategoryID, homeID); err != nil {
+		utils.JSONError(w, "Item not found", http.StatusNotFound)
 		return
 	}
 

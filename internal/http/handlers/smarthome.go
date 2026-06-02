@@ -491,6 +491,13 @@ func (h *SmartHomeHandler) GetAllStates(w http.ResponseWriter, r *http.Request) 
 // @Success      200  {object}  []models.SmartDevice
 // @Router       /homes/{home_id}/rooms/{room_id}/devices [get]
 func (h *SmartHomeHandler) GetDevicesByRoom(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "Invalid home ID", http.StatusBadRequest)
+		return
+	}
+
 	roomIDStr := chi.URLParam(r, "room_id")
 	roomID, err := strconv.Atoi(roomIDStr)
 	if err != nil {
@@ -498,7 +505,7 @@ func (h *SmartHomeHandler) GetDevicesByRoom(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	devices, err := h.svc.GetDevicesByRoom(r.Context(), roomID)
+	devices, err := h.svc.GetDevicesByRoom(r.Context(), homeID, roomID)
 	if err != nil {
 		utils.SafeError(w, err, "Failed to retrieve devices", http.StatusInternalServerError)
 		return
