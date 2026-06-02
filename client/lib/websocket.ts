@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/stores/authStore";
+import { Platform } from "react-native";
 import { isDevMode } from "./api";
 
 
@@ -57,7 +58,7 @@ class WebSocketManager {
     this.authUnsubscribe = useAuthStore.subscribe(
       (state) => ({ isAuthenticated: state.isAuthenticated, token: state.token }),
       ({ isAuthenticated, token }) => {
-        if (isAuthenticated && token) {
+        if (isAuthenticated && (token || Platform.OS === "web")) {
           this.connect(token);
         } else {
           this.disconnect();
@@ -68,12 +69,12 @@ class WebSocketManager {
 
     // Connect immediately if already authenticated
     const { isAuthenticated, token } = useAuthStore.getState();
-    if (isAuthenticated && token) {
+    if (isAuthenticated && (token || Platform.OS === "web")) {
       this.connect(token);
     }
   }
 
-  private connect(token: string) {
+  private connect(token: string | null) {
     if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING) {
       return;
     }
@@ -84,7 +85,9 @@ class WebSocketManager {
       const ws = new WebSocket(WS_URL);
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({ token }));
+        if (token) {
+          ws.send(JSON.stringify({ token }));
+        }
         if (__DEV__) console.log("[WS] Connected");
       };
 
@@ -107,7 +110,7 @@ class WebSocketManager {
         if (this.disconnecting) return;
         this.reconnectTimeout = setTimeout(() => {
           const { isAuthenticated, token } = useAuthStore.getState();
-          if (isAuthenticated && token) {
+          if (isAuthenticated && (token || Platform.OS === "web")) {
             this.connect(token);
           }
         }, 3000);

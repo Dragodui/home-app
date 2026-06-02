@@ -66,7 +66,7 @@ func SetupRoutes(
 		MaxAge:           300,
 	}))
 	// Security headers middleware
-	r.Use(middleware.SecurityHeaders)
+	r.Use(middleware.SecurityHeadersWithHSTS(cfg.Mode != "dev"))
 
 	// Public healthcheck
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {

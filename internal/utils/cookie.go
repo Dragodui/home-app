@@ -33,14 +33,14 @@ func SetAuthCookie(w http.ResponseWriter, token string, secure bool) {
 }
 
 // ClearAuthCookie removes the authentication cookie
-func ClearAuthCookie(w http.ResponseWriter) {
+func ClearAuthCookie(w http.ResponseWriter, secure bool) {
 	cookie := &http.Cookie{
 		Name:     AuthCookieName,
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1, // Delete cookie immediately
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
 	}
 

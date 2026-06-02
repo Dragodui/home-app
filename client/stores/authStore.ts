@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+import { Platform } from "react-native";
 import { authApi, getApiErrorMessage, getApiErrorStatus, userApi } from "@/lib/api";
 import { onAuthSessionExpired } from "@/lib/authSession";
 import { secureStorage } from "@/lib/secureStorage";
@@ -38,6 +39,19 @@ export const useAuthStore = create<AuthState>()(
 
     init: async () => {
       try {
+        if (Platform.OS === "web") {
+          await secureStorage.removeItem("auth_token");
+          try {
+            const user = await userApi.getMe();
+            await secureStorage.setItem("user", JSON.stringify(user));
+            set({ user, token: null, isLoading: false, isAuthenticated: true });
+          } catch {
+            await secureStorage.removeItem("user");
+            set({ user: null, token: null, isLoading: false, isAuthenticated: false });
+          }
+          return;
+        }
+
         const token = await secureStorage.getItem("auth_token");
         const userJson = await secureStorage.getItem("user");
 
@@ -58,7 +72,7 @@ export const useAuthStore = create<AuthState>()(
         const response = await authApi.login(email, password);
         set({
           user: response.user,
-          token: response.token,
+          token: Platform.OS === "web" ? null : response.token,
           isLoading: false,
           isAuthenticated: true,
         });
@@ -168,7 +182,7 @@ export const useAuthStore = create<AuthState>()(
         const response = await authApi.googleSignIn(accessToken);
         set({
           user: response.user,
-          token: response.token,
+          token: Platform.OS === "web" ? null : response.token,
           isLoading: false,
           isAuthenticated: true,
         });

@@ -12,6 +12,7 @@ import (
 	"github.com/Dragodui/diploma-server/internal/config"
 	"github.com/Dragodui/diploma-server/internal/event"
 	"github.com/Dragodui/diploma-server/internal/repository"
+	"github.com/Dragodui/diploma-server/internal/utils"
 	"github.com/Dragodui/diploma-server/pkg/security"
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
@@ -77,29 +78,33 @@ type authMessage struct {
 }
 
 func (h *WSHandler) HandleWS(w http.ResponseWriter, r *http.Request, cache *redis.Client) {
+	tokenStr, _ := utils.GetAuthCookie(r)
+
 	conn, err := h.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
 		return
 	}
 
-	conn.SetReadDeadline(time.Now().Add(authTimeout))
-	_, msg, err := conn.ReadMessage()
-	if err != nil {
-		conn.WriteMessage(websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "auth timeout"))
-		conn.Close()
-		return
-	}
+	if tokenStr == "" {
+		conn.SetReadDeadline(time.Now().Add(authTimeout))
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			conn.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "auth timeout"))
+			conn.Close()
+			return
+		}
 
-	var auth authMessage
-	if err := json.Unmarshal(msg, &auth); err != nil || auth.Token == "" {
-		conn.WriteMessage(websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "invalid auth message"))
-		conn.Close()
-		return
+		var auth authMessage
+		if err := json.Unmarshal(msg, &auth); err != nil || auth.Token == "" {
+			conn.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "invalid auth message"))
+			conn.Close()
+			return
+		}
+		tokenStr = auth.Token
 	}
-	tokenStr := auth.Token
 
 	// Check if token has been revoked (logout)
 	if val, err := cache.Exists(r.Context(), "blacklist:"+tokenStr).Result(); err == nil && val > 0 {

@@ -86,6 +86,13 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 async function getAuthHeaders() {
+  if (Platform.OS === "web") {
+    return {
+      token: null,
+      headers: null,
+    };
+  }
+
   const token = await secureStorage.getItem("auth_token");
   return {
     token,
@@ -124,6 +131,7 @@ async function request<T>(path: string, options: ApiRequestOptions = {}): Promis
     method: options.method ?? "GET",
     headers,
     body,
+    credentials: Platform.OS === "web" ? "include" : "same-origin",
   });
 
   const text = await response.text();

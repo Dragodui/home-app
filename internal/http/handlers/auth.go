@@ -150,6 +150,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	utils.SetAuthCookie(w, token, h.isSecure)
+
 	// Response to client
 	utils.JSON(w, http.StatusAccepted, map[string]interface{}{"status": true,
 		"token": token,
@@ -298,7 +300,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	var input struct {
 		CurrentPassword string `json:"current_password" validate:"required"`
-		NewPassword     string `json:"new_password" validate:"required,min=6"`
+		NewPassword     string `json:"new_password" validate:"required,min=8"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -347,7 +349,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.ClearAuthCookie(w)
+	utils.ClearAuthCookie(w, h.isSecure)
 	utils.JSON(w, http.StatusOK, map[string]interface{}{
 		"status":  true,
 		"message": "Logged out successfully",
@@ -383,6 +385,8 @@ func (h *AuthHandler) GoogleSignIn(w http.ResponseWriter, r *http.Request) {
 		utils.SafeError(w, err, "Google sign-in failed", http.StatusInternalServerError)
 		return
 	}
+
+	utils.SetAuthCookie(w, token, h.isSecure)
 
 	utils.JSON(w, http.StatusOK, map[string]interface{}{
 		"status": true,

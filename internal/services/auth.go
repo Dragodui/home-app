@@ -21,6 +21,10 @@ import (
 var ErrInvalidCredentials = errors.New("invalid credentials")
 var ErrEmailNotVerified = errors.New("email is not verified")
 
+var googleTokenHTTPClient = &http.Client{
+	Timeout: 10 * time.Second,
+}
+
 // dummyPasswordHash is a pre-computed bcrypt hash used for timing attack mitigation
 const dummyPasswordHash = "$2a$12$6EbCFrJc5PL8YvKp.qZYF.nQq3qY5jLvN8xX9X5jZrN5XqY5jZrN5"
 
@@ -207,7 +211,7 @@ func verifyGoogleAccessToken(ctx context.Context, accessToken string) (*googleUs
 	}
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := googleTokenHTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify Google token: %w", err)
 	}
@@ -281,7 +285,7 @@ func (s *AuthService) SendVerificationEmail(ctx context.Context, email string) e
 	if err := s.repo.SetVerifyToken(ctx, email, tok, exp); err != nil {
 		return err
 	}
-	
+
 	link := fmt.Sprintf(s.serverURL+"/api/auth/verify?token=%s", tok)
 	body := fmt.Sprintf("Verify email: <a href=\"%s\">%s</a>", link, link)
 	return s.mail.Send(email, "Verify your email", body)

@@ -52,6 +52,9 @@ func NewHAClient(baseURL, token string) *HAClient {
 		token:   token,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
 		},
 	}
 }
