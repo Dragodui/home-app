@@ -1,6 +1,6 @@
+import { Platform } from "react-native";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import { Platform } from "react-native";
 import { authApi, getApiErrorMessage, getApiErrorStatus, userApi } from "@/lib/api";
 import { onAuthSessionExpired } from "@/lib/authSession";
 import { secureStorage } from "@/lib/secureStorage";
@@ -25,7 +25,12 @@ interface AuthState {
   resendVerification: (email: string) => Promise<AuthResult>;
   forgotPassword: (email: string) => Promise<AuthResult>;
   resetPassword: (token: string, password: string) => Promise<AuthResult>;
-  updateUser: (data: { name?: string; username?: string; avatar?: string; profilePublic?: boolean }) => Promise<AuthResult>;
+  updateUser: (data: {
+    name?: string;
+    username?: string;
+    avatar?: string;
+    profilePublic?: boolean;
+  }) => Promise<AuthResult>;
   refreshUser: () => Promise<void>;
   googleSignIn: (accessToken: string) => Promise<AuthResult>;
 }

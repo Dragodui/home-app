@@ -799,7 +799,7 @@ export const notificationApi = {
   subscribeToPushNotifications: async (subscription: PushSubscription): Promise<{ message: string }> => {
     const response = await api.post<{ status: boolean; message: string }>(
       "/notifications/subscribe",
-      subscription.toJSON()
+      subscription.toJSON(),
     );
     return { message: response.data.message };
   },

@@ -1,7 +1,6 @@
-import { useAuthStore } from "@/stores/authStore";
 import { Platform } from "react-native";
+import { useAuthStore } from "@/stores/authStore";
 import { isDevMode } from "./api";
-
 
 const WS_URL = `${(isDevMode ? process.env.EXPO_PUBLIC_API_URL_DEV : process.env.EXPO_PUBLIC_API_URL).replace(/^http/, "ws")}/ws`;
 
@@ -72,6 +71,13 @@ class WebSocketManager {
     if (isAuthenticated && (token || Platform.OS === "web")) {
       this.connect(token);
     }
+  }
+
+  dispose() {
+    this.authUnsubscribe?.();
+    this.authUnsubscribe = null;
+    this.initialized = false;
+    this.disconnect();
   }
 
   private connect(token: string | null) {

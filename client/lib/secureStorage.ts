@@ -1,5 +1,5 @@
-import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
 const WEB_NON_PERSISTENT_KEYS = new Set(["auth_token"]);
