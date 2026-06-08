@@ -22,6 +22,7 @@ import {
   Plane,
   Plus,
   Receipt,
+  Repeat,
   Shield,
   ShoppingBag,
   Smartphone,
@@ -43,14 +44,16 @@ import Modal from "@/components/ui/modal";
 import { billApi, billCategoryApi, imageApi, ocrApi } from "@/lib/api";
 import { formatCurrencyAmount, getHomeCurrency } from "@/lib/currency";
 import type { Bill, BillCategory, BillSplit, HomeMembership, OCRResult } from "@/lib/types";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
 type BudgetPeriod = "month" | "year" | "all";
+type BudgetScope = "home" | "private";
+type BillRecurrenceType = "daily" | "weekly" | "monthly";
 
 const BILL_CATEGORY_ICON_OPTIONS = [
   "wallet",
@@ -70,6 +73,18 @@ const BILL_CATEGORY_ICON_OPTIONS = [
   "pets",
   "insurance",
 ] as const;
+
+const WEEKLY_RECURRENCE_DAYS = [
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+  { value: 0, label: "Sun" },
+] as const;
+
+const MONTHLY_RECURRENCE_DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
 
 const getBillCategoryIcon = (iconId: string | undefined, size: number, color: string) => {
   switch (iconId) {
@@ -305,14 +320,19 @@ export default function BudgetScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [budgetScope, setBudgetScope] = useState<BudgetScope>("home");
   const [budgetPeriod, setBudgetPeriod] = useState<BudgetPeriod>("month");
   const [periodCursor, setPeriodCursor] = useState(() => new Date());
   const [filterCategoryId, setFilterCategoryId] = useState<number | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [newBillPublic, setNewBillPublic] = useState(true);
   const [newBillDescription, setNewBillDescription] = useState("");
   const [newBillAmount, setNewBillAmount] = useState("");
+  const [newBillIsRegular, setNewBillIsRegular] = useState(false);
+  const [newBillRecurrenceType, setNewBillRecurrenceType] = useState<BillRecurrenceType>("monthly");
+  const [newBillRecurrenceDay, setNewBillRecurrenceDay] = useState(new Date().getDate());
   const [creating, setCreating] = useState(false);
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -351,15 +371,15 @@ export default function BudgetScreen() {
   const [savingSplits, setSavingSplits] = useState(false);
   const [showBillActionsModal, setShowBillActionsModal] = useState(false);
   const [selectedBillForActions, setSelectedBillForActions] = useState<Bill | null>(null);
+  const [showBillDetailsModal, setShowBillDetailsModal] = useState(false);
+  const [selectedBillForDetails, setSelectedBillForDetails] = useState<Bill | null>(null);
   const [showEditBillModal, setShowEditBillModal] = useState(false);
   const [editingBillId, setEditingBillId] = useState<number | null>(null);
   const [editBillDescription, setEditBillDescription] = useState("");
   const [editBillAmount, setEditBillAmount] = useState("");
   const [editBillCategoryId, setEditBillCategoryId] = useState<number | null>(null);
+  const [editBillPublic, setEditBillPublic] = useState(true);
   const [savingBillEdit, setSavingBillEdit] = useState(false);
-
-  // Expanded bill card
-  const [expandedBillId, setExpandedBillId] = useState<number | null>(null);
 
   // Trend modal
   const [showTrendModal, setShowTrendModal] = useState(false);
@@ -404,7 +424,7 @@ export default function BudgetScreen() {
 
     try {
       const [allBillsData, categoriesData] = await Promise.all([
-        billApi.getByHomeId(home.id).catch(() => []),
+        (budgetScope === "private" ? billApi.getPrivate(home.id) : billApi.getByHomeId(home.id)).catch(() => []),
         billCategoryApi.getAll(home.id).catch(() => []),
       ]);
       setAllBills(allBillsData || []);
@@ -414,7 +434,7 @@ export default function BudgetScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [home]);
+  }, [budgetScope, home]);
 
   useEffect(() => {
     loadData();
@@ -437,10 +457,15 @@ export default function BudgetScreen() {
   };
 
   const handleOpenCreateModal = () => {
+    const now = new Date();
     resetScanState();
     setNewBillAmount("");
     setNewBillDescription("");
     setSelectedCategoryId(null);
+    setNewBillPublic(budgetScope === "home");
+    setNewBillIsRegular(false);
+    setNewBillRecurrenceType("monthly");
+    setNewBillRecurrenceDay(now.getDate());
     setSplitUserIds([]);
     setSplitMode("equal");
     setManualAmounts({});
@@ -552,7 +577,7 @@ export default function BudgetScreen() {
 
       const category = categories.find((c) => c.id === selectedCategoryId);
       const totalAmount = parseFloat(newBillAmount);
-      const splits = buildSplits(splitUserIds, splitMode, manualAmounts, totalAmount);
+      const splits = newBillPublic ? buildSplits(splitUserIds, splitMode, manualAmounts, totalAmount) : undefined;
 
       // Upload receipt image if available
       let receiptImageUrl: string | undefined;
@@ -573,6 +598,10 @@ export default function BudgetScreen() {
 
       await billApi.create(home.id, {
         type: category?.name || "Expense",
+        public: newBillPublic,
+        isRegular: newBillIsRegular,
+        recurrenceType: newBillIsRegular ? newBillRecurrenceType : undefined,
+        recurrenceDay: newBillIsRegular && newBillRecurrenceType !== "daily" ? newBillRecurrenceDay : undefined,
         billCategoryId: selectedCategoryId,
         description: newBillDescription || undefined,
         receiptImage: receiptImageUrl,
@@ -585,6 +614,8 @@ export default function BudgetScreen() {
 
       setNewBillAmount("");
       setSelectedCategoryId(null);
+      setNewBillPublic(budgetScope === "home");
+      setNewBillIsRegular(false);
       resetScanState();
       setShowCreateModal(false);
       await loadData();
@@ -621,11 +652,17 @@ export default function BudgetScreen() {
     setShowBillActionsModal(true);
   };
 
+  const openBillDetails = (bill: Bill) => {
+    setSelectedBillForDetails(bill);
+    setShowBillDetailsModal(true);
+  };
+
   const openEditBill = (bill: Bill) => {
     setEditingBillId(bill.id);
     setEditBillDescription(bill.description || "");
     setEditBillAmount(String(bill.totalAmount || ""));
     setEditBillCategoryId(bill.billCategoryId ?? null);
+    setEditBillPublic(bill.public !== false);
     setShowEditBillModal(true);
   };
 
@@ -639,6 +676,7 @@ export default function BudgetScreen() {
         description: editBillDescription || undefined,
         totalAmount: amount,
         billCategoryId: editBillCategoryId || undefined,
+        public: editBillPublic,
       });
       setShowEditBillModal(false);
       setEditingBillId(null);
@@ -695,6 +733,14 @@ export default function BudgetScreen() {
     if (!home) return;
     try {
       await billApi.markSplitPaid(home.id, bill.id, split.id);
+      setSelectedBillForDetails((current) =>
+        current?.id === bill.id
+          ? {
+              ...current,
+              splits: (current.splits ?? []).map((item) => (item.id === split.id ? { ...item, paid: true } : item)),
+            }
+          : current,
+      );
       await loadData();
     } catch (error) {
       console.error("Error marking split paid:", error);
@@ -1036,6 +1082,20 @@ export default function BudgetScreen() {
         ? String(periodCursor.getFullYear())
         : t.budget.allTime;
 
+  const renderDetailRow = (label: string, value: string | undefined) => {
+    if (!value) return null;
+    return (
+      <View className="flex-row justify-between gap-4 py-2">
+        <Text className="text-sm" style={{ color: theme.textSecondary }}>
+          {label}
+        </Text>
+        <Text className="text-sm font-manrope-semibold flex-1 text-right" style={{ color: theme.text }}>
+          {value}
+        </Text>
+      </View>
+    );
+  };
+
   if (isLoading) {
     return <BudgetSkeleton />;
   }
@@ -1075,6 +1135,38 @@ export default function BudgetScreen() {
               <Plus size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
+        </View>
+
+        <View className="flex-row gap-2 mb-6 rounded-3xl p-1.5" style={{ backgroundColor: theme.surface }}>
+          {(
+            [
+              { value: "home", label: "Home budget", icon: Home },
+              { value: "private", label: "Private budget", icon: Shield },
+            ] as const
+          ).map((option) => {
+            const Icon = option.icon;
+            const isActive = budgetScope === option.value;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                className="flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-2xl"
+                style={{ backgroundColor: isActive ? theme.text : "transparent" }}
+                onPress={() => {
+                  setBudgetScope(option.value);
+                  setFilterCategoryId(null);
+                  setExpandedReceiptId(null);
+                }}
+              >
+                <Icon size={16} color={isActive ? theme.background : theme.textSecondary} />
+                <Text
+                  className="text-sm font-manrope-semibold"
+                  style={{ color: isActive ? theme.background : theme.text }}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {totalSpend > 0 && (
@@ -1172,12 +1264,12 @@ export default function BudgetScreen() {
             >
               <ChevronLeft size={20} color={canNavigatePeriod ? theme.text : theme.textSecondary} />
             </TouchableOpacity>
-              <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
-                {budgetPeriod === "month"
-                  ? formattedPeriodMonth
-                  : budgetPeriod === "year"
-                    ? String(periodCursor.getFullYear())
-                    : t.budget.allTime}
+            <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
+              {budgetPeriod === "month"
+                ? formattedPeriodMonth
+                : budgetPeriod === "year"
+                  ? String(periodCursor.getFullYear())
+                  : t.budget.allTime}
             </Text>
             <TouchableOpacity
               className="w-11 h-11 rounded-full items-center justify-center"
@@ -1242,10 +1334,13 @@ export default function BudgetScreen() {
         {/* Bills list */}
         <View
           className="gap-3"
-          style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+          style={{
+            flexDirection: isDesktop ? "row" : "column",
+            flexWrap: isDesktop ? "wrap" : "nowrap",
+            justifyContent: "space-between",
+          }}
         >
           {visibleBills.map((bill) => {
-            const isExpanded = expandedBillId === bill.id;
             const splits = bill.splits ?? [];
             const userSplit = splits.find((s) => s.userId === user?.id);
             const uploaderName = bill.user?.name ?? getMemberName(bill.uploadedBy);
@@ -1255,7 +1350,7 @@ export default function BudgetScreen() {
                 key={bill.id}
                 className="p-4 rounded-2xl"
                 style={{ backgroundColor: theme.surface, width: isDesktop ? "49%" : "100%" }}
-                onPress={() => setExpandedBillId(isExpanded ? null : bill.id)}
+                onPress={() => openBillDetails(bill)}
                 onLongPress={() => openBillActions(bill)}
                 activeOpacity={0.7}
               >
@@ -1273,6 +1368,17 @@ export default function BudgetScreen() {
                     <Text className="text-xs" style={{ color: theme.textSecondary }}>
                       {uploaderName} · {new Date(bill.createdAt).toLocaleDateString("pl-PL")}
                     </Text>
+                    {bill.public === false && (
+                      <View
+                        className="self-start flex-row items-center gap-1 px-2 py-0.5 rounded-full mt-1"
+                        style={{ backgroundColor: theme.background }}
+                      >
+                        <Shield size={10} color={theme.textSecondary} />
+                        <Text className="text-[10px] font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                          Private
+                        </Text>
+                      </View>
+                    )}
                     {bill.description ? (
                       <Text className="text-xs mt-0.5" style={{ color: theme.textSecondary }} numberOfLines={1}>
                         {bill.description}
@@ -1297,66 +1403,7 @@ export default function BudgetScreen() {
                   </View>
                 </View>
 
-                {/* Expanded: splits details */}
-                {isExpanded && splits.length > 0 && (
-                  <View className="mt-3 pt-3" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
-                    <View className="flex-row items-center justify-between mb-2">
-                      <View className="flex-row items-center gap-1.5">
-                        <Users size={14} color={theme.textSecondary} />
-                        <Text className="text-xs font-manrope-bold uppercase" style={{ color: theme.textSecondary }}>
-                          {t.budget.splitBetween}
-                        </Text>
-                      </View>
-                      {canEditBill(bill) && (
-                        <TouchableOpacity
-                          className="flex-row items-center gap-1 px-2 py-1 rounded-lg"
-                          style={{ backgroundColor: theme.background }}
-                          onPress={() => handleOpenEditSplits(bill)}
-                        >
-                          <Pencil size={12} color={theme.textSecondary} />
-                          <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
-                            {t.budget.editSplits}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                    {splits.map((split) => (
-                      <View key={split.id} className="flex-row items-center justify-between py-1.5">
-                        <View className="flex-row items-center gap-2 flex-1">
-                          <View
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: split.paid ? "#22C55E" : theme.accent.pink }}
-                          />
-                          <Text className="text-sm" style={{ color: theme.text }}>
-                            {split.user?.name ?? getMemberName(split.userId)}
-                          </Text>
-                        </View>
-                        <Text className="text-sm font-manrope-semibold mr-2" style={{ color: theme.text }}>
-                          {formatCurrencyAmount(split.amount, homeCurrency)}
-                        </Text>
-                        {!split.paid && canEditBill(bill) && (
-                          <TouchableOpacity
-                            className="px-2 py-1 rounded-lg"
-                            style={{ backgroundColor: "#22C55E20" }}
-                            onPress={() => handleMarkSplitPaid(bill, split)}
-                          >
-                            <Text className="text-xs font-manrope-semibold" style={{ color: "#22C55E" }}>
-                              {t.budget.markAsPaid}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                        {split.paid && (
-                          <Text className="text-xs font-manrope-semibold" style={{ color: "#22C55E" }}>
-                            {t.budget.paid}
-                          </Text>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {/* Show split indicator when collapsed */}
-                {!isExpanded && splits.length > 0 && (
+                {splits.length > 0 && (
                   <View className="flex-row items-center mt-2 gap-1">
                     <Users size={12} color={theme.textSecondary} />
                     <Text className="text-xs" style={{ color: theme.textSecondary }}>
@@ -1669,6 +1716,46 @@ export default function BudgetScreen() {
 
           {/* Manual entry / Category & Amount */}
           <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
+            Budget
+          </Text>
+          <View className="flex-row gap-2 mb-5">
+            {(
+              [
+                { value: true, label: "Home", icon: Home },
+                { value: false, label: "Private", icon: Shield },
+              ] as const
+            ).map((option) => {
+              const Icon = option.icon;
+              const isActive = newBillPublic === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.label}
+                  className="flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-2xl border"
+                  style={{
+                    backgroundColor: isActive ? theme.text : theme.surface,
+                    borderColor: isActive ? theme.text : theme.border,
+                  }}
+                  onPress={() => {
+                    setNewBillPublic(option.value);
+                    if (!option.value) {
+                      setSplitUserIds([]);
+                      setManualAmounts({});
+                    }
+                  }}
+                >
+                  <Icon size={16} color={isActive ? theme.background : theme.textSecondary} />
+                  <Text
+                    className="text-sm font-manrope-semibold"
+                    style={{ color: isActive ? theme.background : theme.text }}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
             {t.budget.category}
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
@@ -1719,18 +1806,145 @@ export default function BudgetScreen() {
             />
           </View>
 
-          {/* Split Between section */}
-          <View className="mt-5">
-            {renderSplitPicker(
-              splitUserIds,
-              setSplitUserIds,
-              splitMode,
-              setSplitMode,
-              manualAmounts,
-              setManualAmounts,
-              parseFloat(newBillAmount) || 0,
+          <View className="mt-5 rounded-2xl p-4" style={{ backgroundColor: theme.surface }}>
+            <TouchableOpacity
+              className="flex-row items-center justify-between"
+              onPress={() => setNewBillIsRegular(!newBillIsRegular)}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center gap-3">
+                <View
+                  className="w-10 h-10 rounded-full justify-center items-center"
+                  style={{ backgroundColor: theme.background }}
+                >
+                  <Repeat size={18} color={theme.textSecondary} />
+                </View>
+                <View>
+                  <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+                    Regular expense
+                  </Text>
+                  <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                    Add this bill automatically
+                  </Text>
+                </View>
+              </View>
+              <View
+                className="w-12 h-7 rounded-full p-1"
+                style={{ backgroundColor: newBillIsRegular ? theme.accent.pink : theme.background }}
+              >
+                <View
+                  className="w-5 h-5 rounded-full"
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    transform: [{ translateX: newBillIsRegular ? 20 : 0 }],
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+
+            {newBillIsRegular && (
+              <View className="mt-4 pt-4" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
+                <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
+                  Repeat
+                </Text>
+                <View className="flex-row gap-2 mb-4">
+                  {(["daily", "weekly", "monthly"] as const).map((type) => {
+                    const isActive = newBillRecurrenceType === type;
+                    return (
+                      <TouchableOpacity
+                        key={type}
+                        className="flex-1 py-2.5 rounded-2xl items-center"
+                        style={{ backgroundColor: isActive ? theme.text : theme.background }}
+                        onPress={() => {
+                          setNewBillRecurrenceType(type);
+                          if (type === "weekly") {
+                            setNewBillRecurrenceDay(new Date().getDay());
+                          }
+                          if (type === "monthly") {
+                            setNewBillRecurrenceDay(new Date().getDate());
+                          }
+                        }}
+                      >
+                        <Text
+                          className="text-sm font-manrope-semibold capitalize"
+                          style={{ color: isActive ? theme.background : theme.text }}
+                        >
+                          {type}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {newBillRecurrenceType === "weekly" && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                    {WEEKLY_RECURRENCE_DAYS.map((day) => {
+                      const isActive = newBillRecurrenceDay === day.value;
+                      return (
+                        <TouchableOpacity
+                          key={day.value}
+                          className="px-3 py-2 rounded-2xl border"
+                          style={{
+                            backgroundColor: isActive ? theme.text : theme.background,
+                            borderColor: isActive ? theme.text : theme.border,
+                          }}
+                          onPress={() => setNewBillRecurrenceDay(day.value)}
+                        >
+                          <Text
+                            className="text-sm font-manrope-semibold"
+                            style={{ color: isActive ? theme.background : theme.text }}
+                          >
+                            {day.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+
+                {newBillRecurrenceType === "monthly" && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                    {MONTHLY_RECURRENCE_DAYS.map((day) => {
+                      const isActive = newBillRecurrenceDay === day;
+                      return (
+                        <TouchableOpacity
+                          key={day}
+                          className="w-10 h-10 rounded-2xl border items-center justify-center"
+                          style={{
+                            backgroundColor: isActive ? theme.text : theme.background,
+                            borderColor: isActive ? theme.text : theme.border,
+                          }}
+                          onPress={() => setNewBillRecurrenceDay(day)}
+                        >
+                          <Text
+                            className="text-sm font-manrope-semibold"
+                            style={{ color: isActive ? theme.background : theme.text }}
+                          >
+                            {day}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+              </View>
             )}
           </View>
+
+          {/* Split Between section */}
+          {newBillPublic && (
+            <View className="mt-5">
+              {renderSplitPicker(
+                splitUserIds,
+                setSplitUserIds,
+                splitMode,
+                setSplitMode,
+                manualAmounts,
+                setManualAmounts,
+                parseFloat(newBillAmount) || 0,
+              )}
+            </View>
+          )}
 
           <Button
             title={t.budget.addExpense}
@@ -1921,6 +2135,225 @@ export default function BudgetScreen() {
       </Modal>
 
       <Modal
+        visible={showBillDetailsModal}
+        onClose={() => {
+          setShowBillDetailsModal(false);
+          setSelectedBillForDetails(null);
+        }}
+        title={selectedBillForDetails ? getCategoryName(selectedBillForDetails) : "Expense details"}
+        height="full"
+      >
+        {selectedBillForDetails &&
+          (() => {
+            const bill = selectedBillForDetails;
+            const splits = bill.splits ?? [];
+            const ocrData = (bill.ocrData ?? {}) as Record<string, any>;
+            const items = Array.isArray(ocrData.items) ? ocrData.items : [];
+            const uploaderName = bill.user?.name ?? getMemberName(bill.uploadedBy);
+
+            return (
+              <View className="pt-2.5 gap-5">
+                <View className="items-center">
+                  <View
+                    className="w-16 h-16 rounded-3xl justify-center items-center mb-3"
+                    style={{ backgroundColor: getCategoryColor(bill.billCategoryId) }}
+                  >
+                    {getBillCategoryIcon(bill.billCategory?.icon, 28, "#1C1C1E")}
+                  </View>
+                  <Text className="text-3xl font-manrope-bold" style={{ color: theme.text }}>
+                    {formatCurrencyAmount(bill.totalAmount, homeCurrency)}
+                  </Text>
+                  <View className="flex-row items-center gap-2 mt-2">
+                    <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: theme.surface }}>
+                      <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                        {bill.public === false ? "Private" : "Home"}
+                      </Text>
+                    </View>
+                    <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: theme.surface }}>
+                      <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                        {bill.isPayed ? t.budget.paid : t.budget.unpaid}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View className="rounded-2xl p-4" style={{ backgroundColor: theme.surface }}>
+                  {renderDetailRow(t.budget.category, getCategoryName(bill))}
+                  {renderDetailRow(t.budget.uploadedBy, uploaderName)}
+                  {renderDetailRow("Created", new Date(bill.createdAt).toLocaleString("pl-PL"))}
+                  {bill.periodStart &&
+                    bill.periodEnd &&
+                    renderDetailRow(
+                      t.budget.period,
+                      `${new Date(bill.periodStart).toLocaleDateString("pl-PL")} - ${new Date(
+                        bill.periodEnd,
+                      ).toLocaleDateString("pl-PL")}`,
+                    )}
+                  {bill.paymentDate &&
+                    renderDetailRow("Payment date", new Date(bill.paymentDate).toLocaleString("pl-PL"))}
+                </View>
+
+                {bill.description ? (
+                  <View className="rounded-2xl p-4" style={{ backgroundColor: theme.surface }}>
+                    <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
+                      {t.budget.description}
+                    </Text>
+                    <Text className="text-sm leading-5" style={{ color: theme.text }}>
+                      {bill.description}
+                    </Text>
+                  </View>
+                ) : null}
+
+                {bill.receiptImage && (
+                  <TouchableOpacity
+                    className="flex-row items-center justify-between rounded-2xl p-4"
+                    style={{ backgroundColor: theme.surface }}
+                    onPress={() => {
+                      setReceiptImageUrl(bill.receiptImage!);
+                      setShowReceiptImageModal(true);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View className="flex-row items-center gap-3">
+                      <FileText size={20} color={theme.accent.purple} />
+                      <View>
+                        <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
+                          Receipt file
+                        </Text>
+                        <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                          {t.budget.viewReceipt}
+                        </Text>
+                      </View>
+                    </View>
+                    <Eye size={18} color={theme.textSecondary} />
+                  </TouchableOpacity>
+                )}
+
+                {(ocrData.vendor || ocrData.date || items.length > 0) && (
+                  <View className="rounded-2xl p-4" style={{ backgroundColor: theme.surface }}>
+                    <Text className="text-xs font-manrope-bold uppercase mb-3" style={{ color: theme.textSecondary }}>
+                      {t.budget.scanResults}
+                    </Text>
+                    {renderDetailRow(t.budget.vendor, ocrData.vendor)}
+                    {renderDetailRow(t.budget.date, ocrData.date)}
+                    {items.length > 0 && (
+                      <View className="mt-3 pt-3" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
+                        <Text
+                          className="text-xs font-manrope-bold uppercase mb-2"
+                          style={{ color: theme.textSecondary }}
+                        >
+                          {t.budget.items}
+                        </Text>
+                        {items.map((item: any, idx: number) => (
+                          <View key={`${item.name}-${idx}`} className="flex-row justify-between py-1.5 gap-3">
+                            <Text className="text-sm flex-1" style={{ color: theme.text }}>
+                              {item.name}
+                              {item.quantity > 1 && (
+                                <Text style={{ color: theme.textSecondary }}> x{item.quantity}</Text>
+                              )}
+                            </Text>
+                            <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
+                              {formatCurrencyAmount(item.price || 0, homeCurrency)}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {splits.length > 0 && (
+                  <View className="rounded-2xl p-4" style={{ backgroundColor: theme.surface }}>
+                    <View className="flex-row items-center justify-between mb-3">
+                      <View className="flex-row items-center gap-2">
+                        <Users size={16} color={theme.textSecondary} />
+                        <Text className="text-xs font-manrope-bold uppercase" style={{ color: theme.textSecondary }}>
+                          {t.budget.splitBetween}
+                        </Text>
+                      </View>
+                      {canEditBill(bill) && (
+                        <TouchableOpacity
+                          className="flex-row items-center gap-1 px-2 py-1 rounded-lg"
+                          style={{ backgroundColor: theme.background }}
+                          onPress={() => {
+                            setShowBillDetailsModal(false);
+                            handleOpenEditSplits(bill);
+                          }}
+                        >
+                          <Pencil size={12} color={theme.textSecondary} />
+                          <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                            {t.budget.editSplits}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {splits.map((split) => (
+                      <View key={split.id} className="flex-row items-center justify-between py-2 gap-3">
+                        <View className="flex-row items-center gap-2 flex-1">
+                          <View
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: split.paid ? "#22C55E" : theme.accent.pink }}
+                          />
+                          <Text className="text-sm" style={{ color: theme.text }}>
+                            {split.user?.name ?? getMemberName(split.userId)}
+                          </Text>
+                        </View>
+                        <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
+                          {formatCurrencyAmount(split.amount, homeCurrency)}
+                        </Text>
+                        {!split.paid && canEditBill(bill) && (
+                          <TouchableOpacity
+                            className="px-2 py-1 rounded-lg"
+                            style={{ backgroundColor: "#22C55E20" }}
+                            onPress={() => handleMarkSplitPaid(bill, split)}
+                          >
+                            <Text className="text-xs font-manrope-semibold" style={{ color: "#22C55E" }}>
+                              {t.budget.markAsPaid}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                        {split.paid && (
+                          <Text className="text-xs font-manrope-semibold" style={{ color: "#22C55E" }}>
+                            {t.budget.paid}
+                          </Text>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {canEditBill(bill) && (
+                  <View className="flex-row gap-3">
+                    <TouchableOpacity
+                      className="flex-1 h-12 rounded-xl justify-center items-center"
+                      style={{ backgroundColor: theme.surface }}
+                      onPress={() => {
+                        setShowBillDetailsModal(false);
+                        openEditBill(bill);
+                      }}
+                    >
+                      <Text className="font-manrope-semibold" style={{ color: theme.text }}>
+                        Edit
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 h-12 rounded-xl justify-center items-center"
+                      style={{ backgroundColor: theme.accent.dangerLight }}
+                      onPress={() => {
+                        setShowBillDetailsModal(false);
+                        handleDeleteBill(bill.id);
+                      }}
+                    >
+                      <Text className="font-manrope-semibold text-white">{t.common.delete}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            );
+          })()}
+      </Modal>
+
+      <Modal
         visible={showBillActionsModal}
         onClose={() => {
           setShowBillActionsModal(false);
@@ -2083,6 +2516,36 @@ export default function BudgetScreen() {
             onChangeText={setEditBillAmount}
             keyboardType="numeric"
           />
+          <View className="flex-row gap-2 mb-6">
+            {(
+              [
+                { value: true, label: "Home", icon: Home },
+                { value: false, label: "Private", icon: Shield },
+              ] as const
+            ).map((option) => {
+              const Icon = option.icon;
+              const isActive = editBillPublic === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.label}
+                  className="flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-2xl border"
+                  style={{
+                    backgroundColor: isActive ? theme.text : theme.surface,
+                    borderColor: isActive ? theme.text : theme.border,
+                  }}
+                  onPress={() => setEditBillPublic(option.value)}
+                >
+                  <Icon size={16} color={isActive ? theme.background : theme.textSecondary} />
+                  <Text
+                    className="text-sm font-manrope-semibold"
+                    style={{ color: isActive ? theme.background : theme.text }}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
             <View className="flex-row gap-2.5">
               {categories.map((category) => (

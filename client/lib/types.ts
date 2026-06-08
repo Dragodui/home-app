@@ -118,6 +118,7 @@ export interface BillSplit {
 
 export interface Bill {
   id: number;
+  public: boolean;
   homeId: number;
   type: string;
   billCategoryId?: number;
@@ -264,6 +265,10 @@ export interface CreateTaskForm {
 
 export interface CreateBillForm {
   type: string;
+  public?: boolean;
+  isRegular?: boolean;
+  recurrenceType?: "daily" | "weekly" | "monthly";
+  recurrenceDay?: number;
   description?: string;
   receiptImage?: string;
   totalAmount: number;

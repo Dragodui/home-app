@@ -65,6 +65,55 @@ func (h *BillHandler) GetByHomeID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetByUserID godoc
+// @Summary      Get private bills by user ID
+// @Description  Get all private bills for the current user in a home
+// @Tags         bill
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Param        category_id query int false "Filter by category ID"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /homes/{home_id}/bills/private [get]
+func (h *BillHandler) GetByUserID(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var categoryID *int
+	if catStr := r.URL.Query().Get("category_id"); catStr != "" {
+		catID, err := strconv.Atoi(catStr)
+		if err != nil {
+			utils.JSONError(w, "invalid category_id", http.StatusBadRequest)
+			return
+		}
+		categoryID = &catID
+	}
+
+	bills, err := h.svc.GetPrivateBillsByUserID(r.Context(), homeID, userID, categoryID)
+	if err != nil {
+		utils.SafeError(w, err, "Failed to retrieve bills", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{
+		"status": true,
+		"bills":  bills,
+	})
+}
+
 // Create godoc
 // @Summary      Create a new bill
 // @Description  Create a new bill in a home
@@ -103,7 +152,7 @@ func (h *BillHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.CreateBill(r.Context(), req.BillType, req.BillCategoryID, req.Description, req.ReceiptImage, req.TotalAmount, req.Start, req.End, req.OCRData, homeID, userID, req.Splits); err != nil {
+	if err := h.svc.CreateBill(r.Context(), req.BillType, req.BillCategoryID, req.Public, req.Description, req.ReceiptImage, req.TotalAmount, req.Start, req.End, req.OCRData, homeID, userID, req.Splits, req.IsRegular, req.RecurrenceType, req.RecurrenceDay); err != nil {
 		utils.JSONError(w, "Invalid data", http.StatusBadRequest)
 		return
 	}
@@ -125,6 +174,12 @@ func (h *BillHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/bills/{bill_id} [get]
 func (h *BillHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
 	if err != nil {
 		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
@@ -143,6 +198,10 @@ func (h *BillHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if bill == nil || bill.HomeID != homeID {
+		utils.JSONError(w, "bill not found", http.StatusNotFound)
+		return
+	}
+	if !bill.Public && bill.UploadedBy != userID {
 		utils.JSONError(w, "bill not found", http.StatusNotFound)
 		return
 	}
@@ -196,6 +255,10 @@ func (h *BillHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		utils.JSONError(w, "bill not found", http.StatusNotFound)
 		return
 	}
+	if !bill.Public && bill.UploadedBy != userID {
+		utils.JSONError(w, "bill not found", http.StatusNotFound)
+		return
+	}
 	if bill.UploadedBy != userID {
 		isAdmin, _ := h.homeRepo.IsAdmin(r.Context(), homeID, userID)
 		if !isAdmin {
@@ -225,6 +288,12 @@ func (h *BillHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /homes/{home_id}/bills/{bill_id} [patch]
 func (h *BillHandler) MarkPayed(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
 	if err != nil {
 		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
@@ -239,6 +308,10 @@ func (h *BillHandler) MarkPayed(w http.ResponseWriter, r *http.Request) {
 	}
 	bill, err := h.svc.GetBillByID(r.Context(), billID)
 	if err != nil || bill == nil || bill.HomeID != homeID {
+		utils.JSONError(w, "bill not found", http.StatusNotFound)
+		return
+	}
+	if !bill.Public && bill.UploadedBy != userID {
 		utils.JSONError(w, "bill not found", http.StatusNotFound)
 		return
 	}
@@ -279,6 +352,10 @@ func (h *BillHandler) Update(w http.ResponseWriter, r *http.Request) {
 		utils.JSONError(w, "bill not found", http.StatusNotFound)
 		return
 	}
+	if !bill.Public && bill.UploadedBy != userID {
+		utils.JSONError(w, "bill not found", http.StatusNotFound)
+		return
+	}
 	if bill.UploadedBy != userID {
 		isAdmin, _ := h.homeRepo.IsAdmin(r.Context(), homeID, userID)
 		if !isAdmin {
@@ -293,7 +370,7 @@ func (h *BillHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.UpdateBill(r.Context(), billID, req.BillType, req.BillCategoryID, req.Description, req.ReceiptImage, req.TotalAmount, req.Start, req.End, req.OCRData); err != nil {
+	if err := h.svc.UpdateBill(r.Context(), billID, req.BillType, req.BillCategoryID, req.Public, req.Description, req.ReceiptImage, req.TotalAmount, req.Start, req.End, req.OCRData); err != nil {
 		utils.SafeError(w, err, "Failed to update bill", http.StatusInternalServerError)
 		return
 	}
@@ -342,6 +419,10 @@ func (h *BillHandler) UpdateSplits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if bill == nil || bill.HomeID != homeID {
+		utils.JSONError(w, "bill not found", http.StatusNotFound)
+		return
+	}
+	if !bill.Public && bill.UploadedBy != userID {
 		utils.JSONError(w, "bill not found", http.StatusNotFound)
 		return
 	}
@@ -413,6 +494,10 @@ func (h *BillHandler) MarkSplitPaid(w http.ResponseWriter, r *http.Request) {
 	}
 	bill, err := h.svc.GetBillByID(r.Context(), billID)
 	if err != nil || bill == nil || bill.HomeID != homeID || split.BillID != billID {
+		utils.JSONError(w, "split not found", http.StatusNotFound)
+		return
+	}
+	if !bill.Public && bill.UploadedBy != userID {
 		utils.JSONError(w, "split not found", http.StatusNotFound)
 		return
 	}

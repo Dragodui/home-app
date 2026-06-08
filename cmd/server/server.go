@@ -58,6 +58,7 @@ func NewServer() (*Server, error) {
 		&models.TaskAssignment{},
 		&models.TaskSchedule{},
 		&models.Bill{},
+		&models.BillSchedule{},
 		&models.BillCategory{},
 		&models.BillSplit{},
 		&models.ShoppingCategory{},
@@ -168,6 +169,7 @@ func NewServer() (*Server, error) {
 
 	// Start task schedule processor (checks every minute for due schedules)
 	go runTaskScheduler(taskScheduleSvc)
+	go runBillScheduler(billSvc)
 	go runTaskReminderScheduler(taskSvc)
 
 	httpServer := &http.Server{
@@ -238,6 +240,17 @@ func runTaskScheduler(svc *services.TaskScheduleService) {
 		ctx := context.Background()
 		if err := svc.ProcessDueSchedules(ctx); err != nil {
 			logger.Info.Printf("[Scheduler] Error processing due schedules: %v", err)
+		}
+	}
+}
+
+func runBillScheduler(svc *services.BillService) {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		ctx := context.Background()
+		if err := svc.ProcessDueSchedules(ctx); err != nil {
+			logger.Info.Printf("[BillScheduler] Error processing due schedules: %v", err)
 		}
 	}
 }

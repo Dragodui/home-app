@@ -180,9 +180,9 @@ func SeedDatabase(db *gorm.DB) error {
 	startDate := time.Now().AddDate(0, -1, 0)
 	endDate := time.Now()
 	bills := []models.Bill{
-		{HomeID: home.ID, BillCategoryID: &billCategories[0].ID, Type: "electricity", Payed: true, TotalAmount: 85.50, Start: startDate, End: endDate, UploadedBy: admin.ID, OCRData: datatypes.JSON([]byte(`{}`))},
-		{HomeID: home.ID, BillCategoryID: &billCategories[1].ID, Type: "water", Payed: false, TotalAmount: 45.00, Start: startDate, End: endDate, UploadedBy: admin.ID, OCRData: datatypes.JSON([]byte(`{}`))},
-		{HomeID: home.ID, BillCategoryID: &billCategories[2].ID, Type: "internet", Payed: true, TotalAmount: 59.99, Start: startDate, End: endDate, UploadedBy: user1.ID, OCRData: datatypes.JSON([]byte(`{}`))},
+		{HomeID: home.ID, Public: true, BillCategoryID: &billCategories[0].ID, Type: "electricity", Payed: true, TotalAmount: 85.50, Start: startDate, End: endDate, UploadedBy: admin.ID, OCRData: datatypes.JSON([]byte(`{}`))},
+		{HomeID: home.ID, Public: true, BillCategoryID: &billCategories[1].ID, Type: "water", Payed: false, TotalAmount: 45.00, Start: startDate, End: endDate, UploadedBy: admin.ID, OCRData: datatypes.JSON([]byte(`{}`))},
+		{HomeID: home.ID, Public: true, BillCategoryID: &billCategories[2].ID, Type: "internet", Payed: true, TotalAmount: 59.99, Start: startDate, End: endDate, UploadedBy: user1.ID, OCRData: datatypes.JSON([]byte(`{}`))},
 	}
 	if err := db.Create(&bills).Error; err != nil {
 		return err
