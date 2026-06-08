@@ -8,7 +8,7 @@ import (
 
 type Bill struct {
 	ID             int            `gorm:"autoIncrement;  primaryKey" json:"id"`
-	Public         bool           `gorm:"default:true" json:"public"` // separates home/private budget
+	Public         bool           `json:"public"` // separates home/private budget
 	HomeID         int            `json:"home_id"`
 	BillCategoryID *int           `json:"bill_category_id"`
 	Type           string         `json:"type"` // Kept for backward compatibility or as fallback
