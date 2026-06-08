@@ -21,6 +21,9 @@ type BillRepository interface {
 	UpdateSplits(ctx context.Context, billID int, splits []models.BillSplit) error
 	MarkSplitPaid(ctx context.Context, splitID int) error
 	FindSplitByID(ctx context.Context, splitID int) (*models.BillSplit, error)
+	CreateSchedule(ctx context.Context, schedule *models.BillSchedule) error
+	FindDueSchedules(ctx context.Context, now time.Time) ([]models.BillSchedule, error)
+	UpdateSchedule(ctx context.Context, schedule *models.BillSchedule) error
 }
 
 type billRepo struct {
@@ -156,4 +159,22 @@ func (r *billRepo) FindSplitByID(ctx context.Context, splitID int) (*models.Bill
 
 func (r *billRepo) MarkSplitPaid(ctx context.Context, splitID int) error {
 	return r.db.WithContext(ctx).Model(&models.BillSplit{}).Where("id = ?", splitID).Update("paid", true).Error
+}
+
+func (r *billRepo) CreateSchedule(ctx context.Context, schedule *models.BillSchedule) error {
+	return r.db.WithContext(ctx).Create(schedule).Error
+}
+
+func (r *billRepo) FindDueSchedules(ctx context.Context, now time.Time) ([]models.BillSchedule, error) {
+	var schedules []models.BillSchedule
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Preload("BillCategory").
+		Where("is_active = ? AND next_run_date <= ?", true, now).
+		Find(&schedules).Error
+	return schedules, err
+}
+
+func (r *billRepo) UpdateSchedule(ctx context.Context, schedule *models.BillSchedule) error {
+	return r.db.WithContext(ctx).Save(schedule).Error
 }

@@ -34,6 +34,9 @@ type CreateBillRequest struct {
 	BillType       string         `json:"type"` // Optional if CategoryID is provided
 	BillCategoryID *int           `json:"bill_category_id"`
 	Public         *bool          `json:"public"`
+	IsRegular      bool           `json:"is_regular"`
+	RecurrenceType *string        `json:"recurrence_type"`
+	RecurrenceDay  *int           `json:"recurrence_day"`
 	Description    string         `json:"description"`
 	ReceiptImage   *string        `json:"receipt_image"`
 	TotalAmount    float64        `json:"total_amount" validate:"required,gte=0"`

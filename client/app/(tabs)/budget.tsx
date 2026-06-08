@@ -22,6 +22,7 @@ import {
   Plane,
   Plus,
   Receipt,
+  Repeat,
   Shield,
   ShoppingBag,
   Smartphone,
@@ -52,6 +53,7 @@ import { useTheme } from "@/stores/themeStore";
 
 type BudgetPeriod = "month" | "year" | "all";
 type BudgetScope = "home" | "private";
+type BillRecurrenceType = "daily" | "weekly" | "monthly";
 
 const BILL_CATEGORY_ICON_OPTIONS = [
   "wallet",
@@ -71,6 +73,18 @@ const BILL_CATEGORY_ICON_OPTIONS = [
   "pets",
   "insurance",
 ] as const;
+
+const WEEKLY_RECURRENCE_DAYS = [
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+  { value: 0, label: "Sun" },
+] as const;
+
+const MONTHLY_RECURRENCE_DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
 
 const getBillCategoryIcon = (iconId: string | undefined, size: number, color: string) => {
   switch (iconId) {
@@ -316,6 +330,9 @@ export default function BudgetScreen() {
   const [newBillPublic, setNewBillPublic] = useState(true);
   const [newBillDescription, setNewBillDescription] = useState("");
   const [newBillAmount, setNewBillAmount] = useState("");
+  const [newBillIsRegular, setNewBillIsRegular] = useState(false);
+  const [newBillRecurrenceType, setNewBillRecurrenceType] = useState<BillRecurrenceType>("monthly");
+  const [newBillRecurrenceDay, setNewBillRecurrenceDay] = useState(new Date().getDate());
   const [creating, setCreating] = useState(false);
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -440,11 +457,15 @@ export default function BudgetScreen() {
   };
 
   const handleOpenCreateModal = () => {
+    const now = new Date();
     resetScanState();
     setNewBillAmount("");
     setNewBillDescription("");
     setSelectedCategoryId(null);
     setNewBillPublic(budgetScope === "home");
+    setNewBillIsRegular(false);
+    setNewBillRecurrenceType("monthly");
+    setNewBillRecurrenceDay(now.getDate());
     setSplitUserIds([]);
     setSplitMode("equal");
     setManualAmounts({});
@@ -578,6 +599,9 @@ export default function BudgetScreen() {
       await billApi.create(home.id, {
         type: category?.name || "Expense",
         public: newBillPublic,
+        isRegular: newBillIsRegular,
+        recurrenceType: newBillIsRegular ? newBillRecurrenceType : undefined,
+        recurrenceDay: newBillIsRegular && newBillRecurrenceType !== "daily" ? newBillRecurrenceDay : undefined,
         billCategoryId: selectedCategoryId,
         description: newBillDescription || undefined,
         receiptImage: receiptImageUrl,
@@ -591,6 +615,7 @@ export default function BudgetScreen() {
       setNewBillAmount("");
       setSelectedCategoryId(null);
       setNewBillPublic(budgetScope === "home");
+      setNewBillIsRegular(false);
       resetScanState();
       setShowCreateModal(false);
       await loadData();
@@ -1779,6 +1804,131 @@ export default function BudgetScreen() {
               value={newBillDescription}
               onChangeText={setNewBillDescription}
             />
+          </View>
+
+          <View className="mt-5 rounded-2xl p-4" style={{ backgroundColor: theme.surface }}>
+            <TouchableOpacity
+              className="flex-row items-center justify-between"
+              onPress={() => setNewBillIsRegular(!newBillIsRegular)}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center gap-3">
+                <View
+                  className="w-10 h-10 rounded-full justify-center items-center"
+                  style={{ backgroundColor: theme.background }}
+                >
+                  <Repeat size={18} color={theme.textSecondary} />
+                </View>
+                <View>
+                  <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+                    Regular expense
+                  </Text>
+                  <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                    Add this bill automatically
+                  </Text>
+                </View>
+              </View>
+              <View
+                className="w-12 h-7 rounded-full p-1"
+                style={{ backgroundColor: newBillIsRegular ? theme.accent.pink : theme.background }}
+              >
+                <View
+                  className="w-5 h-5 rounded-full"
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    transform: [{ translateX: newBillIsRegular ? 20 : 0 }],
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+
+            {newBillIsRegular && (
+              <View className="mt-4 pt-4" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
+                <Text className="text-xs font-manrope-bold uppercase mb-2" style={{ color: theme.textSecondary }}>
+                  Repeat
+                </Text>
+                <View className="flex-row gap-2 mb-4">
+                  {(["daily", "weekly", "monthly"] as const).map((type) => {
+                    const isActive = newBillRecurrenceType === type;
+                    return (
+                      <TouchableOpacity
+                        key={type}
+                        className="flex-1 py-2.5 rounded-2xl items-center"
+                        style={{ backgroundColor: isActive ? theme.text : theme.background }}
+                        onPress={() => {
+                          setNewBillRecurrenceType(type);
+                          if (type === "weekly") {
+                            setNewBillRecurrenceDay(new Date().getDay());
+                          }
+                          if (type === "monthly") {
+                            setNewBillRecurrenceDay(new Date().getDate());
+                          }
+                        }}
+                      >
+                        <Text
+                          className="text-sm font-manrope-semibold capitalize"
+                          style={{ color: isActive ? theme.background : theme.text }}
+                        >
+                          {type}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {newBillRecurrenceType === "weekly" && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                    {WEEKLY_RECURRENCE_DAYS.map((day) => {
+                      const isActive = newBillRecurrenceDay === day.value;
+                      return (
+                        <TouchableOpacity
+                          key={day.value}
+                          className="px-3 py-2 rounded-2xl border"
+                          style={{
+                            backgroundColor: isActive ? theme.text : theme.background,
+                            borderColor: isActive ? theme.text : theme.border,
+                          }}
+                          onPress={() => setNewBillRecurrenceDay(day.value)}
+                        >
+                          <Text
+                            className="text-sm font-manrope-semibold"
+                            style={{ color: isActive ? theme.background : theme.text }}
+                          >
+                            {day.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+
+                {newBillRecurrenceType === "monthly" && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                    {MONTHLY_RECURRENCE_DAYS.map((day) => {
+                      const isActive = newBillRecurrenceDay === day;
+                      return (
+                        <TouchableOpacity
+                          key={day}
+                          className="w-10 h-10 rounded-2xl border items-center justify-center"
+                          style={{
+                            backgroundColor: isActive ? theme.text : theme.background,
+                            borderColor: isActive ? theme.text : theme.border,
+                          }}
+                          onPress={() => setNewBillRecurrenceDay(day)}
+                        >
+                          <Text
+                            className="text-sm font-manrope-semibold"
+                            style={{ color: isActive ? theme.background : theme.text }}
+                          >
+                            {day}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Split Between section */}

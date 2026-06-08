@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/Dragodui/diploma-server/internal/event"
@@ -25,7 +27,7 @@ type BillService struct {
 
 type IBillService interface {
 	CreateBill(ctx context.Context, billType string, billCategoryID *int, public *bool, description string, receiptImage *string, totalAmount float64, start, end time.Time,
-		ocrData datatypes.JSON, homeID, uploadedBy int, splits []models.SplitInput) error
+		ocrData datatypes.JSON, homeID, uploadedBy int, splits []models.SplitInput, isRegular bool, recurrenceType *string, recurrenceDay *int) error
 	GetBillByID(ctx context.Context, id int) (*models.Bill, error)
 	GetBillsByHomeID(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error)
 	GetPrivateBillsByUserID(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error)
@@ -56,7 +58,7 @@ func validateSplits(splits []models.SplitInput, totalAmount float64) error {
 }
 
 func (s *BillService) CreateBill(ctx context.Context, billType string, billCategoryID *int, public *bool, description string, receiptImage *string, totalAmount float64, start, end time.Time,
-	ocrData datatypes.JSON, homeID, uploadedBy int, splits []models.SplitInput) error {
+	ocrData datatypes.JSON, homeID, uploadedBy int, splits []models.SplitInput, isRegular bool, recurrenceType *string, recurrenceDay *int) error {
 
 	if len(splits) > 0 {
 		if err := validateSplits(splits, totalAmount); err != nil {
@@ -64,14 +66,61 @@ func (s *BillService) CreateBill(ctx context.Context, billType string, billCateg
 		}
 	}
 
-	currency, err := s.homeSvc.GetHomeCurrency(ctx, homeID)
-	if err != nil {
-		return err
-	}
-
 	isPublic := true
 	if public != nil {
 		isPublic = *public
+	}
+
+	var schedule *models.BillSchedule
+	if isRegular {
+		if recurrenceType == nil {
+			return errors.New("recurrence_type is required for regular bills")
+		}
+		nextRun, err := calcNextBillRunDate(time.Now(), *recurrenceType, recurrenceDay)
+		if err != nil {
+			return err
+		}
+		splitsData, err := json.Marshal(splits)
+		if err != nil {
+			return err
+		}
+		schedule = &models.BillSchedule{
+			HomeID:         homeID,
+			Public:         isPublic,
+			UploadedBy:     uploadedBy,
+			Type:           billType,
+			BillCategoryID: billCategoryID,
+			Description:    description,
+			ReceiptImage:   receiptImage,
+			TotalAmount:    totalAmount,
+			OCRData:        ocrData,
+			SplitsData:     datatypes.JSON(splitsData),
+			RecurrenceType: *recurrenceType,
+			RecurrenceDay:  recurrenceDay,
+			NextRunDate:    nextRun,
+			IsActive:       true,
+		}
+	}
+
+	if err := s.createBillInstance(ctx, billType, billCategoryID, isPublic, description, receiptImage, totalAmount, start, end, ocrData, homeID, uploadedBy, splits, false); err != nil {
+		return err
+	}
+
+	if schedule != nil {
+		if err := s.repo.CreateSchedule(ctx, schedule); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *BillService) createBillInstance(ctx context.Context, billType string, billCategoryID *int, isPublic bool, description string, receiptImage *string, totalAmount float64, start, end time.Time,
+	ocrData datatypes.JSON, homeID, uploadedBy int, splits []models.SplitInput, scheduled bool) error {
+
+	currency, err := s.homeSvc.GetHomeCurrency(ctx, homeID)
+	if err != nil {
+		return err
 	}
 
 	bill := &models.Bill{
@@ -111,19 +160,63 @@ func (s *BillService) CreateBill(ctx context.Context, billType string, billCateg
 	metrics.BillsTotal.Inc()
 	metrics.BillOperationsTotal.WithLabelValues("create").Inc()
 
-	// Notify home about new expense
-	fromID := uploadedBy
-	desc := fmt.Sprintf("New expense added: %s(%.2f)", currency, totalAmount)
-	if description != "" {
-		desc = fmt.Sprintf("New expense added: %s %s(%.2f)", currency, description, totalAmount)
-	}
-	_ = s.notifSvc.CreateHomeNotification(ctx, &fromID, homeID, desc)
+	if isPublic {
+		fromID := uploadedBy
+		desc := fmt.Sprintf("New expense added: %s(%.2f)", currency, totalAmount)
+		if description != "" {
+			desc = fmt.Sprintf("New expense added: %s %s(%.2f)", currency, description, totalAmount)
+		}
+		if scheduled {
+			desc = "Scheduled " + desc
+		}
+		_ = s.notifSvc.CreateHomeNotification(ctx, &fromID, homeID, desc)
 
-	event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
-		Module: event.ModuleBill,
-		Action: event.ActionCreated,
-		Data:   bill,
-	})
+		event.SendHomeEvent(ctx, s.cache, homeID, &event.RealTimeEvent{
+			Module: event.ModuleBill,
+			Action: event.ActionCreated,
+			Data:   bill,
+		})
+	}
+
+	return nil
+}
+
+func (s *BillService) ProcessDueSchedules(ctx context.Context) error {
+	now := time.Now()
+	schedules, err := s.repo.FindDueSchedules(ctx, now)
+	if err != nil {
+		return err
+	}
+
+	for i := range schedules {
+		schedule := &schedules[i]
+
+		var splits []models.SplitInput
+		if len(schedule.SplitsData) > 0 {
+			if err := json.Unmarshal(schedule.SplitsData, &splits); err != nil {
+				logger.Info.Printf("[BillScheduler] Failed to parse splits for schedule %d: %v", schedule.ID, err)
+				continue
+			}
+		}
+
+		start := now
+		end := nextBillPeriodEnd(start, schedule.RecurrenceType)
+		if err := s.createBillInstance(ctx, schedule.Type, schedule.BillCategoryID, schedule.Public, schedule.Description, schedule.ReceiptImage, schedule.TotalAmount, start, end, schedule.OCRData, schedule.HomeID, schedule.UploadedBy, splits, true); err != nil {
+			logger.Info.Printf("[BillScheduler] Failed to create bill for schedule %d: %v", schedule.ID, err)
+			continue
+		}
+
+		nextRun, err := calcNextBillRunDate(now, schedule.RecurrenceType, schedule.RecurrenceDay)
+		if err != nil {
+			logger.Info.Printf("[BillScheduler] Failed to calculate next run for schedule %d: %v", schedule.ID, err)
+			continue
+		}
+		schedule.NextRunDate = nextRun
+		if err := s.repo.UpdateSchedule(ctx, schedule); err != nil {
+			logger.Info.Printf("[BillScheduler] Failed to update schedule %d: %v", schedule.ID, err)
+			continue
+		}
+	}
 
 	return nil
 }
@@ -352,4 +445,54 @@ func (s *BillService) MarkSplitPaid(ctx context.Context, splitID int) error {
 	})
 
 	return nil
+}
+
+func nextBillPeriodEnd(start time.Time, recurrenceType string) time.Time {
+	switch recurrenceType {
+	case "daily":
+		return start.AddDate(0, 0, 1)
+	case "weekly":
+		return start.AddDate(0, 0, 7)
+	case "monthly":
+		return start.AddDate(0, 1, 0)
+	default:
+		return start.AddDate(0, 1, 0)
+	}
+}
+
+func calcNextBillRunDate(from time.Time, recurrenceType string, recurrenceDay *int) (time.Time, error) {
+	base := from.Add(time.Minute).Truncate(time.Minute)
+	switch recurrenceType {
+	case "daily":
+		return base.AddDate(0, 0, 1), nil
+	case "weekly":
+		if recurrenceDay == nil || *recurrenceDay < 0 || *recurrenceDay > 6 {
+			return time.Time{}, errors.New("recurrence_day must be 0-6 for weekly bills")
+		}
+		targetWeekday := time.Weekday(*recurrenceDay)
+		daysAhead := (int(targetWeekday) - int(base.Weekday()) + 7) % 7
+		if daysAhead == 0 {
+			daysAhead = 7
+		}
+		return base.AddDate(0, 0, daysAhead), nil
+	case "monthly":
+		if recurrenceDay == nil || *recurrenceDay < 1 || *recurrenceDay > 31 {
+			return time.Time{}, errors.New("recurrence_day must be 1-31 for monthly bills")
+		}
+		year, month, _ := base.Date()
+		location := base.Location()
+		candidate := dateInMonthClamped(year, month, *recurrenceDay, base, location)
+		if !candidate.After(base) {
+			candidate = dateInMonthClamped(year, month+1, *recurrenceDay, base, location)
+		}
+		return candidate, nil
+	default:
+		return time.Time{}, errors.New("recurrence_type must be daily, weekly, or monthly")
+	}
+}
+
+func dateInMonthClamped(year int, month time.Month, day int, base time.Time, location *time.Location) time.Time {
+	lastDay := time.Date(year, month+1, 0, base.Hour(), base.Minute(), 0, 0, location).Day()
+	clampedDay := int(math.Min(float64(day), float64(lastDay)))
+	return time.Date(year, month, clampedDay, base.Hour(), base.Minute(), 0, 0, location)
 }
