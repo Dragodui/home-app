@@ -13,6 +13,7 @@ type BillRepository interface {
 	Create(ctx context.Context, b *models.Bill) error
 	FindByID(ctx context.Context, id int) (*models.Bill, error)
 	FindByHomeID(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error)
+	FindPrivateByUserID(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error)
 	Update(ctx context.Context, b *models.Bill) error
 	Delete(ctx context.Context, id int) error
 	MarkPayed(ctx context.Context, id int) error
@@ -55,7 +56,28 @@ func (r *billRepo) FindByID(ctx context.Context, id int) (*models.Bill, error) {
 func (r *billRepo) FindByHomeID(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error) {
 	var bills []models.Bill
 
-	query := r.db.WithContext(ctx).Where("home_id = ?", homeID)
+	query := r.db.WithContext(ctx).Where("home_id = ?", homeID).Where("public = ?", true)
+	if categoryID != nil {
+		query = query.Where("bill_category_id = ?", *categoryID)
+	}
+
+	if err := query.
+		Preload("User").
+		Preload("BillSplits").
+		Preload("BillSplits.User").
+		Preload("BillCategory").
+		Order("created_at DESC").
+		Find(&bills).Error; err != nil {
+		return nil, err
+	}
+
+	return bills, nil
+}
+
+func (r *billRepo) FindPrivateByUserID(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error) {
+	var bills []models.Bill
+
+	query := r.db.WithContext(ctx).Where("home_id = ?", homeID).Where("uploaded_by = ?", userID).Where("public = ?", false)
 	if categoryID != nil {
 		query = query.Where("bill_category_id = ?", *categoryID)
 	}

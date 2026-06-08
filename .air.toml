@@ -6,4 +6,4 @@ cmd = "go build -buildvcs=false -o tmp/main ./cmd/server"
 bin = "tmp/main"
 full_bin = ""
 include_ext = ["go"]
-exclude_dir = ["vendor", "tmp", "node_modules"]
+exclude_dir = ["vendor", "tmp", "node_modules", "client"]

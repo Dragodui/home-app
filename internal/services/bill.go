@@ -24,11 +24,12 @@ type BillService struct {
 }
 
 type IBillService interface {
-	CreateBill(ctx context.Context, billType string, billCategoryID *int, description string, receiptImage *string, totalAmount float64, start, end time.Time,
+	CreateBill(ctx context.Context, billType string, billCategoryID *int, public *bool, description string, receiptImage *string, totalAmount float64, start, end time.Time,
 		ocrData datatypes.JSON, homeID, uploadedBy int, splits []models.SplitInput) error
 	GetBillByID(ctx context.Context, id int) (*models.Bill, error)
 	GetBillsByHomeID(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error)
-	UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error
+	GetPrivateBillsByUserID(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error)
+	UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error
 	Delete(ctx context.Context, id int) error
 	MarkBillPayed(ctx context.Context, id int) error
 	UpdateSplits(ctx context.Context, billID int, splits []models.SplitInput) error
@@ -54,7 +55,7 @@ func validateSplits(splits []models.SplitInput, totalAmount float64) error {
 	return nil
 }
 
-func (s *BillService) CreateBill(ctx context.Context, billType string, billCategoryID *int, description string, receiptImage *string, totalAmount float64, start, end time.Time,
+func (s *BillService) CreateBill(ctx context.Context, billType string, billCategoryID *int, public *bool, description string, receiptImage *string, totalAmount float64, start, end time.Time,
 	ocrData datatypes.JSON, homeID, uploadedBy int, splits []models.SplitInput) error {
 
 	if len(splits) > 0 {
@@ -68,8 +69,14 @@ func (s *BillService) CreateBill(ctx context.Context, billType string, billCateg
 		return err
 	}
 
+	isPublic := true
+	if public != nil {
+		isPublic = *public
+	}
+
 	bill := &models.Bill{
 		HomeID:         homeID,
+		Public:         isPublic,
 		UploadedBy:     uploadedBy,
 		Type:           billType,
 		BillCategoryID: billCategoryID,
@@ -145,6 +152,10 @@ func (s *BillService) GetBillsByHomeID(ctx context.Context, homeID int, category
 	return s.repo.FindByHomeID(ctx, homeID, categoryID)
 }
 
+func (s *BillService) GetPrivateBillsByUserID(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error) {
+	return s.repo.FindPrivateByUserID(ctx, homeID, userID, categoryID)
+}
+
 func (s *BillService) Delete(ctx context.Context, id int) error {
 	bill, err := s.repo.FindByID(ctx, id)
 	if err != nil {
@@ -175,7 +186,7 @@ func (s *BillService) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *BillService) UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error {
+func (s *BillService) UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error {
 	bill, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -189,6 +200,9 @@ func (s *BillService) UpdateBill(ctx context.Context, id int, billType *string, 
 	}
 	if billCategoryID != nil {
 		bill.BillCategoryID = billCategoryID
+	}
+	if public != nil {
+		bill.Public = *public
 	}
 	if description != nil {
 		bill.Description = *description
