@@ -10,7 +10,7 @@ type BillSchedule struct {
 	ID             int            `gorm:"autoIncrement;primaryKey" json:"id"`
 	HomeID         int            `gorm:"not null;index" json:"home_id"`
 	BillCategoryID *int           `json:"bill_category_id"`
-	Public         bool           `gorm:"not null;default:true" json:"public"`
+	Public         bool           `gorm:"not null" json:"public"`
 	Type           string         `gorm:"not null;size:128" json:"type"`
 	Description    string         `json:"description"`
 	ReceiptImage   *string        `json:"receipt_image"`
