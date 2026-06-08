@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"log"
 	"net/http"
@@ -14,16 +13,10 @@ import (
 
 	"github.com/Dragodui/diploma-server/internal/cache"
 	"github.com/Dragodui/diploma-server/internal/config"
-	"github.com/Dragodui/diploma-server/internal/http/handlers"
+	"github.com/Dragodui/diploma-server/internal/database"
 	"github.com/Dragodui/diploma-server/internal/logger"
 	"github.com/Dragodui/diploma-server/internal/metrics"
-	"github.com/Dragodui/diploma-server/internal/models"
-	"github.com/Dragodui/diploma-server/internal/repository"
 	"github.com/Dragodui/diploma-server/internal/router"
-	"github.com/Dragodui/diploma-server/internal/services"
-	"github.com/Dragodui/diploma-server/internal/utils"
-	"github.com/markbates/goth"
-	"github.com/markbates/goth/providers/google"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -50,29 +43,7 @@ func NewServer() (*Server, error) {
 		log.Printf("Warning: Failed to register GORM metrics plugin: %v", err)
 	}
 
-	if err = db.AutoMigrate(
-		&models.User{},
-		&models.Home{},
-		&models.HomeMembership{},
-		&models.Task{},
-		&models.TaskAssignment{},
-		&models.TaskSchedule{},
-		&models.Bill{},
-		&models.BillCategory{},
-		&models.BillSplit{},
-		&models.ShoppingCategory{},
-		&models.ShoppingItem{},
-		&models.Poll{},
-		&models.Option{},
-		&models.Vote{},
-		&models.Notification{},
-		&models.HomeNotification{},
-		&models.AuditEvent{},
-		&models.Room{},
-		&models.HomeAssistantConfig{},
-		&models.SmartDevice{},
-		&models.PushSubscription{},
-	); err != nil {
+	if err = database.AutoMigrate(db); err != nil {
 		return nil, err
 	}
 
@@ -88,76 +59,17 @@ func NewServer() (*Server, error) {
 
 	cacheClient := cache.NewRedisClient(cfg.RedisADDR, cfg.RedisPassword, cfg.RedisTLS)
 
-	// Mailer
-	mailer := &utils.BrevoMailer{
-		APIKey: cfg.BrevoAPIKey,
-		From:   cfg.SMTPFrom,
-	}
-
-	// OAuth
-	goth.UseProviders(
-		google.New(cfg.ClientID, cfg.ClientSecret, cfg.CallbackURL),
-	)
-	// repos
-	userRepo := repository.NewUserRepository(db)
-	homeRepo := repository.NewHomeRepository(db)
-	roomRepo := repository.NewRoomRepository(db)
-	taskRepo := repository.NewTaskRepository(db)
-	billRepo := repository.NewBillRepository(db)
-	billCategoryRepo := repository.NewBillCategoryRepository(db)
-	shoppingRepo := repository.NewShoppingRepository(db)
-	pollRepo := repository.NewPollRepository(db)
-	notificationRepo := repository.NewNotificationRepository(db)
-	auditRepo := repository.NewAuditRepository(db)
-	smartHomeRepo := repository.NewSmartHomeRepository(db)
-	taskScheduleRepo := repository.NewTaskScheduleRepository(db)
-	pushSubRepo := repository.NewPushSubscriptionRepository(db)
-
-	// services
-	pushSubSvc := services.NewPushSubscriptionService(pushSubRepo, cfg.VapidPublicKey, cfg.VapidPrivateKey, cfg.VapidSubject)
-	notificationSvc := services.NewNotificationService(notificationRepo, cacheClient, pushSubSvc, homeRepo)
-	auditSvc := services.NewAuditService(auditRepo)
-	authSvc := services.NewAuthService(userRepo, []byte(cfg.JWTSecret), cacheClient, 30*24*time.Hour, cfg.ClientURL, cfg.ServerURL, mailer)
-	homeSvc := services.NewHomeService(homeRepo, cacheClient, notificationSvc)
-	roomSvc := services.NewRoomService(roomRepo, cacheClient)
-	taskSvc := services.NewTaskService(taskRepo, cacheClient, notificationSvc)
-	billSvc := services.NewBillService(billRepo, cacheClient, notificationSvc, homeSvc)
-	billCategorySvc := services.NewBillCategoryService(billCategoryRepo, cacheClient)
-	shoppingSvc := services.NewShoppingService(shoppingRepo, cacheClient)
-	pollSvc := services.NewPollService(pollRepo, cacheClient, notificationSvc)
-	userService := services.NewUserService(userRepo, cacheClient)
-
-	imageService, err := services.NewImageService(cfg.R2S3Bucket, cfg.R2Region, cfg.R2AccountID, cfg.R2AccessKeyID, cfg.R2SecretAccessKey, cfg.R2PublicUrl)
+	app, err := newAppDeps(cfg, db, cacheClient)
 	if err != nil {
-		log.Fatalf("error running S3: %s", err.Error())
+		return nil, err
 	}
 
-	ocrSvc := services.NewOCRService(cfg.GeminiAPIKey)
-	smartHomeSvc := services.NewSmartHomeService(smartHomeRepo, cacheClient, cfg.HAEncryptionKey)
-	taskScheduleSvc := services.NewTaskScheduleService(taskScheduleRepo, taskRepo, cacheClient, notificationSvc)
-
-	// handlers
-	authHandler := handlers.NewAuthHandler(authSvc, cfg.ClientURL, cfg.Mode != "dev")
-	authHandler.SetAuditService(auditSvc)
-	homeHandler := handlers.NewHomeHandler(homeSvc)
-	homeHandler.SetAuditService(auditSvc)
-	roomHandler := handlers.NewRoomHandler(roomSvc, homeRepo)
-	taskHandler := handlers.NewTaskHandler(taskSvc, homeRepo)
-	billHandler := handlers.NewBillHandler(billSvc, homeRepo)
-	billCategoryHandler := handlers.NewBillCategoryHandler(billCategorySvc, homeRepo)
-	shoppingHandler := handlers.NewShoppingHandler(shoppingSvc, homeRepo)
-	imageHandler := handlers.NewImageHandler(imageService)
-	pollHandler := handlers.NewPollHandler(pollSvc, homeRepo)
-	notificationHandler := handlers.NewNotificationHandler(notificationSvc)
-	auditHandler := handlers.NewAuditHandler(auditSvc)
-	userHandler := handlers.NewUserHandler(userService, imageService)
-	ocrHandler := handlers.NewOCRHandler(ocrSvc)
-	smartHomeHandler := handlers.NewSmartHomeHandler(smartHomeSvc)
-	taskScheduleHandler := handlers.NewTaskScheduleHandler(taskScheduleSvc, homeRepo)
-	pushSubHandler := handlers.NewPushSubscriptionHandler(pushSubSvc)
-
-	// setup all routes
-	router := router.SetupRoutes(cfg, authHandler, homeHandler, taskHandler, taskScheduleHandler, billHandler, billCategoryHandler, roomHandler, shoppingHandler, imageHandler, pollHandler, notificationHandler, auditHandler, userHandler, ocrHandler, smartHomeHandler, pushSubHandler, cacheClient, homeRepo)
+	router := router.SetupRoutes(router.RoutesDeps{
+		Config:   cfg,
+		Handlers: app.handlers.RouterHandlers(),
+		Cache:    cacheClient,
+		HomeRepo: app.repos.home,
+	})
 
 	// Set startup metrics
 	metrics.ServerStartTime.Set(float64(time.Now().Unix()))
@@ -167,8 +79,8 @@ func NewServer() (*Server, error) {
 	go collectDBPoolStats(sqlDB)
 
 	// Start task schedule processor (checks every minute for due schedules)
-	go runTaskScheduler(taskScheduleSvc)
-	go runTaskReminderScheduler(taskSvc)
+	go runTaskScheduler(app.services.taskSchedule)
+	go runTaskReminderScheduler(app.services.task)
 
 	httpServer := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -229,36 +141,4 @@ func (a *Server) Run() error {
 	}
 
 	return errors.Join(closeErrs...)
-}
-
-func runTaskScheduler(svc *services.TaskScheduleService) {
-	ticker := time.NewTicker(1 * time.Minute)
-	defer ticker.Stop()
-	for range ticker.C {
-		ctx := context.Background()
-		if err := svc.ProcessDueSchedules(ctx); err != nil {
-			logger.Info.Printf("[Scheduler] Error processing due schedules: %v", err)
-		}
-	}
-}
-
-func runTaskReminderScheduler(svc *services.TaskService) {
-	ticker := time.NewTicker(1 * time.Minute)
-	defer ticker.Stop()
-	for range ticker.C {
-		ctx := context.Background()
-		if err := svc.ProcessTaskReminders(ctx); err != nil {
-			logger.Info.Printf("[TaskReminderScheduler] Error processing reminders: %v", err)
-		}
-	}
-}
-
-func collectDBPoolStats(sqlDB *sql.DB) {
-	ticker := time.NewTicker(15 * time.Second)
-	defer ticker.Stop()
-	for range ticker.C {
-		stats := sqlDB.Stats()
-		metrics.DbConnectionsOpen.Set(float64(stats.OpenConnections))
-		metrics.DbConnectionsInUse.Set(float64(stats.InUse))
-	}
 }

@@ -20,35 +20,46 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// SetupRoutes configures all application routes
-func SetupRoutes(
-	cfg *config.Config,
+type RoutesDeps struct {
+	Config   *config.Config
+	Handlers HandlerSet
+	Cache    *redis.Client
+	HomeRepo repository.HomeRepository
+}
 
-	// handlers
-	authHandler *handlers.AuthHandler,
-	homeHandler *handlers.HomeHandler,
-	taskHandler *handlers.TaskHandler,
-	taskScheduleHandler *handlers.TaskScheduleHandler,
-	billHandler *handlers.BillHandler,
-	billCategoryHandler *handlers.BillCategoryHandler,
-	roomHandler *handlers.RoomHandler,
-	shoppingHandler *handlers.ShoppingHandler,
-	imageHandler *handlers.ImageHandler,
-	pollHandler *handlers.PollHandler,
-	notificationHandler *handlers.NotificationHandler,
-	auditHandler *handlers.AuditHandler,
-	userHandler *handlers.UserHandler,
-	ocrHandler *handlers.OCRHandler,
-	smartHomeHandler *handlers.SmartHomeHandler,
-	pushSubHandler *handlers.PushSubscriptionHandler,
+type HandlerSet struct {
+	Auth         *handlers.AuthHandler
+	Home         *handlers.HomeHandler
+	Task         *handlers.TaskHandler
+	TaskSchedule *handlers.TaskScheduleHandler
+	Bill         *handlers.BillHandler
+	BillCategory *handlers.BillCategoryHandler
+	Room         *handlers.RoomHandler
+	Shopping     *handlers.ShoppingHandler
+	Image        *handlers.ImageHandler
+	Poll         *handlers.PollHandler
+	Notification *handlers.NotificationHandler
+	Audit        *handlers.AuditHandler
+	User         *handlers.UserHandler
+	OCR          *handlers.OCRHandler
+	SmartHome    *handlers.SmartHomeHandler
+	PushSub      *handlers.PushSubscriptionHandler
+}
 
-	// redis client
-	cache *redis.Client,
+// SetupRoutes configures all application routes.
+func SetupRoutes(deps RoutesDeps) http.Handler {
+	cfg := deps.Config
+	cache := deps.Cache
+	homeRepo := deps.HomeRepo
+	authHandler := deps.Handlers.Auth
+	homeHandler := deps.Handlers.Home
+	imageHandler := deps.Handlers.Image
+	notificationHandler := deps.Handlers.Notification
+	auditHandler := deps.Handlers.Audit
+	userHandler := deps.Handlers.User
+	ocrHandler := deps.Handlers.OCR
+	pushSubHandler := deps.Handlers.PushSub
 
-	// home repo for middleware
-	homeRepo repository.HomeRepository,
-
-) http.Handler {
 	// websockets handler for real time updates
 	wsHandler := ws.NewWSHandler(cfg, homeRepo)
 	// Rate limiter
@@ -186,118 +197,45 @@ func SetupRoutes(
 
 						// Notifications for home
 						r.Route("/notifications", func(r chi.Router) {
-							r.Get("/", notificationHandler.GetByHomeID)
-							r.Delete("/{notification_id}", notificationHandler.MarkAsReadForHome)
+							mountHomeNotificationRoutes(r, deps)
 						})
 
 						// Rooms under a home
 						r.Route("/rooms", func(r chi.Router) {
-							r.With(middleware.RequireAdmin(homeRepo)).Post("/", roomHandler.Create)
-							r.With(middleware.RequireMember(homeRepo)).Get("/", roomHandler.GetByHomeID)
-							r.With(middleware.RequireMember(homeRepo)).Get("/{room_id}", roomHandler.GetByID)
-							r.With(middleware.RequireMember(homeRepo)).Get("/{room_id}/devices", smartHomeHandler.GetDevicesByRoom)
-							r.With(middleware.RequireMember(homeRepo)).Put("/{room_id}", roomHandler.Update)
-							r.With(middleware.RequireMember(homeRepo)).Delete("/{room_id}", roomHandler.Delete)
+							mountRoomRoutes(r, deps)
 						})
 
 						// Tasks under a home
 						r.Route("/tasks", func(r chi.Router) {
-							r.With(middleware.RequireMember(homeRepo)).Post("/", taskHandler.Create)
-							r.With(middleware.RequireMember(homeRepo)).Get("/", taskHandler.GetTasksByHomeID)
-							r.With(middleware.RequireMember(homeRepo)).Get("/{task_id}", taskHandler.GetByID)
-							r.With(middleware.RequireMember(homeRepo)).Put("/{task_id}", taskHandler.UpdateTask)
-							r.With(middleware.RequireMember(homeRepo)).Delete("/{task_id}", taskHandler.DeleteTask)
-							// Assignments
-							r.With(middleware.RequireMember(homeRepo)).Post("/{task_id}/assign", taskHandler.AssignUser)
-							r.With(middleware.RequireMember(homeRepo)).Patch("/{task_id}/reassign-room", taskHandler.ReassignRoom)
-							r.With(middleware.RequireMember(homeRepo)).Patch("/{task_id}/mark-completed", taskHandler.MarkAssignmentCompleted)
-							r.With(middleware.RequireMember(homeRepo)).Patch("/{task_id}/mark-uncompleted", taskHandler.MarkAssignmentUncompleted)
-							r.With(middleware.RequireMember(homeRepo)).Patch("/{task_id}/complete", taskHandler.MarkTaskCompleted)
-							r.With(middleware.RequireMember(homeRepo)).Delete("/{task_id}/assignments/{assignment_id}", taskHandler.DeleteAssignment)
-							// Schedules
-							r.With(middleware.RequireAdmin(homeRepo)).Post("/schedules", taskScheduleHandler.CreateSchedule)
-							r.With(middleware.RequireMember(homeRepo)).Get("/schedules", taskScheduleHandler.GetSchedulesByHomeID)
-							r.With(middleware.RequireMember(homeRepo)).Get("/{task_id}/schedule", taskScheduleHandler.GetScheduleByTaskID)
-							r.With(middleware.RequireAdmin(homeRepo)).Delete("/schedules/{schedule_id}", taskScheduleHandler.DeleteSchedule)
+							mountTaskRoutes(r, deps)
 						})
 
 						// User assignments (not scoped to a specific home)
 						r.Route("/users/{user_id}/assignments", func(r chi.Router) {
-							r.With(middleware.RequireMember(homeRepo)).Get("/", taskHandler.GetAssignmentsForUser)
-							r.With(middleware.RequireMember(homeRepo)).Get("/closest", taskHandler.GetClosestAssignmentForUser)
+							mountUserAssignmentRoutes(r, deps)
 						})
 
 						// Bills under a home
 						r.Route("/bills", func(r chi.Router) {
-							r.With(middleware.RequireMember(homeRepo)).Get("/", billHandler.GetByHomeID)
-							r.With(middleware.RequireMember(homeRepo)).Post("/", billHandler.Create)
-							r.With(middleware.RequireMember(homeRepo)).Get("/{bill_id}", billHandler.GetByID)
-							r.With(middleware.RequireMember(homeRepo)).Delete("/{bill_id}", billHandler.Delete)
-							r.With(middleware.RequireMember(homeRepo)).Put("/{bill_id}", billHandler.Update)
-							r.With(middleware.RequireMember(homeRepo)).Patch("/{bill_id}", billHandler.MarkPayed)
-							r.With(middleware.RequireMember(homeRepo)).Put("/{bill_id}/splits", billHandler.UpdateSplits)
-							r.With(middleware.RequireMember(homeRepo)).Patch("/{bill_id}/splits/{split_id}/paid", billHandler.MarkSplitPaid)
+							mountBillRoutes(r, deps)
 						})
 
 						// Bill Categories
 						r.Route("/bill_categories", func(r chi.Router) {
-							r.With(middleware.RequireMember(homeRepo)).Get("/", billCategoryHandler.GetAll)
-							r.With(middleware.RequireMember(homeRepo)).Post("/", billCategoryHandler.Create)
-							r.With(middleware.RequireMember(homeRepo)).Delete("/{category_id}", billCategoryHandler.Delete)
-							r.With(middleware.RequireMember(homeRepo)).Patch("/{category_id}", billCategoryHandler.Update)
+							mountBillCategoryRoutes(r, deps)
 						})
 
 						// Shopping
 						r.Route("/shopping", func(r chi.Router) {
-							r.Route("/categories", func(r chi.Router) {
-								r.With(middleware.RequireMember(homeRepo)).Post("/", shoppingHandler.CreateCategory)
-								r.With(middleware.RequireMember(homeRepo)).Get("/all", shoppingHandler.GetAllCategories)
-								r.With(middleware.RequireMember(homeRepo)).Get("/{category_id}", shoppingHandler.GetCategoryByID)
-								r.With(middleware.RequireMember(homeRepo)).Get("/{category_id}/items", shoppingHandler.GetItemsByCategoryID)
-								r.With(middleware.RequireMember(homeRepo)).Delete("/{category_id}", shoppingHandler.DeleteCategory)
-								r.With(middleware.RequireMember(homeRepo)).Put("/{category_id}", shoppingHandler.EditCategory)
-							})
-							r.Route("/items", func(r chi.Router) {
-								r.With(middleware.RequireMember(homeRepo)).Post("/", shoppingHandler.CreateItem)
-								r.With(middleware.RequireMember(homeRepo)).Get("/{item_id}", shoppingHandler.GetItemByID)
-								r.With(middleware.RequireMember(homeRepo)).Delete("/{item_id}", shoppingHandler.DeleteItem)
-								r.With(middleware.RequireMember(homeRepo)).Put("/{item_id}", shoppingHandler.EditItem)
-								r.With(middleware.RequireMember(homeRepo)).Patch("/{item_id}", shoppingHandler.MarkIsBought)
-							})
+							mountShoppingRoutes(r, deps)
 						})
 						r.Route("/polls", func(r chi.Router) {
-
-							r.With(middleware.RequireMember(homeRepo)).Post("/", pollHandler.Create)
-							r.With(middleware.RequireMember(homeRepo)).Get("/", pollHandler.GetAllByHomeID)
-							r.With(middleware.RequireMember(homeRepo)).Get("/{poll_id}", pollHandler.GetByID)
-
-							r.With(middleware.RequireAdmin(homeRepo)).Patch("/{poll_id}/close", pollHandler.Close)
-
-							r.With(middleware.RequireAdmin(homeRepo)).Delete("/{poll_id}", pollHandler.Delete)
-
-							r.With(middleware.RequireMember(homeRepo)).Post("/{poll_id}/vote", pollHandler.Vote)
-							r.With(middleware.RequireMember(homeRepo)).Delete("/{poll_id}/vote", pollHandler.Unvote)
+							mountPollRoutes(r, deps)
 						})
 
 						// Smart Home (Home Assistant integration)
 						r.Route("/smarthome", func(r chi.Router) {
-							r.With(middleware.RequireAdmin(homeRepo)).Post("/connect", smartHomeHandler.Connect)
-							r.With(middleware.RequireAdmin(homeRepo)).Delete("/disconnect", smartHomeHandler.Disconnect)
-							r.With(middleware.RequireMember(homeRepo)).Get("/status", smartHomeHandler.Status)
-							r.With(middleware.RequireMember(homeRepo)).Get("/discover", smartHomeHandler.Discover)
-							r.With(middleware.RequireMember(homeRepo)).Get("/states", smartHomeHandler.GetAllStates)
-
-							// Device control - rate limited to prevent abuse
-							deviceControlLimit := middleware.StrictRateLimitMiddleware(rateLimiter, 120, 0.5) // 30 tokens, refill 0.5/sec = 30/min
-
-							r.Route("/devices", func(r chi.Router) {
-								r.With(middleware.RequireMember(homeRepo)).Post("/", smartHomeHandler.AddDevice)
-								r.With(middleware.RequireMember(homeRepo)).Get("/", smartHomeHandler.GetDevices)
-								r.With(middleware.RequireMember(homeRepo)).Get("/{device_id}", smartHomeHandler.GetDevice)
-								r.With(middleware.RequireAdmin(homeRepo)).Put("/{device_id}", smartHomeHandler.UpdateDevice)
-								r.With(middleware.RequireAdmin(homeRepo)).Delete("/{device_id}", smartHomeHandler.DeleteDevice)
-								r.With(middleware.RequireMember(homeRepo), deviceControlLimit).Post("/{device_id}/control", smartHomeHandler.ControlDevice)
-							})
+							mountSmartHomeRoutes(r, deps, rateLimiter, homeRepo)
 						})
 					})
 				})
