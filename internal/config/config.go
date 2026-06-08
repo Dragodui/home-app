@@ -127,15 +127,17 @@ func Load() *Config {
 		VapidSubject:    getEnv("VAPID_SUBJECT", "mailto:contact@example.com"),
 	}
 
-	// Validate security-critical config values
-	if len(cfg.JWTSecret) < 32 {
-		log.Fatal("SECURITY: JWT_SECRET must be at least 32 characters long")
-	}
+	if cfg.Mode != "dev" {
+		// Validate security-critical config values
+		if len(cfg.JWTSecret) < 32 {
+			log.Fatal("SECURITY: JWT_SECRET must be at least 32 characters long")
+		}
 
-	if len(cfg.HAEncryptionKey) != 32 {
-		log.Fatal("SECURITY: HA_ENCRYPTION_KEY must be exactly 32 characters for AES-256")
+		if len(cfg.HAEncryptionKey) != 32 {
+			log.Fatal("SECURITY: HA_ENCRYPTION_KEY must be exactly 32 characters for AES-256")
+		}
 	}
-
+	
 	return cfg
 }
 

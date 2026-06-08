@@ -21,19 +21,20 @@ import (
 
 // Mock service
 type mockBillService struct {
-	CreateBillFunc       func(ctx context.Context, billType string, billCategoryID *int, description string, receiptImage *string, totalAmount float64, start, end time.Time, ocrData datatypes.JSON, homeID, userID int, splits []models.SplitInput) error
+	CreateBillFunc       func(ctx context.Context, billType string, billCategoryID *int, public *bool, description string, receiptImage *string, totalAmount float64, start, end time.Time, ocrData datatypes.JSON, homeID, userID int, splits []models.SplitInput, isRegular bool, recurrenceType *string, recurrenceDay *int) error
 	GetBillByIDFunc      func(ctx context.Context, billID int) (*models.Bill, error)
 	GetBillsByHomeIDFunc func(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error)
-	UpdateBillFunc       func(ctx context.Context, id int, billType *string, billCategoryID *int, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error
+	GetPrivateBillsFunc  func(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error)
+	UpdateBillFunc       func(ctx context.Context, id int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error
 	DeleteFunc           func(ctx context.Context, billID int) error
 	MarkBillPayedFunc    func(ctx context.Context, billID int) error
 	UpdateSplitsFunc     func(ctx context.Context, billID int, splits []models.SplitInput) error
 	MarkSplitPaidFunc    func(ctx context.Context, splitID int) error
 }
 
-func (m *mockBillService) CreateBill(ctx context.Context, billType string, billCategoryID *int, description string, receiptImage *string, totalAmount float64, start, end time.Time, ocrData datatypes.JSON, homeID, userID int, splits []models.SplitInput) error {
+func (m *mockBillService) CreateBill(ctx context.Context, billType string, billCategoryID *int, public *bool, description string, receiptImage *string, totalAmount float64, start, end time.Time, ocrData datatypes.JSON, homeID, userID int, splits []models.SplitInput, isRegular bool, recurrenceType *string, recurrenceDay *int) error {
 	if m.CreateBillFunc != nil {
-		return m.CreateBillFunc(ctx, billType, billCategoryID, description, receiptImage, totalAmount, start, end, ocrData, homeID, userID, splits)
+		return m.CreateBillFunc(ctx, billType, billCategoryID, public, description, receiptImage, totalAmount, start, end, ocrData, homeID, userID, splits, isRegular, recurrenceType, recurrenceDay)
 	}
 	return nil
 }
@@ -42,12 +43,19 @@ func (m *mockBillService) GetBillByID(ctx context.Context, billID int) (*models.
 	if m.GetBillByIDFunc != nil {
 		return m.GetBillByIDFunc(ctx, billID)
 	}
-	return &models.Bill{ID: billID, HomeID: 1, UploadedBy: 123}, nil
+	return &models.Bill{ID: billID, HomeID: 1, Public: true, UploadedBy: 123}, nil
 }
 
 func (m *mockBillService) GetBillsByHomeID(ctx context.Context, homeId int, categoryID *int) ([]models.Bill, error) {
 	if m.GetBillsByHomeIDFunc != nil {
 		return m.GetBillsByHomeIDFunc(ctx, homeId, categoryID)
+	}
+	return nil, nil
+}
+
+func (m *mockBillService) GetPrivateBillsByUserID(ctx context.Context, homeID, userId int, categoryID *int) ([]models.Bill, error) {
+	if m.GetPrivateBillsFunc != nil {
+		return m.GetPrivateBillsFunc(ctx, homeID, userId, categoryID)
 	}
 	return nil, nil
 }
@@ -59,9 +67,9 @@ func (m *mockBillService) Delete(ctx context.Context, billID int) error {
 	return nil
 }
 
-func (m *mockBillService) UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error {
+func (m *mockBillService) UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error {
 	if m.UpdateBillFunc != nil {
-		return m.UpdateBillFunc(ctx, id, billType, billCategoryID, description, receiptImage, totalAmount, start, end, ocrData)
+		return m.UpdateBillFunc(ctx, id, billType, billCategoryID, public, description, receiptImage, totalAmount, start, end, ocrData)
 	}
 	return nil
 }
@@ -130,7 +138,7 @@ func TestBillHandler_Create(t *testing.T) {
 		name           string
 		body           interface{}
 		userID         int
-		mockFunc       func(ctx context.Context, billType string, billCategoryID *int, description string, receiptImage *string, totalAmount float64, start, end time.Time, ocrData datatypes.JSON, homeID, userID int, splits []models.SplitInput) error
+		mockFunc       func(ctx context.Context, billType string, billCategoryID *int, public *bool, description string, receiptImage *string, totalAmount float64, start, end time.Time, ocrData datatypes.JSON, homeID, userID int, splits []models.SplitInput, isRegular bool, recurrenceType *string, recurrenceDay *int) error
 		expectedStatus int
 		expectedBody   string
 	}{
@@ -138,10 +146,11 @@ func TestBillHandler_Create(t *testing.T) {
 			name:   "Success",
 			body:   validBillRequest,
 			userID: 123,
-			mockFunc: func(ctx context.Context, billType string, billCategoryID *int, description string, receiptImage *string, totalAmount float64, start, end time.Time, ocrData datatypes.JSON, homeID, userID int, splits []models.SplitInput) error {
+			mockFunc: func(ctx context.Context, billType string, billCategoryID *int, public *bool, description string, receiptImage *string, totalAmount float64, start, end time.Time, ocrData datatypes.JSON, homeID, userID int, splits []models.SplitInput, isRegular bool, recurrenceType *string, recurrenceDay *int) error {
 				assert.Equal(t, "electricity", billType)
 				assert.Nil(t, billCategoryID)
 				assert.Equal(t, 100.50, totalAmount)
+				assert.False(t, isRegular)
 				assert.Equal(t, 1, homeID)
 				assert.Equal(t, 123, userID)
 				return nil
@@ -169,7 +178,7 @@ func TestBillHandler_Create(t *testing.T) {
 			name:   "Service Error",
 			body:   validBillRequest,
 			userID: 123,
-			mockFunc: func(ctx context.Context, billType string, billCategoryID *int, description string, receiptImage *string, totalAmount float64, start, end time.Time, ocrData datatypes.JSON, homeID, userID int, splits []models.SplitInput) error {
+			mockFunc: func(ctx context.Context, billType string, billCategoryID *int, public *bool, description string, receiptImage *string, totalAmount float64, start, end time.Time, ocrData datatypes.JSON, homeID, userID int, splits []models.SplitInput, isRegular bool, recurrenceType *string, recurrenceDay *int) error {
 				return errors.New("service error")
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -221,7 +230,7 @@ func TestBillHandler_GetByID(t *testing.T) {
 			billID: "1",
 			mockFunc: func(ctx context.Context, billID int) (*models.Bill, error) {
 				require.Equal(t, 1, billID)
-				return &models.Bill{ID: 1, HomeID: 1, Type: "electricity", TotalAmount: 100.50}, nil
+				return &models.Bill{ID: 1, HomeID: 1, Public: true, Type: "electricity", TotalAmount: 100.50}, nil
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   "electricity",
@@ -304,7 +313,7 @@ func TestBillHandler_Delete(t *testing.T) {
 			svc := &mockBillService{
 				DeleteFunc: tt.mockFunc,
 				GetBillByIDFunc: func(ctx context.Context, billID int) (*models.Bill, error) {
-					return &models.Bill{ID: billID, UploadedBy: 123, HomeID: 1}, nil
+					return &models.Bill{ID: billID, UploadedBy: 123, HomeID: 1, Public: true}, nil
 				},
 			}
 
@@ -417,7 +426,7 @@ func TestBillHandler_UpdateSplits(t *testing.T) {
 			svc := &mockBillService{
 				UpdateSplitsFunc: tt.mockFunc,
 				GetBillByIDFunc: func(ctx context.Context, billID int) (*models.Bill, error) {
-					return &models.Bill{ID: billID, UploadedBy: 123, HomeID: 1}, nil
+					return &models.Bill{ID: billID, UploadedBy: 123, HomeID: 1, Public: true}, nil
 				},
 			}
 

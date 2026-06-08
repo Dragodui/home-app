@@ -1,6 +1,6 @@
 import { Eye, EyeOff } from "lucide-react-native";
 import { type FC, useState } from "react";
-import { Platform, Text, TextInput, type TextInputProps, TouchableOpacity, View } from "react-native";
+import { Platform, Text, TextInput, type TextInputProps, type TextStyle, TouchableOpacity, View } from "react-native";
 import { useTheme } from "@/stores/themeStore";
 
 interface InputProps extends TextInputProps {
@@ -21,7 +21,7 @@ const Input: FC<InputProps> = ({ label, error, style, secureTextEntry, className
           outlineStyle: "none",
           outlineWidth: 0,
           boxShadow: "none",
-        } as const)
+        } as unknown as TextStyle)
       : null;
 
   const getInputBorderStyle = () => {

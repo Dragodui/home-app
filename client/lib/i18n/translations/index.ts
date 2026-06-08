@@ -17,7 +17,7 @@ export const translations = {
 } as const;
 
 export type Language = keyof typeof translations;
-export type Translations = typeof en;
+export type Translations = (typeof translations)[Language];
 
 export const languageNames: Record<Language, string> = {
   en: "English",

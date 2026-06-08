@@ -6,6 +6,7 @@ import (
 
 	"github.com/Dragodui/diploma-server/internal/config"
 	"github.com/Dragodui/diploma-server/internal/http/handlers"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,7 +52,22 @@ func TestCorsAllowedOrigins_DevIncludesLocalOrigins(t *testing.T) {
 }
 
 func TestSetupRoutesIncludesPrivateBillsBeforeBillID(t *testing.T) {
-	routes := collectRoutes(SetupRoutes(RoutesDeps{
+	r := chi.NewRouter()
+	r.Route("/api/homes/{home_id}/bills", func(r chi.Router) {
+		mountBillRoutes(r, RoutesDeps{
+			Handlers: HandlerSet{
+				Bill: &handlers.BillHandler{},
+			},
+		})
+	})
+
+	routes := collectRoutes(r)
+
+	assert.Contains(t, routes, "GET /api/homes/{home_id}/bills/private")
+}
+
+func TestSetupRoutesBuildsApplicationRouter(t *testing.T) {
+	router := SetupRoutes(RoutesDeps{
 		Config: &config.Config{
 			Mode:      "dev",
 			JWTSecret: "test-secret-with-more-than-32-chars",
@@ -74,21 +90,19 @@ func TestSetupRoutesIncludesPrivateBillsBeforeBillID(t *testing.T) {
 			SmartHome:    &handlers.SmartHomeHandler{},
 			PushSub:      &handlers.PushSubscriptionHandler{},
 		},
-	}))
+	})
 
-	assert.Contains(t, routes, "GET /api/homes/{home_id}/bills/private")
+	assert.NotNil(t, router)
 }
 
 func collectRoutes(handler http.Handler) []string {
-	walker, ok := handler.(interface {
-		Walk(func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error) error
-	})
+	routesHandler, ok := handler.(chi.Routes)
 	if !ok {
 		return nil
 	}
 
 	var routes []string
-	_ = walker.Walk(func(method string, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
+	_ = chi.Walk(routesHandler, func(method string, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
 		routes = append(routes, method+" "+route)
 		return nil
 	})

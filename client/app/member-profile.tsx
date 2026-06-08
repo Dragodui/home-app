@@ -283,7 +283,7 @@ export default function MemberProfileScreen() {
                   </View>
                   <View className="flex-row justify-between mt-2">
                     <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-                      {t.tasks.schedule.completed}
+                      {t.tasks.filters.completed}
                     </Text>
                     <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
                       {stats?.tasksCompleted ?? 0}

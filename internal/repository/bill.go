@@ -13,6 +13,7 @@ type BillRepository interface {
 	Create(ctx context.Context, b *models.Bill) error
 	FindByID(ctx context.Context, id int) (*models.Bill, error)
 	FindByHomeID(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error)
+	FindPrivateByUserID(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error)
 	Update(ctx context.Context, b *models.Bill) error
 	Delete(ctx context.Context, id int) error
 	MarkPayed(ctx context.Context, id int) error
@@ -20,6 +21,9 @@ type BillRepository interface {
 	UpdateSplits(ctx context.Context, billID int, splits []models.BillSplit) error
 	MarkSplitPaid(ctx context.Context, splitID int) error
 	FindSplitByID(ctx context.Context, splitID int) (*models.BillSplit, error)
+	CreateSchedule(ctx context.Context, schedule *models.BillSchedule) error
+	FindDueSchedules(ctx context.Context, now time.Time) ([]models.BillSchedule, error)
+	UpdateSchedule(ctx context.Context, schedule *models.BillSchedule) error
 }
 
 type billRepo struct {
@@ -55,7 +59,28 @@ func (r *billRepo) FindByID(ctx context.Context, id int) (*models.Bill, error) {
 func (r *billRepo) FindByHomeID(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error) {
 	var bills []models.Bill
 
-	query := r.db.WithContext(ctx).Where("home_id = ?", homeID)
+	query := r.db.WithContext(ctx).Where("home_id = ?", homeID).Where("public = ?", true)
+	if categoryID != nil {
+		query = query.Where("bill_category_id = ?", *categoryID)
+	}
+
+	if err := query.
+		Preload("User").
+		Preload("BillSplits").
+		Preload("BillSplits.User").
+		Preload("BillCategory").
+		Order("created_at DESC").
+		Find(&bills).Error; err != nil {
+		return nil, err
+	}
+
+	return bills, nil
+}
+
+func (r *billRepo) FindPrivateByUserID(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error) {
+	var bills []models.Bill
+
+	query := r.db.WithContext(ctx).Where("home_id = ?", homeID).Where("uploaded_by = ?", userID).Where("public = ?", false)
 	if categoryID != nil {
 		query = query.Where("bill_category_id = ?", *categoryID)
 	}
@@ -134,4 +159,22 @@ func (r *billRepo) FindSplitByID(ctx context.Context, splitID int) (*models.Bill
 
 func (r *billRepo) MarkSplitPaid(ctx context.Context, splitID int) error {
 	return r.db.WithContext(ctx).Model(&models.BillSplit{}).Where("id = ?", splitID).Update("paid", true).Error
+}
+
+func (r *billRepo) CreateSchedule(ctx context.Context, schedule *models.BillSchedule) error {
+	return r.db.WithContext(ctx).Create(schedule).Error
+}
+
+func (r *billRepo) FindDueSchedules(ctx context.Context, now time.Time) ([]models.BillSchedule, error) {
+	var schedules []models.BillSchedule
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Preload("BillCategory").
+		Where("is_active = ? AND next_run_date <= ?", true, now).
+		Find(&schedules).Error
+	return schedules, err
+}
+
+func (r *billRepo) UpdateSchedule(ctx context.Context, schedule *models.BillSchedule) error {
+	return r.db.WithContext(ctx).Save(schedule).Error
 }

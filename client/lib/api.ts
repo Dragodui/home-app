@@ -546,8 +546,14 @@ export const billApi = {
   },
 
   getByHomeId: async (homeId: number, categoryId?: number): Promise<Bill[]> => {
-    const params = categoryId != null ? { categoryId } : undefined;
+    const params = categoryId != null ? { category_id: categoryId } : undefined;
     const response = await api.get<{ status: boolean; bills: Bill[] }>(`/homes/${homeId}/bills`, { params });
+    return response.data.bills || [];
+  },
+
+  getPrivate: async (homeId: number, categoryId?: number): Promise<Bill[]> => {
+    const params = categoryId != null ? { category_id: categoryId } : undefined;
+    const response = await api.get<{ status: boolean; bills: Bill[] }>(`/homes/${homeId}/bills/private`, { params });
     return response.data.bills || [];
   },
 
@@ -561,6 +567,7 @@ export const billApi = {
     billId: number,
     data: {
       type?: string;
+      public?: boolean;
       billCategoryId?: number;
       description?: string;
       receiptImage?: string;

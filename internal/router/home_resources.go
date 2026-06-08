@@ -52,6 +52,7 @@ func mountUserAssignmentRoutes(r chi.Router, deps RoutesDeps) {
 func mountBillRoutes(r chi.Router, deps RoutesDeps) {
 	homeRepo := deps.HomeRepo
 	r.With(middleware.RequireMember(homeRepo)).Get("/", deps.Handlers.Bill.GetByHomeID)
+	r.With(middleware.RequireMember(homeRepo)).Get("/private", deps.Handlers.Bill.GetByUserID)
 	r.With(middleware.RequireMember(homeRepo)).Post("/", deps.Handlers.Bill.Create)
 	r.With(middleware.RequireMember(homeRepo)).Get("/{bill_id}", deps.Handlers.Bill.GetByID)
 	r.With(middleware.RequireMember(homeRepo)).Delete("/{bill_id}", deps.Handlers.Bill.Delete)

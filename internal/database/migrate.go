@@ -14,6 +14,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.TaskAssignment{},
 		&models.TaskSchedule{},
 		&models.Bill{},
+		&models.BillSchedule{},
 		&models.BillCategory{},
 		&models.BillSplit{},
 		&models.ShoppingCategory{},

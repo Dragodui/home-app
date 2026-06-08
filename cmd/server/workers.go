@@ -32,6 +32,17 @@ func runTaskReminderScheduler(svc *services.TaskService) {
 	}
 }
 
+func runBillScheduler(svc *services.BillService) {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		ctx := context.Background()
+		if err := svc.ProcessDueSchedules(ctx); err != nil {
+			logger.Info.Printf("[BillScheduler] Error processing due schedules: %v", err)
+		}
+	}
+}
+
 func collectDBPoolStats(sqlDB *sql.DB) {
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()

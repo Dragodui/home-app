@@ -8,6 +8,7 @@ import (
 
 type Bill struct {
 	ID             int            `gorm:"autoIncrement;  primaryKey" json:"id"`
+	Public         bool           `json:"public"` // separates home/private budget
 	HomeID         int            `json:"home_id"`
 	BillCategoryID *int           `json:"bill_category_id"`
 	Type           string         `json:"type"` // Kept for backward compatibility or as fallback
@@ -32,6 +33,10 @@ type Bill struct {
 type CreateBillRequest struct {
 	BillType       string         `json:"type"` // Optional if CategoryID is provided
 	BillCategoryID *int           `json:"bill_category_id"`
+	Public         *bool          `json:"public"`
+	IsRegular      bool           `json:"is_regular"`
+	RecurrenceType *string        `json:"recurrence_type"`
+	RecurrenceDay  *int           `json:"recurrence_day"`
 	Description    string         `json:"description"`
 	ReceiptImage   *string        `json:"receipt_image"`
 	TotalAmount    float64        `json:"total_amount" validate:"required,gte=0"`
@@ -44,6 +49,7 @@ type CreateBillRequest struct {
 type UpdateBillRequest struct {
 	BillType       *string         `json:"type"`
 	BillCategoryID *int            `json:"bill_category_id"`
+	Public         *bool           `json:"public"`
 	Description    *string         `json:"description"`
 	ReceiptImage   *string         `json:"receipt_image"`
 	TotalAmount    *float64        `json:"total_amount"`

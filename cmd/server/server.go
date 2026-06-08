@@ -81,6 +81,7 @@ func NewServer() (*Server, error) {
 	// Start task schedule processor (checks every minute for due schedules)
 	go runTaskScheduler(app.services.taskSchedule)
 	go runTaskReminderScheduler(app.services.task)
+	go runBillScheduler(app.services.bill)
 
 	httpServer := &http.Server{
 		Addr:              ":" + cfg.Port,
