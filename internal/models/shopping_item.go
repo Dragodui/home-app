@@ -19,13 +19,13 @@ type ShoppingItem struct {
 
 type CreateShoppingItemRequest struct {
 	CategoryID int     `json:"category_id" validate:"required"`
-	Name       string  `json:"name" validate:"required,min=3"`
+	Name       string  `json:"name" validate:"required,min=1"`
 	Image      *string `json:"image"`
 	Link       *string `json:"link"`
 }
 
 type CreateShoppingItemPayload struct {
-	Name  string  `json:"name" validate:"required,min=3"`
+	Name  string  `json:"name" validate:"required,min=1"`
 	Image *string `json:"image"`
 	Link  *string `json:"link"`
 }
@@ -36,7 +36,7 @@ type CreateShoppingItemsRequest struct {
 }
 
 type UpdateShoppingItemRequest struct {
-	Name     *string    `json:"name,omitempty" validate:"omitempty,min=3"`
+	Name     *string    `json:"name,omitempty" validate:"omitempty,min=1"`
 	Image    *string    `json:"image,omitempty"`
 	Link     *string    `json:"link,omitempty"`
 	IsBought *bool      `json:"is_bought,omitempty"`
