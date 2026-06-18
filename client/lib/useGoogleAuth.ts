@@ -26,8 +26,8 @@ export function useGoogleAuth() {
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: hasWebClientId ? GOOGLE_CLIENT_ID : FALLBACK_DISABLED_CLIENT_ID,
-    androidClientId: hasAndroidClientId ? GOOGLE_ANDROID_CLIENT_ID : undefined,
-    iosClientId: hasIosClientId ? GOOGLE_IOS_CLIENT_ID : undefined,
+    androidClientId: hasAndroidClientId ? GOOGLE_ANDROID_CLIENT_ID : "",
+    iosClientId: hasIosClientId ? GOOGLE_IOS_CLIENT_ID : "",
   });
 
   const getUserInfo = async (accessToken: string): Promise<GoogleUser | null> => {
