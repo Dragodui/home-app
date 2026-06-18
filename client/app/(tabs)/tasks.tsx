@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar, Check, Plus, Repeat, X } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TasksSkeleton } from "@/components/skeletons";
@@ -13,6 +13,7 @@ import { userColors } from "@/constants/colors";
 import { taskApi, taskScheduleApi } from "@/lib/api";
 import type { Task, TaskAssignment } from "@/lib/types";
 import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
+import { buildTaskWidgetPayload, syncTaskWidget } from "@/lib/taskWidget";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
@@ -24,6 +25,7 @@ type RecurrenceType = "daily" | "weekly" | "monthly";
 
 export default function TasksScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ widgetAdd?: string }>();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { home, rooms, isAdmin } = useHome();
@@ -65,6 +67,7 @@ export default function TasksScreen() {
   const [editReminderMinutesInput, setEditReminderMinutesInput] = useState("30");
   const [savingEditTask, setSavingEditTask] = useState(false);
   const [isEditDatePickerVisible, setIsEditDatePickerVisible] = useState(false);
+  const openedWidgetAddRef = useRef(false);
 
   const parseReminderMinutes = (value: string) => {
     const trimmed = value.trim();
@@ -77,6 +80,7 @@ export default function TasksScreen() {
   const loadTasks = useCallback(async () => {
     if (!home || !user) {
       setIsLoading(false);
+      void syncTaskWidget(null);
       return;
     }
 
@@ -88,8 +92,18 @@ export default function TasksScreen() {
 
       setTasks(tasksData || []);
       setAssignments(assignmentsData || []);
+      void syncTaskWidget(
+        buildTaskWidgetPayload({
+          homeName: home.name,
+          userName: user.name,
+          tasks: tasksData || [],
+          assignments: assignmentsData || [],
+          userId: user.id,
+        }),
+      );
     } catch (error) {
       console.error("Error loading tasks:", error);
+      void syncTaskWidget(null);
     } finally {
       setIsLoading(false);
     }
@@ -98,6 +112,12 @@ export default function TasksScreen() {
   useEffect(() => {
     loadTasks();
   }, [loadTasks]);
+
+  useEffect(() => {
+    if (params.widgetAdd !== "1" || openedWidgetAddRef.current || isLoading || !home || !user) return;
+    openedWidgetAddRef.current = true;
+    setShowCreateModal(true);
+  }, [home, isLoading, params.widgetAdd, user, openedWidgetAddRef]);
 
   useRealtimeRefresh(["TASK"], loadTasks);
 

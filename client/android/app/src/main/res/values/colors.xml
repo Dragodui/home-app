@@ -1,0 +1,14 @@
+<resources>
+  <color name="splashscreen_background">#ffffff</color>
+  <color name="iconBackground">#ffffff</color>
+  <color name="colorPrimary">#023c69</color>
+  <color name="colorPrimaryDark">#ffffff</color>
+  <color name="widget_surface">#FFF7F2EC</color>
+  <color name="widget_list_item">#FFFFFFFF</color>
+  <color name="widget_border">#1A1C1C1E</color>
+  <color name="widget_text_primary">#1C1C1E</color>
+  <color name="widget_text_secondary">#6B6B72</color>
+  <color name="widget_accent">#F4C95D</color>
+  <color name="widget_button_secondary">#F1E7D6</color>
+  <color name="widget_button_primary_text">#1C1C1E</color>
+</resources>

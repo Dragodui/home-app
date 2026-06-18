@@ -22,7 +22,7 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.household-assistant-api"
+      "package": "app.rork.householdmanagerapp"
     },
     "web": {
       "favicon": "./assets/images/icon.png",
@@ -40,10 +40,22 @@
           "origin": "https://rork.com/"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": "https://rork.com/"
+      },
+      "eas": {
+        "projectId": "c852ff21-d6a6-4308-8829-0531090e8753"
+      }
+    },
+    "owner": "aksandr"
   }
 }

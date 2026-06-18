@@ -1,0 +1,11 @@
+<resources>
+  <string name="app_name">Household manager app</string>
+  <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
+  <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
+  <string name="expo_system_ui_user_interface_style" translatable="false">automatic</string>
+  <string name="task_widget_title">My tasks</string>
+  <string name="task_widget_empty">No assigned tasks yet</string>
+  <string name="task_widget_no_details">No due date</string>
+  <string name="task_widget_open">Open</string>
+  <string name="task_widget_add">Add</string>
+</resources>
