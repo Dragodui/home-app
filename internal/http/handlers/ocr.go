@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -112,6 +113,10 @@ func (h *OCRHandler) Process(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.svc.ProcessFile(r.Context(), tempPath, language)
 	if err != nil {
+		if errors.Is(err, services.ErrOCRTemporarilyUnavailable) {
+			utils.JSONError(w, "OCR service is temporarily unavailable. Please try again in a moment.", http.StatusServiceUnavailable)
+			return
+		}
 		utils.SafeError(w, err, "OCR processing failed", http.StatusInternalServerError)
 		return
 	}

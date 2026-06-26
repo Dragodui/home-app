@@ -7,6 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/gif"
+	"image/jpeg"
+	_ "image/png"
 	"io"
 	"net/http"
 	"os"
@@ -20,9 +24,14 @@ import (
 )
 
 const (
-	geminiTimeout = 60 * time.Second
-	geminiBaseURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+	geminiTimeout      = 60 * time.Second
+	geminiBaseURL      = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+	geminiMaxRetries   = 3
+	geminiMaxImageSide = 2000
+	geminiJPEGQuality  = 85
 )
+
+var ErrOCRTemporarilyUnavailable = errors.New("OCR service is temporarily unavailable")
 
 type OCRService struct {
 	geminiAPIKey string
@@ -54,6 +63,8 @@ func (s *OCRService) ProcessFile(ctx context.Context, filePath, language string)
 	}
 
 	mimeType := detectMimeType(filePath)
+	imageData, mimeType = optimizeImageForGemini(imageData, mimeType)
+
 	result, err := s.analyzeWithGemini(ctx, imageData, mimeType, language)
 	duration := time.Since(start).Seconds()
 	metrics.OcrProcessingDuration.Observe(duration)
@@ -177,9 +188,9 @@ func (s *OCRService) analyzeWithGemini(ctx context.Context, imageData []byte, mi
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := s.httpClient.Do(req)
+	resp, err := s.doGeminiRequestWithRetry(ctx, req, jsonBody)
 	if err != nil {
-		return nil, fmt.Errorf("Gemini API request failed: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
@@ -189,7 +200,10 @@ func (s *OCRService) analyzeWithGemini(ctx context.Context, imageData []byte, mi
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Gemini API returned status %d: %s", resp.StatusCode, string(body))
+		if isRetryableGeminiStatus(resp.StatusCode) {
+			return nil, fmt.Errorf("%w: Gemini returned status %d after retries", ErrOCRTemporarilyUnavailable, resp.StatusCode)
+		}
+		return nil, fmt.Errorf("Gemini API returned status %d: %s", resp.StatusCode, truncateForLog(string(body), 1000))
 	}
 
 	var geminiResp geminiResponse
@@ -215,6 +229,131 @@ func (s *OCRService) analyzeWithGemini(ctx context.Context, imageData []byte, mi
 	result.Confidence = calculateGeminiConfidence(&result)
 
 	return &result, nil
+}
+
+func (s *OCRService) doGeminiRequestWithRetry(ctx context.Context, originalReq *http.Request, body []byte) (*http.Response, error) {
+	var lastErr error
+
+	for attempt := 0; attempt <= geminiMaxRetries; attempt++ {
+		if attempt > 0 {
+			if err := sleepWithBackoff(ctx, attempt); err != nil {
+				return nil, err
+			}
+		}
+
+		req := originalReq.Clone(ctx)
+		req.Body = io.NopCloser(bytes.NewReader(body))
+		req.ContentLength = int64(len(body))
+
+		resp, err := s.httpClient.Do(req)
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			lastErr = err
+			continue
+		}
+
+		if !isRetryableGeminiStatus(resp.StatusCode) || attempt == geminiMaxRetries {
+			return resp, nil
+		}
+
+		_, _ = io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+		lastErr = fmt.Errorf("Gemini returned retryable status %d", resp.StatusCode)
+	}
+
+	return nil, fmt.Errorf("%w: %v", ErrOCRTemporarilyUnavailable, lastErr)
+}
+
+func isRetryableGeminiStatus(statusCode int) bool {
+	switch statusCode {
+	case http.StatusTooManyRequests, http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		return true
+	default:
+		return false
+	}
+}
+
+func sleepWithBackoff(ctx context.Context, attempt int) error {
+	delays := []time.Duration{500 * time.Millisecond, 1500 * time.Millisecond, 3500 * time.Millisecond}
+	delay := delays[min(attempt-1, len(delays)-1)]
+
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+func optimizeImageForGemini(data []byte, mimeType string) ([]byte, string) {
+	if mimeType == "application/pdf" || !strings.HasPrefix(mimeType, "image/") {
+		return data, mimeType
+	}
+
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		logger.Warn.Printf("OCR image optimization skipped: %v", err)
+		return data, mimeType
+	}
+
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	if width <= 0 || height <= 0 {
+		return data, mimeType
+	}
+
+	if width > geminiMaxImageSide || height > geminiMaxImageSide {
+		img = resizeNearest(img, width, height, geminiMaxImageSide)
+	}
+
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: geminiJPEGQuality}); err != nil {
+		logger.Warn.Printf("OCR image compression skipped: %v", err)
+		return data, mimeType
+	}
+
+	if buf.Len() >= len(data) && width <= geminiMaxImageSide && height <= geminiMaxImageSide {
+		return data, mimeType
+	}
+
+	logger.Info.Printf("OCR image optimized: %d bytes -> %d bytes", len(data), buf.Len())
+	return buf.Bytes(), "image/jpeg"
+}
+
+func resizeNearest(src image.Image, width, height, maxSide int) image.Image {
+	if width >= height {
+		height = max(1, height*maxSide/width)
+		width = maxSide
+	} else {
+		width = max(1, width*maxSide/height)
+		height = maxSide
+	}
+
+	dst := image.NewRGBA(image.Rect(0, 0, width, height))
+	srcBounds := src.Bounds()
+	for y := 0; y < height; y++ {
+		srcY := srcBounds.Min.Y + y*srcBounds.Dy()/height
+		for x := 0; x < width; x++ {
+			srcX := srcBounds.Min.X + x*srcBounds.Dx()/width
+			dst.Set(x, y, src.At(srcX, srcY))
+		}
+	}
+
+	return dst
+}
+
+func truncateForLog(value string, maxLen int) string {
+	if len(value) <= maxLen {
+		return value
+	}
+	return value[:maxLen] + "...(truncated)"
 }
 
 func calculateGeminiConfidence(result *models.OCRResult) float64 {
