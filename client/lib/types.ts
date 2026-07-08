@@ -164,6 +164,8 @@ export interface ShoppingItem {
 export interface BillCategory {
   id: number;
   homeId: number;
+  createdBy: number;
+  public: boolean;
   name: string;
   icon?: string;
   color: string;

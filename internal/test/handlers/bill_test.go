@@ -25,7 +25,7 @@ type mockBillService struct {
 	GetBillByIDFunc      func(ctx context.Context, billID int) (*models.Bill, error)
 	GetBillsByHomeIDFunc func(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error)
 	GetPrivateBillsFunc  func(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error)
-	UpdateBillFunc       func(ctx context.Context, id int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error
+	UpdateBillFunc       func(ctx context.Context, id, userID int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error
 	DeleteFunc           func(ctx context.Context, billID int) error
 	MarkBillPayedFunc    func(ctx context.Context, billID int) error
 	UpdateSplitsFunc     func(ctx context.Context, billID int, splits []models.SplitInput) error
@@ -67,9 +67,9 @@ func (m *mockBillService) Delete(ctx context.Context, billID int) error {
 	return nil
 }
 
-func (m *mockBillService) UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error {
+func (m *mockBillService) UpdateBill(ctx context.Context, id, userID int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error {
 	if m.UpdateBillFunc != nil {
-		return m.UpdateBillFunc(ctx, id, billType, billCategoryID, public, description, receiptImage, totalAmount, start, end, ocrData)
+		return m.UpdateBillFunc(ctx, id, userID, billType, billCategoryID, public, description, receiptImage, totalAmount, start, end, ocrData)
 	}
 	return nil
 }

@@ -612,14 +612,17 @@ export const billApi = {
 export const billCategoryApi = {
   create: async (
     homeId: number,
-    data: { name: string; icon?: string; color?: string },
+    data: { name: string; icon?: string; color?: string; public?: boolean },
   ): Promise<{ message: string }> => {
     const response = await api.post<{ status: boolean; message: string }>(`/homes/${homeId}/bill_categories`, data);
     return { message: response.data.message };
   },
 
-  getAll: async (homeId: number): Promise<BillCategory[]> => {
-    const response = await api.get<{ status: boolean; categories: BillCategory[] }>(`/homes/${homeId}/bill_categories`);
+  getAll: async (homeId: number, scope: "home" | "private" = "home"): Promise<BillCategory[]> => {
+    const params = scope === "private" ? { private: true } : undefined;
+    const response = await api.get<{ status: boolean; categories: BillCategory[] }>(`/homes/${homeId}/bill_categories`, {
+      params,
+    });
     return response.data.categories || [];
   },
 

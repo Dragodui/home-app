@@ -54,7 +54,12 @@ func (h *BillCategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.CreateCategory(r.Context(), homeID, req.Name, req.Icon, req.Color, userID); err != nil {
+	public := true
+	if req.Public != nil {
+		public = *req.Public
+	}
+
+	if err := h.svc.CreateCategory(r.Context(), homeID, req.Name, req.Icon, req.Color, public, userID); err != nil {
 		utils.SafeError(w, err, "Failed to create category", http.StatusInternalServerError)
 		return
 	}
@@ -76,13 +81,20 @@ func (h *BillCategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /homes/{home_id}/bill_categories [get]
 func (h *BillCategoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
 	if err != nil {
 		utils.JSONError(w, "Invalid home ID", http.StatusBadRequest)
 		return
 	}
 
-	categories, err := h.svc.GetCategories(r.Context(), homeID)
+	public := r.URL.Query().Get("private") != "true"
+	categories, err := h.svc.GetCategories(r.Context(), homeID, userID, public)
 	if err != nil {
 		utils.SafeError(w, err, "Failed to retrieve categories", http.StatusInternalServerError)
 		return
@@ -134,6 +146,14 @@ func (h *BillCategoryHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		utils.JSONError(w, "Category not found", http.StatusNotFound)
 		return
 	}
+	if category.HomeID != homeID {
+		utils.JSONError(w, "Category not found", http.StatusNotFound)
+		return
+	}
+	if !category.Public && category.CreatedBy != userID {
+		utils.JSONError(w, "Category not found", http.StatusNotFound)
+		return
+	}
 	if category.CreatedBy != userID {
 		isAdmin, _ := h.homeRepo.IsAdmin(r.Context(), homeID, userID)
 		if !isAdmin {
@@ -165,10 +185,43 @@ func (h *BillCategoryHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /homes/{home_id}/bill_categories/{category_id} [update]
 func (h *BillCategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	categoryID, err := strconv.Atoi(chi.URLParam(r, "category_id"))
 	if err != nil {
 		utils.JSONError(w, "Invalid category ID", http.StatusBadRequest)
 		return
+	}
+
+	homeID, err := strconv.Atoi(chi.URLParam(r, "home_id"))
+	if err != nil {
+		utils.JSONError(w, "Invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	category, err := h.svc.GetCategoryByID(r.Context(), categoryID)
+	if err != nil {
+		utils.SafeError(w, err, "Failed to find category", http.StatusInternalServerError)
+		return
+	}
+	if category == nil || category.HomeID != homeID {
+		utils.JSONError(w, "Category not found", http.StatusNotFound)
+		return
+	}
+	if !category.Public && category.CreatedBy != userID {
+		utils.JSONError(w, "Category not found", http.StatusNotFound)
+		return
+	}
+	if category.CreatedBy != userID {
+		isAdmin, _ := h.homeRepo.IsAdmin(r.Context(), homeID, userID)
+		if !isAdmin {
+			utils.JSONError(w, "forbidden", http.StatusForbidden)
+			return
+		}
 	}
 
 	var input struct {

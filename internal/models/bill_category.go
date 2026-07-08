@@ -6,6 +6,7 @@ type BillCategory struct {
 	ID        int       `gorm:"autoIncrement; primaryKey" json:"id"`
 	HomeID    int       `gorm:"not null" json:"home_id"`
 	CreatedBy int       `json:"created_by"`
+	Public    bool      `gorm:"not null;default:true" json:"public"`
 	Name      string    `gorm:"not null;size:64" json:"name"`
 	Icon      *string   `gorm:"size:64" json:"icon,omitempty"`
 	Color     string    `gorm:"size:32;default:'#FBEB9E'" json:"color"` // Hex color
@@ -20,5 +21,6 @@ type CreateBillCategoryRequest struct {
 	Name   string  `json:"name" validate:"required,min=2,max=64"`
 	Icon   *string `json:"icon"`
 	Color  string  `json:"color" validate:"omitempty,hexcolor"`
+	Public *bool   `json:"public"`
 	HomeID int     `json:"home_id" validate:"required"`
 }

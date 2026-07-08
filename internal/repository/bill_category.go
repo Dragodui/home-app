@@ -12,6 +12,7 @@ import (
 type IBillCategoryRepository interface {
 	Create(ctx context.Context, category *models.BillCategory) error
 	GetByHomeID(ctx context.Context, homeID int) ([]models.BillCategory, error)
+	GetVisibleByHomeID(ctx context.Context, homeID, userID int, public bool) ([]models.BillCategory, error)
 	Update(ctx context.Context, category *models.BillCategory, updates map[string]interface{}) (*models.BillCategory, error)
 	Delete(ctx context.Context, id int) error
 	GetByID(ctx context.Context, id int) (*models.BillCategory, error)
@@ -32,6 +33,16 @@ func (r *BillCategoryRepository) Create(ctx context.Context, category *models.Bi
 func (r *BillCategoryRepository) GetByHomeID(ctx context.Context, homeID int) ([]models.BillCategory, error) {
 	var categories []models.BillCategory
 	err := r.db.WithContext(ctx).Where("home_id = ?", homeID).Find(&categories).Error
+	return categories, err
+}
+
+func (r *BillCategoryRepository) GetVisibleByHomeID(ctx context.Context, homeID, userID int, public bool) ([]models.BillCategory, error) {
+	var categories []models.BillCategory
+	query := r.db.WithContext(ctx).Where("home_id = ?", homeID).Where("public = ?", public)
+	if !public {
+		query = query.Where("created_by = ?", userID)
+	}
+	err := query.Order("created_at ASC").Find(&categories).Error
 	return categories, err
 }
 

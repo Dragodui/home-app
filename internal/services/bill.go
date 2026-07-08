@@ -19,10 +19,11 @@ import (
 )
 
 type BillService struct {
-	repo     repository.BillRepository
-	cache    *redis.Client
-	notifSvc INotificationService
-	homeSvc  IHomeService
+	repo         repository.BillRepository
+	categoryRepo repository.IBillCategoryRepository
+	cache        *redis.Client
+	notifSvc     INotificationService
+	homeSvc      IHomeService
 }
 
 type IBillService interface {
@@ -31,7 +32,7 @@ type IBillService interface {
 	GetBillByID(ctx context.Context, id int) (*models.Bill, error)
 	GetBillsByHomeID(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error)
 	GetPrivateBillsByUserID(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error)
-	UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error
+	UpdateBill(ctx context.Context, id, userID int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error
 	Delete(ctx context.Context, id int) error
 	MarkBillPayed(ctx context.Context, id int) error
 	UpdateSplits(ctx context.Context, billID int, splits []models.SplitInput) error
@@ -39,8 +40,8 @@ type IBillService interface {
 	GetSplitByID(ctx context.Context, splitID int) (*models.BillSplit, error)
 }
 
-func NewBillService(repo repository.BillRepository, cache *redis.Client, notifSvc INotificationService, homeSvc IHomeService) *BillService {
-	return &BillService{repo: repo, cache: cache, notifSvc: notifSvc, homeSvc: homeSvc}
+func NewBillService(repo repository.BillRepository, categoryRepo repository.IBillCategoryRepository, cache *redis.Client, notifSvc INotificationService, homeSvc IHomeService) *BillService {
+	return &BillService{repo: repo, categoryRepo: categoryRepo, cache: cache, notifSvc: notifSvc, homeSvc: homeSvc}
 }
 
 func validateSplits(splits []models.SplitInput, totalAmount float64) error {
@@ -69,6 +70,10 @@ func (s *BillService) CreateBill(ctx context.Context, billType string, billCateg
 	isPublic := true
 	if public != nil {
 		isPublic = *public
+	}
+
+	if err := s.validateBillCategory(ctx, homeID, uploadedBy, billCategoryID, isPublic); err != nil {
+		return err
 	}
 
 	var schedule *models.BillSchedule
@@ -112,6 +117,26 @@ func (s *BillService) CreateBill(ctx context.Context, billType string, billCateg
 		}
 	}
 
+	return nil
+}
+
+func (s *BillService) validateBillCategory(ctx context.Context, homeID, userID int, categoryID *int, isPublic bool) error {
+	if categoryID == nil {
+		return nil
+	}
+	category, err := s.categoryRepo.GetByID(ctx, *categoryID)
+	if err != nil {
+		return err
+	}
+	if category == nil || category.HomeID != homeID {
+		return errors.New("category not found")
+	}
+	if category.Public != isPublic {
+		return errors.New("category scope does not match bill scope")
+	}
+	if !category.Public && category.CreatedBy != userID {
+		return errors.New("category not found")
+	}
 	return nil
 }
 
@@ -279,13 +304,27 @@ func (s *BillService) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *BillService) UpdateBill(ctx context.Context, id int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error {
+func (s *BillService) UpdateBill(ctx context.Context, id, userID int, billType *string, billCategoryID *int, public *bool, description, receiptImage *string, totalAmount *float64, start, end *time.Time, ocrData *datatypes.JSON) error {
 	bill, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
 	if bill == nil {
 		return errors.New("bill not found")
+	}
+
+	nextPublic := bill.Public
+	if public != nil {
+		nextPublic = *public
+	}
+	if billCategoryID != nil || public != nil {
+		nextCategoryID := bill.BillCategoryID
+		if billCategoryID != nil {
+			nextCategoryID = billCategoryID
+		}
+		if err := s.validateBillCategory(ctx, bill.HomeID, userID, nextCategoryID, nextPublic); err != nil {
+			return err
+		}
 	}
 
 	if billType != nil {

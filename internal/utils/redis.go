@@ -139,6 +139,10 @@ func GetBillCategoryKey(categoryID int) string {
 	return "bill_category:" + strconv.Itoa(categoryID)
 }
 
-func GetBillCategoriesKey(homeID int) string {
-	return "bill_categories:home:" + strconv.Itoa(homeID)
+func GetBillCategoriesKey(homeID, userID int, public bool) string {
+	scope := "public"
+	if !public {
+		scope = "private:user:" + strconv.Itoa(userID)
+	}
+	return "bill_categories:home:" + strconv.Itoa(homeID) + ":" + scope
 }

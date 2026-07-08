@@ -414,6 +414,8 @@ export default function BudgetScreen() {
     { code: "bel", label: "Беларуская" },
   ];
 
+  const scopeForPublic = (isPublic: boolean): BudgetScope => (isPublic ? "home" : "private");
+
   const loadData = useCallback(async () => {
     if (!home) {
       setAllBills([]);
@@ -425,7 +427,7 @@ export default function BudgetScreen() {
     try {
       const [allBillsData, categoriesData] = await Promise.all([
         (budgetScope === "private" ? billApi.getPrivate(home.id) : billApi.getByHomeId(home.id)).catch(() => []),
-        billCategoryApi.getAll(home.id).catch(() => []),
+        billCategoryApi.getAll(home.id, budgetScope).catch(() => []),
       ]);
       setAllBills(allBillsData || []);
       setCategories(categoriesData || []);
@@ -486,6 +488,7 @@ export default function BudgetScreen() {
         name: newCategoryName.trim(),
         icon: selectedIcon,
         color: selectedColor,
+        public: budgetScope === "home",
       });
       setNewCategoryName("");
       setSelectedIcon("wallet");
@@ -663,6 +666,7 @@ export default function BudgetScreen() {
     setEditBillAmount(String(bill.totalAmount || ""));
     setEditBillCategoryId(bill.billCategoryId ?? null);
     setEditBillPublic(bill.public !== false);
+    setBudgetScope(scopeForPublic(bill.public !== false));
     setShowEditBillModal(true);
   };
 
@@ -1737,6 +1741,8 @@ export default function BudgetScreen() {
                   }}
                   onPress={() => {
                     setNewBillPublic(option.value);
+                    setSelectedCategoryId(null);
+                    setBudgetScope(scopeForPublic(option.value));
                     if (!option.value) {
                       setSplitUserIds([]);
                       setManualAmounts({});
@@ -2533,7 +2539,11 @@ export default function BudgetScreen() {
                     backgroundColor: isActive ? theme.text : theme.surface,
                     borderColor: isActive ? theme.text : theme.border,
                   }}
-                  onPress={() => setEditBillPublic(option.value)}
+                  onPress={() => {
+                    setEditBillPublic(option.value);
+                    setEditBillCategoryId(null);
+                    setBudgetScope(scopeForPublic(option.value));
+                  }}
                 >
                   <Icon size={16} color={isActive ? theme.background : theme.textSecondary} />
                   <Text

@@ -132,7 +132,7 @@ func newServices(cfg *config.Config, cache *redis.Client, repos repositories) (s
 	homeSvc := services.NewHomeService(repos.home, cache, notificationSvc)
 	roomSvc := services.NewRoomService(repos.room, cache)
 	taskSvc := services.NewTaskService(repos.task, cache, notificationSvc)
-	billSvc := services.NewBillService(repos.bill, cache, notificationSvc, homeSvc)
+	billSvc := services.NewBillService(repos.bill, repos.billCategory, cache, notificationSvc, homeSvc)
 	billCategorySvc := services.NewBillCategoryService(repos.billCategory, cache)
 	shoppingSvc := services.NewShoppingService(repos.shopping, cache)
 	pollSvc := services.NewPollService(repos.poll, cache, notificationSvc)

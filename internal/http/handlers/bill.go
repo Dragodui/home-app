@@ -371,7 +371,12 @@ func (h *BillHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.UpdateBill(r.Context(), billID, req.BillType, req.BillCategoryID, req.Public, req.Description, req.ReceiptImage, req.TotalAmount, req.Start, req.End, req.OCRData); err != nil {
+	if req.Public != nil && !*req.Public && bill.UploadedBy != userID {
+		utils.JSONError(w, "only the bill owner can make a bill private", http.StatusForbidden)
+		return
+	}
+
+	if err := h.svc.UpdateBill(r.Context(), billID, userID, req.BillType, req.BillCategoryID, req.Public, req.Description, req.ReceiptImage, req.TotalAmount, req.Start, req.End, req.OCRData); err != nil {
 		utils.SafeError(w, err, "Failed to update bill", http.StatusInternalServerError)
 		return
 	}
