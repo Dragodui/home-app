@@ -44,6 +44,7 @@ type HandlerSet struct {
 	OCR          *handlers.OCRHandler
 	SmartHome    *handlers.SmartHomeHandler
 	PushSub      *handlers.PushSubscriptionHandler
+	Note         *handlers.NoteHandler
 }
 
 // SetupRoutes configures all application routes.
@@ -231,6 +232,16 @@ func SetupRoutes(deps RoutesDeps) http.Handler {
 						})
 						r.Route("/polls", func(r chi.Router) {
 							mountPollRoutes(r, deps)
+						})
+
+						// Notes
+						r.Route("/notes", func(r chi.Router) {
+							mountNoteRoutes(r, deps)
+						})
+
+						// Note Categories
+						r.Route("/note_categories", func(r chi.Router) {
+							mountNoteCategoryRoutes(r, deps)
 						})
 
 						// Smart Home (Home Assistant integration)

@@ -22,6 +22,8 @@ const (
 	ModuleShoppingItem     Module = "SHOPPING_ITEM"
 	ModuleTask             Module = "TASK"
 	ModuleUser             Module = "USER"
+	ModuleNote             Module = "NOTE"
+	ModuleNoteCategory     Module = "NOTE_CATEGORY"
 )
 
 type Action string

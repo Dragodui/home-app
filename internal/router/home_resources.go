@@ -117,3 +117,21 @@ func mountSmartHomeRoutes(r chi.Router, deps RoutesDeps, rateLimiter *ratelimite
 		r.With(middleware.RequireMember(homeRepo), deviceControlLimit).Post("/{device_id}/control", deps.Handlers.SmartHome.ControlDevice)
 	})
 }
+
+func mountNoteRoutes(r chi.Router, deps RoutesDeps) {
+	homeRepo := deps.HomeRepo
+	r.With(middleware.RequireMember(homeRepo)).Post("/", deps.Handlers.Note.CreateNote)
+	r.With(middleware.RequireMember(homeRepo)).Get("/", deps.Handlers.Note.GetNotesByHomeID)
+	r.With(middleware.RequireMember(homeRepo)).Get("/{note_id}", deps.Handlers.Note.GetNoteByID)
+	r.With(middleware.RequireMember(homeRepo)).Put("/{note_id}", deps.Handlers.Note.UpdateNote)
+	r.With(middleware.RequireMember(homeRepo)).Delete("/{note_id}", deps.Handlers.Note.DeleteNote)
+}
+
+func mountNoteCategoryRoutes(r chi.Router, deps RoutesDeps) {
+	homeRepo := deps.HomeRepo
+	r.With(middleware.RequireMember(homeRepo)).Get("/", deps.Handlers.Note.GetCategoriesByHomeID)
+	r.With(middleware.RequireMember(homeRepo)).Post("/", deps.Handlers.Note.CreateCategory)
+	r.With(middleware.RequireMember(homeRepo)).Put("/{category_id}", deps.Handlers.Note.UpdateCategory)
+	r.With(middleware.RequireMember(homeRepo)).Delete("/{category_id}", deps.Handlers.Note.DeleteCategory)
+}
+
