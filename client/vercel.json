@@ -1,8 +1,7 @@
 {
-  "buildCommand": "npm run build:web",
+  "buildCommand": "pnpm run build:web",
   "outputDirectory": "dist",
   "framework": null,
-  "installCommand": "npm install",
   "rewrites": [
     { "source": "/((?!_expo|assets|icons|manifest.json|sw.js|favicon.ico).*)", "destination": "/" }
   ],
