@@ -39,7 +39,7 @@ import type {
   User,
 } from "./types";
 
-export const isDevMode = process.env.EXPO_NODE_ENV !== "prod";
+export const isDevMode = process.env.EXPO_PUBLIC_NODE_ENV !== "prod";
 const API_BASE_URL = isDevMode ? process.env.EXPO_PUBLIC_API_URL_DEV : process.env.EXPO_PUBLIC_API_URL;
 const API_PREFIX = "/api";
 
