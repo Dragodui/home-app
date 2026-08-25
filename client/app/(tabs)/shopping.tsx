@@ -602,7 +602,7 @@ export default function ShoppingScreen() {
         {/* Add Item FAB */}
         <TouchableOpacity
           className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg"
-          style={{ backgroundColor: theme.accent.purple }}
+          style={{ backgroundColor: theme.accent.cyan }}
           onPress={openItemModal}
           activeOpacity={0.8}
         >
@@ -696,14 +696,6 @@ export default function ShoppingScreen() {
               {t.shopping.myLists}
             </Text>
           </View>
-          <TouchableOpacity
-            className="w-14 h-14 rounded-[18px] justify-center items-center"
-            style={{ backgroundColor: theme.accent.cyan }}
-            onPress={() => setShowCategoryModal(true)}
-            activeOpacity={0.8}
-          >
-            <Plus size={24} color="#1C1C1E" />
-          </TouchableOpacity>
         </View>
 
         {/* Category Grid - matches PDF layout */}
@@ -769,6 +761,16 @@ export default function ShoppingScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Floating Add List FAB */}
+      <TouchableOpacity
+        className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
+        style={{ backgroundColor: theme.accent.cyan }}
+        onPress={() => setShowCategoryModal(true)}
+        activeOpacity={0.8}
+      >
+        <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
+      </TouchableOpacity>
 
       {/* Create Category Modal - matches PDF design */}
       <Modal

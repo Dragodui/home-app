@@ -258,14 +258,6 @@ export default function PollsScreen() {
           <Text className="text-4xl font-manrope-bold" style={{ color: theme.text }}>
             {t.polls.title}
           </Text>
-          <TouchableOpacity
-            className="w-12 h-12 rounded-16 justify-center items-center"
-            style={{ backgroundColor: theme.accent.purple }}
-            onPress={() => setShowCreateModal(true)}
-            activeOpacity={0.8}
-          >
-            <Plus size={24} color="#1C1C1E" />
-          </TouchableOpacity>
         </View>
 
         {/* Poll Cards */}
@@ -389,6 +381,16 @@ export default function PollsScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Floating Add Poll FAB */}
+      <TouchableOpacity
+        className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
+        style={{ backgroundColor: theme.accent.purple }}
+        onPress={() => setShowCreateModal(true)}
+        activeOpacity={0.8}
+      >
+        <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
+      </TouchableOpacity>
 
       {/* Create Poll Modal */}
       <Modal

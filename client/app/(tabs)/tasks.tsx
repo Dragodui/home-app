@@ -523,14 +523,6 @@ export default function TasksScreen() {
               {interpolate(t.tasks.assignedToYou, { count: getMyTasksCount() })}
             </Text>
           </View>
-          <TouchableOpacity
-            className="w-14 h-14 rounded-[18px] justify-center items-center"
-            style={{ backgroundColor: theme.accent.purple }}
-            onPress={() => setShowCreateModal(true)}
-            activeOpacity={0.8}
-          >
-            <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
-          </TouchableOpacity>
         </View>
 
         {/* Filter Tabs */}
@@ -593,6 +585,16 @@ export default function TasksScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Floating Add Task FAB */}
+      <TouchableOpacity
+        className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
+        style={{ backgroundColor: theme.accent.purple }}
+        onPress={() => setShowCreateModal(true)}
+        activeOpacity={0.8}
+      >
+        <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
+      </TouchableOpacity>
 
       {/* Create Task Modal */}
       <Modal visible={showCreateModal} onClose={() => setShowCreateModal(false)} title={t.tasks.newTask} height="full">

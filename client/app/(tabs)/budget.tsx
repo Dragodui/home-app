@@ -1131,13 +1131,6 @@ export default function BudgetScreen() {
                 + {t.budget.category}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              className="px-4 py-2 rounded-xl justify-center items-center"
-              style={{ backgroundColor: theme.accent.pink }}
-              onPress={handleOpenCreateModal}
-            >
-              <Plus size={24} color="#FFFFFF" />
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -1524,6 +1517,16 @@ export default function BudgetScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Floating Add Expense FAB */}
+      <TouchableOpacity
+        className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
+        style={{ backgroundColor: theme.accent.pink }}
+        onPress={handleOpenCreateModal}
+        activeOpacity={0.8}
+      >
+        <Plus size={28} color="#FFFFFF" strokeWidth={2.5} />
+      </TouchableOpacity>
 
       {/* Create Expense Modal */}
       <Modal visible={showCreateModal} onClose={handleCloseCreateModal} title={t.budget.addExpense} height="full">

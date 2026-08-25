@@ -923,14 +923,6 @@ export default function NotesScreen() {
                 + {t.notes.category || "Category"}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              className="px-4 py-2 rounded-xl justify-center items-center"
-              style={{ backgroundColor: theme.accent.purple }}
-              onPress={openCreateNote}
-              activeOpacity={0.8}
-            >
-              <Plus size={24} color="#1C1C1E" />
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -1061,6 +1053,16 @@ export default function NotesScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Floating Add Note FAB */}
+      <TouchableOpacity
+        className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
+        style={{ backgroundColor: theme.accent.purple }}
+        onPress={openCreateNote}
+        activeOpacity={0.8}
+      >
+        <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
+      </TouchableOpacity>
 
       {/* Note Actions Modal (triggered on long press) */}
       {showNoteActionsModal && selectedNoteForActions && (

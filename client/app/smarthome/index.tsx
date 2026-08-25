@@ -290,20 +290,7 @@ export default function SmartHomeDashboard() {
         <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
           Smart Home
         </Text>
-        {isAdmin ? (
-          <TouchableOpacity
-            onPress={() => {
-              setShowAddModal(true);
-              handleDiscover();
-            }}
-            className="w-12 h-12 rounded-16 justify-center items-center"
-            style={{ backgroundColor: theme.accent.yellow }}
-          >
-            <Plus size={24} color="#1C1C1E" />
-          </TouchableOpacity>
-        ) : (
-          <View className="w-12" />
-        )}
+        <View className="w-12" />
       </View>
 
       {/* Status Banner */}
@@ -521,6 +508,20 @@ export default function SmartHomeDashboard() {
           <Button title={t.common.save || "Save"} onPress={handleUpdateDevice} loading={savingEdit} variant="primary" />
         </View>
       </Modal>
+      {/* Floating Add Device FAB */}
+      {isAdmin && (
+        <TouchableOpacity
+          className="absolute bottom-6 right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
+          style={{ backgroundColor: theme.accent.yellow }}
+          onPress={() => {
+            setShowAddModal(true);
+            handleDiscover();
+          }}
+          activeOpacity={0.8}
+        >
+          <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
