@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { Calendar, Check, Eye, EyeOff, Plus, RotateCcw, Trash2, X } from "lucide-react-native";
+import { BarChart2, Calendar, Check, Eye, EyeOff, Plus, RotateCcw, Trash2, X } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import { Image, RefreshControl, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -270,10 +270,20 @@ export default function PollsScreen() {
 
         {/* Poll Cards */}
         {polls.length === 0 ? (
-          <View className="flex-1 justify-center items-center py-15">
-            <Text className="text-base font-manrope" style={{ color: theme.textSecondary }}>
+          <View className="items-center py-20 px-6">
+            <View
+              className="w-16 h-16 rounded-full justify-center items-center mb-4"
+              style={{ backgroundColor: theme.surface }}
+            >
+              <BarChart2 size={32} color={theme.textSecondary} />
+            </View>
+            <Text className="text-xl font-manrope-bold mb-2 text-center" style={{ color: theme.text }}>
               {t.polls.noActivePolls}
             </Text>
+            <Text className="text-sm font-manrope text-center leading-5 mb-6" style={{ color: theme.textSecondary }}>
+              {t.polls.noActivePollsDescription || "There are no active polls in this home yet."}
+            </Text>
+            <Button title={t.polls.createPoll || "Create Poll"} onPress={() => setShowCreateModal(true)} />
           </View>
         ) : (
           <View

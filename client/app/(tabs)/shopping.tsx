@@ -510,72 +510,93 @@ export default function ShoppingScreen() {
           </View>
 
           {/* Items List */}
-          <View className="gap-4">
-            {pendingItems.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                className="flex-row items-center gap-4 py-2"
-                onPress={() => toggleItemBought(item.id)}
-                onLongPress={() => openItemActions(item)}
-                activeOpacity={0.95}
+          {pendingItems.length === 0 && boughtItems.length === 0 ? (
+            <View className="items-center py-20 px-6">
+              <View
+                className="w-16 h-16 rounded-full justify-center items-center mb-4"
+                style={{ backgroundColor: theme.surface }}
               >
-                <View
-                  className="w-8 h-8 rounded-full border-2 justify-center items-center"
-                  style={[{ borderColor: theme.textSecondary }]}
-                />
-                <View className="flex-1">
-                  <Text className="text-lg font-manrope-semibold" style={{ color: theme.text }}>
-                    {item.name}
-                  </Text>
-                  {item.user?.name && (
-                    <Text className="text-xs font-manrope mt-0.5" style={{ color: theme.textSecondary }}>
-                      {t.shopping.addedByUser}: {item.user.name}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))}
-
-            {pendingItems.length > 0 && boughtItems.length > 0 && (
-              <View className="mt-3 pt-4" style={{ borderTopWidth: 1, borderTopColor: theme.border }} />
-            )}
-
-            {boughtItems.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                className="flex-row items-center gap-4 py-2"
-                onPress={() => toggleItemBought(item.id)}
-                onLongPress={() => openItemActions(item)}
-                activeOpacity={0.95}
-              >
-                <View
-                  className="w-8 h-8 rounded-full border-2 justify-center items-center"
-                  style={[
-                    { borderColor: theme.textSecondary },
-                    {
-                      backgroundColor: theme.accent.purple,
-                      borderColor: theme.accent.purple,
-                    },
-                  ]}
+                <ShoppingCart size={32} color={theme.textSecondary} />
+              </View>
+              <Text className="text-xl font-manrope-bold mb-2 text-center" style={{ color: theme.text }}>
+                {t.shopping.noItems || "No Items"}
+              </Text>
+              <Text className="text-sm font-manrope text-center leading-5 mb-6" style={{ color: theme.textSecondary }}>
+                {t.shopping.noItemsHint || "Your shopping list is empty."}
+              </Text>
+              <Button title={t.shopping.addItem || "Add Item"} onPress={openItemModal} />
+            </View>
+          ) : (
+            <View className="gap-4">
+              {pendingItems.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  className="flex-row items-center gap-4 py-2"
+                  onPress={() => toggleItemBought(item.id)}
+                  onLongPress={() => openItemActions(item)}
+                  activeOpacity={0.95}
                 >
-                  <Check size={16} color="#1C1C1E" strokeWidth={3} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-lg font-manrope-semibold line-through opacity-50" style={{ color: theme.text }}>
-                    {item.name}
-                  </Text>
-                  {item.user?.name && (
-                    <Text className="text-xs font-manrope mt-0.5 opacity-50" style={{ color: theme.textSecondary }}>
-                      {t.shopping.addedByUser}: {item.user.name}
+                  <View
+                    className="w-8 h-8 rounded-full border-2 justify-center items-center"
+                    style={[{ borderColor: theme.textSecondary }]}
+                  />
+                  <View className="flex-1">
+                    <Text className="text-lg font-manrope-semibold" style={{ color: theme.text }}>
+                      {item.name}
                     </Text>
-                  )}
-                </View>
-                <TouchableOpacity className="p-2" onPress={() => handleDeleteItem(item.id)}>
-                  <Trash2 size={18} color={theme.textSecondary} />
+                    {item.user?.name && (
+                      <Text className="text-xs font-manrope mt-0.5" style={{ color: theme.textSecondary }}>
+                        {t.shopping.addedByUser}: {item.user.name}
+                      </Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
-          </View>
+              ))}
+
+              {pendingItems.length > 0 && boughtItems.length > 0 && (
+                <View className="mt-3 pt-4" style={{ borderTopWidth: 1, borderTopColor: theme.border }} />
+              )}
+
+              {boughtItems.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  className="flex-row items-center gap-4 py-2"
+                  onPress={() => toggleItemBought(item.id)}
+                  onLongPress={() => openItemActions(item)}
+                  activeOpacity={0.95}
+                >
+                  <View
+                    className="w-8 h-8 rounded-full border-2 justify-center items-center"
+                    style={[
+                      { borderColor: theme.textSecondary },
+                      {
+                        backgroundColor: theme.accent.purple,
+                        borderColor: theme.accent.purple,
+                      },
+                    ]}
+                  >
+                    <Check size={16} color="#1C1C1E" strokeWidth={3} />
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className="text-lg font-manrope-semibold line-through opacity-50"
+                      style={{ color: theme.text }}
+                    >
+                      {item.name}
+                    </Text>
+                    {item.user?.name && (
+                      <Text className="text-xs font-manrope mt-0.5 opacity-50" style={{ color: theme.textSecondary }}>
+                        {t.shopping.addedByUser}: {item.user.name}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity className="p-2" onPress={() => handleDeleteItem(item.id)}>
+                    <Trash2 size={18} color={theme.textSecondary} />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </ScrollView>
 
         {/* Add Item FAB */}
@@ -686,45 +707,67 @@ export default function ShoppingScreen() {
         </View>
 
         {/* Category Grid - matches PDF layout */}
-        <View
-          className="flex-row flex-wrap gap-3"
-          style={{ justifyContent: isDesktop ? "flex-start" : "space-between" }}
-        >
-          {categories.map((category) => {
-            const categoryColor = category.color || CATEGORY_COLORS[0];
-            const itemCount = items[category.id]?.length || 0;
+        {categories.length === 0 ? (
+          <View className="items-center py-20 px-6">
+            <View
+              className="w-16 h-16 rounded-full justify-center items-center mb-4"
+              style={{ backgroundColor: theme.surface }}
+            >
+              <ShoppingCart size={32} color={theme.textSecondary} />
+            </View>
+            <Text className="text-xl font-manrope-bold mb-2 text-center" style={{ color: theme.text }}>
+              {t.shopping.noLists || "No Shopping Lists"}
+            </Text>
+            <Text className="text-sm font-manrope text-center leading-5 mb-6" style={{ color: theme.textSecondary }}>
+              {t.shopping.noListsHint || "Create your first shopping list category to start adding items."}
+            </Text>
+            <Button
+              title={t.shopping.newList || "New List"}
+              onPress={() => setShowCategoryModal(true)}
+              variant="purple"
+            />
+          </View>
+        ) : (
+          <View
+            className="flex-row flex-wrap gap-3"
+            style={{ justifyContent: isDesktop ? "flex-start" : "space-between" }}
+          >
+            {categories.map((category) => {
+              const categoryColor = category.color || CATEGORY_COLORS[0];
+              const itemCount = items[category.id]?.length || 0;
 
-            return (
-              <TouchableOpacity
-                key={category.id}
-                className="w-[47%] rounded-3xl p-[18px] justify-between"
-                style={{
-                  backgroundColor: categoryColor,
-                  aspectRatio: 0.9,
-                  width: isDesktop ? "23.8%" : "47%",
-                }}
-                onPress={() => setActiveCategory(category)}
-                onLongPress={() => openCategoryActions(category)}
-                activeOpacity={0.9}
-              >
-                <View className="w-10 h-10 rounded-xl bg-black/5 justify-center items-center">
-                  {getCategoryIcon(category)}
-                </View>
-                <View className="flex-1 justify-end">
-                  <Text className="text-xl font-manrope-bold text-[#1C1C1E] mb-1">{category.name}</Text>
-                  <Text className="text-[13px] font-manrope-medium text-black/50">
-                    {itemCount} {t.common.items}
-                  </Text>
-                </View>
-                <View className="absolute bottom-[18px] right-[18px]">
-                  <View className="w-8 h-8 rounded-full bg-black/10 justify-center items-center">
-                    <ChevronRight size={16} color="rgba(0,0,0,1)" />
+              return (
+                <TouchableOpacity
+                  key={category.id}
+                  className="w-[47%] rounded-3xl p-[18px] justify-between"
+                  style={{
+                    backgroundColor: categoryColor,
+                    aspectRatio: 0.9,
+                    width: isDesktop ? "23.8%" : "47%",
+                  }}
+                  onPress={() => setActiveCategory(category)}
+                  onLongPress={() => openCategoryActions(category)}
+                  activeOpacity={0.9}
+                >
+                  <View className="w-10 h-10 rounded-xl bg-black/5 justify-center items-center">
+                    {getCategoryIcon(category)}
                   </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                  <View className="flex-1 justify-end">
+                    <Text className="text-xl font-manrope-bold text-[#1C1C1E] mb-1">{category.name}</Text>
+                    <Text className="text-[13px] font-manrope-medium text-black/50">
+                      {itemCount} {t.common.items}
+                    </Text>
+                  </View>
+                  <View className="absolute bottom-[18px] right-[18px]">
+                    <View className="w-8 h-8 rounded-full bg-black/10 justify-center items-center">
+                      <ChevronRight size={16} color="rgba(0,0,0,1)" />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
 
       {/* Create Category Modal - matches PDF design */}
