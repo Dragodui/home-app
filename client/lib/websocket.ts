@@ -2,7 +2,8 @@ import { Platform } from "react-native";
 import { useAuthStore } from "@/stores/authStore";
 import { isDevMode } from "./api";
 
-const WS_URL = `${(isDevMode ? process.env.EXPO_PUBLIC_API_URL_DEV : process.env.EXPO_PUBLIC_API_URL).replace(/^http/, "ws")}/ws`;
+const rawUrl = (isDevMode ? process.env.EXPO_PUBLIC_API_URL_DEV : process.env.EXPO_PUBLIC_API_URL) || "";
+const WS_URL = `${rawUrl.replace(/^http/, "ws")}/ws`;
 
 export type EventModule =
   | "BILL_CATEGORY"
