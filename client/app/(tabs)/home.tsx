@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
-import { ArrowRight, BarChart2, Bell, Home as HomeIcon, User, Zap } from "lucide-react-native";
+import { ArrowRight, BarChart2, Bell, Home as HomeIcon, Zap } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HomeSkeleton } from "@/components/skeletons";
 import Card from "@/components/ui/card";
@@ -195,7 +195,7 @@ export default function HomeScreen() {
               {user?.name?.split(" ")[0] || "there"}
             </Text>
           </View>
-          <View className="flex-row items-center gap-3">
+          {/* <View className="flex-row items-center gap-3" style={{ marginRight: 64 }}>
             <TouchableOpacity
               onPress={() => router.push("/notifications")}
               activeOpacity={0.7}
@@ -213,25 +213,8 @@ export default function HomeScreen() {
                   </Text>
                 </View>
               )}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/(tabs)/profile")} activeOpacity={0.8}>
-              <View
-                className="w-14 h-14 rounded-28 border-2 overflow-hidden justify-center items-center"
-                style={{ borderColor: theme.accent.purple }}
-              >
-                {user?.avatar ? (
-                  <Image source={{ uri: user.avatar }} className="w-full h-full" />
-                ) : (
-                  <View
-                    className="w-full h-full justify-center items-center"
-                    style={{ backgroundColor: theme.surface }}
-                  >
-                    <User size={28} color={theme.textSecondary} />
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
+            </TouchableOpacity> */}
+          {/* </View> */}
         </View>
 
         <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 16, alignItems: "stretch" }}>

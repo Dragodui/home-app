@@ -76,6 +76,7 @@ export default function NotesScreen() {
 
   // Create / Edit Note Modal State
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
   const [noteIdToEdit, setNoteIdToEdit] = useState<number | null>(null);
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
@@ -912,26 +913,6 @@ export default function NotesScreen() {
               {t.notes.title}
             </Text>
           </View>
-          <View className="flex-row items-center gap-2.5">
-            <TouchableOpacity
-              className="px-4 py-2 rounded-xl justify-center items-center"
-              style={{ backgroundColor: theme.surface }}
-              onPress={() => setShowCategoryModal(true)}
-              activeOpacity={0.8}
-            >
-              <Text className="text-xs font-manrope-semibold" style={{ color: theme.text }}>
-                + {t.notes.category || "Category"}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="px-4 py-2 rounded-xl justify-center items-center"
-              style={{ backgroundColor: theme.accent.purple }}
-              onPress={openCreateNote}
-              activeOpacity={0.8}
-            >
-              <Plus size={24} color="#1C1C1E" />
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Categories Bar */}
@@ -1061,6 +1042,49 @@ export default function NotesScreen() {
           </View>
         )}
       </ScrollView>
+
+      {showAddMenu && (
+        <View className="absolute bottom-[188px] right-6 z-40 gap-2.5 items-end">
+          <TouchableOpacity
+            className="flex-row items-center gap-3 px-4 h-12 rounded-2xl shadow-lg"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              setShowAddMenu(false);
+              setShowCategoryModal(true);
+            }}
+            activeOpacity={0.85}
+          >
+            <Tag size={18} color={theme.text} />
+            <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+              {t.notes.category || "Category"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center gap-3 px-4 h-12 rounded-2xl shadow-lg"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              setShowAddMenu(false);
+              openCreateNote();
+            }}
+            activeOpacity={0.85}
+          >
+            <Notebook size={18} color={theme.text} />
+            <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+              {t.notes.createNote}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Floating Add Menu FAB */}
+      <TouchableOpacity
+        className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
+        style={{ backgroundColor: theme.accent.purple }}
+        onPress={() => setShowAddMenu((value) => !value)}
+        activeOpacity={0.8}
+      >
+        <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
+      </TouchableOpacity>
 
       {/* Note Actions Modal (triggered on long press) */}
       {showNoteActionsModal && selectedNoteForActions && (

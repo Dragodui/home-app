@@ -383,6 +383,7 @@ export default function BudgetScreen() {
 
   // Trend modal
   const [showTrendModal, setShowTrendModal] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
 
   // Receipt image viewer
   const [showReceiptImageModal, setShowReceiptImageModal] = useState(false);
@@ -1121,24 +1122,6 @@ export default function BudgetScreen() {
           <Text className="text-3xl font-manrope-bold" style={{ color: theme.text }}>
             {t.budget.title}
           </Text>
-          <View className="flex-row gap-2.5">
-            <TouchableOpacity
-              className="px-4 py-2 rounded-xl justify-center items-center"
-              style={{ backgroundColor: theme.surface }}
-              onPress={() => setShowCategoryModal(true)}
-            >
-              <Text className="text-xs font-manrope-semibold" style={{ color: theme.text }}>
-                + {t.budget.category}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="px-4 py-2 rounded-xl justify-center items-center"
-              style={{ backgroundColor: theme.accent.pink }}
-              onPress={handleOpenCreateModal}
-            >
-              <Plus size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
         </View>
 
         <View className="flex-row gap-2 mb-6 rounded-3xl p-1.5" style={{ backgroundColor: theme.surface }}>
@@ -1173,40 +1156,7 @@ export default function BudgetScreen() {
           })}
         </View>
 
-        {totalSpend > 0 && (
-          <View className="items-center mb-4">
-            <DonutChart data={chartData} total={totalSpend} theme={theme} />
-          </View>
-        )}
-
-        {monthlyTrends.length > 0 && (
-          <TouchableOpacity
-            className="flex-row items-center justify-center gap-2 py-3 mb-6 rounded-2xl"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => setShowTrendModal(true)}
-            activeOpacity={0.7}
-          >
-            <TrendingUp size={18} color={theme.accent.purple} />
-            <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
-              {t.budget.monthlyTrend}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          className="flex-row items-center justify-center gap-2 py-3 mb-4 rounded-2xl"
-          style={{ backgroundColor: theme.surface }}
-          onPress={() => {
-            setBudgetPeriod("month");
-            setPeriodCursor(new Date());
-          }}
-          activeOpacity={0.7}
-        >
-          <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
-            {t.budget.currentMonth}
-          </Text>
-        </TouchableOpacity>
-
+        {/* Period Switcher (rendered always at the top of controls) */}
         <View className="mb-6 rounded-3xl p-4" style={{ backgroundColor: theme.surface }}>
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-xs font-manrope-bold uppercase" style={{ color: theme.textSecondary }}>
@@ -1286,232 +1236,320 @@ export default function BudgetScreen() {
           </View>
         </View>
 
-        <View className="mb-6">
-          <Text className="text-sm font-manrope-bold uppercase mb-3" style={{ color: theme.textSecondary }}>
-            {t.budget.categories}
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-            <TouchableOpacity
-              className="flex-row items-center px-3 py-2 rounded-2xl border gap-2"
-              style={{
-                backgroundColor: filterCategoryId === null ? theme.text : theme.surface,
-                borderColor: filterCategoryId === null ? theme.text : theme.border,
-              }}
-              onPress={() => setFilterCategoryId(null)}
+        {/* Dynamic content area */}
+        {visibleBills.length === 0 && receiptBills.length === 0 ? (
+          <View className="items-center py-20 px-6">
+            <View
+              className="w-16 h-16 rounded-full justify-center items-center mb-4"
+              style={{ backgroundColor: theme.surface }}
             >
-              <Text
-                className="font-manrope-semibold text-sm"
-                style={{ color: filterCategoryId === null ? theme.background : theme.text }}
-              >
-                {t.common.all}
-              </Text>
-            </TouchableOpacity>
-            {categories.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                className="flex-row items-center px-3 py-2 rounded-2xl border gap-2"
-                style={{
-                  backgroundColor: filterCategoryId === cat.id ? theme.text : theme.surface,
-                  borderColor: filterCategoryId === cat.id ? theme.text : theme.border,
-                }}
-                onPress={() => setFilterCategoryId(filterCategoryId === cat.id ? null : cat.id)}
-                onLongPress={() => openCategoryActions(cat)}
-              >
-                <View className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color || theme.accent.yellow }} />
-                {getBillCategoryIcon(cat.icon, 14, filterCategoryId === cat.id ? theme.background : theme.text)}
-                <Text
-                  className="font-manrope-semibold text-sm"
-                  style={{ color: filterCategoryId === cat.id ? theme.background : theme.text }}
-                >
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            {categories.length === 0 && (
-              <Text className="italic" style={{ color: theme.textSecondary }}>
-                {t.budget.noCategories}
-              </Text>
+              <DollarSign size={32} color={theme.textSecondary} />
+            </View>
+            <Text className="text-xl font-manrope-bold mb-2 text-center" style={{ color: theme.text }}>
+              {t.budget.noExpenses || "No Expenses"}
+            </Text>
+            <Text className="text-sm font-manrope text-center leading-5 mb-6" style={{ color: theme.textSecondary }}>
+              {t.budget.noExpensesHint || "You have no expenses recorded for this period."}
+            </Text>
+            <Button title={t.budget.newBill || "Add Expense"} onPress={handleOpenCreateModal} />
+          </View>
+        ) : (
+          <>
+            {totalSpend > 0 && (
+              <View className="items-center mb-4">
+                <DonutChart data={chartData} total={totalSpend} theme={theme} />
+              </View>
             )}
-          </ScrollView>
-        </View>
 
-        {/* Bills list */}
-        <View
-          className="gap-3"
-          style={{
-            flexDirection: isDesktop ? "row" : "column",
-            flexWrap: isDesktop ? "wrap" : "nowrap",
-            justifyContent: "space-between",
-          }}
-        >
-          {visibleBills.map((bill) => {
-            const splits = bill.splits ?? [];
-            const userSplit = splits.find((s) => s.userId === user?.id);
-            const uploaderName = bill.user?.name ?? getMemberName(bill.uploadedBy);
-
-            return (
+            {monthlyTrends.length > 0 && (
               <TouchableOpacity
-                key={bill.id}
-                className="p-4 rounded-2xl"
-                style={{ backgroundColor: theme.surface, width: isDesktop ? "49%" : "100%" }}
-                onPress={() => openBillDetails(bill)}
-                onLongPress={() => openBillActions(bill)}
+                className="flex-row items-center justify-center gap-2 py-3 mb-6 rounded-2xl"
+                style={{ backgroundColor: theme.surface }}
+                onPress={() => setShowTrendModal(true)}
                 activeOpacity={0.7}
               >
-                <View className="flex-row items-center gap-3">
-                  <View
-                    className="w-10 h-10 rounded-full justify-center items-center"
-                    style={{ backgroundColor: getCategoryColor(bill.billCategoryId) }}
-                  >
-                    {getBillCategoryIcon(bill.billCategory?.icon, 20, "#1C1C1E")}
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-base font-manrope-semibold mb-0.5" style={{ color: theme.text }}>
-                      {getCategoryName(bill)}
-                    </Text>
-                    <Text className="text-xs" style={{ color: theme.textSecondary }}>
-                      {uploaderName} · {new Date(bill.createdAt).toLocaleDateString("pl-PL")}
-                    </Text>
-                    {bill.public === false && (
-                      <View
-                        className="self-start flex-row items-center gap-1 px-2 py-0.5 rounded-full mt-1"
-                        style={{ backgroundColor: theme.background }}
-                      >
-                        <Shield size={10} color={theme.textSecondary} />
-                        <Text className="text-[10px] font-manrope-semibold" style={{ color: theme.textSecondary }}>
-                          Private
-                        </Text>
-                      </View>
-                    )}
-                    {bill.description ? (
-                      <Text className="text-xs mt-0.5" style={{ color: theme.textSecondary }} numberOfLines={1}>
-                        {bill.description}
-                      </Text>
-                    ) : null}
-                    {bill.periodStart && bill.periodEnd && (
-                      <Text className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>
-                        {new Date(bill.periodStart).toLocaleDateString("pl-PL")} –{" "}
-                        {new Date(bill.periodEnd).toLocaleDateString("pl-PL")}
-                      </Text>
-                    )}
-                  </View>
-                  <View className="items-end">
-                    <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
-                      {formatCurrencyAmount(bill.totalAmount, homeCurrency)}
-                    </Text>
-                    {userSplit && (
-                      <Text className="text-xs" style={{ color: userSplit.paid ? "#22C55E" : theme.accent.pink }}>
-                        {t.budget.yourShare}: {formatCurrencyAmount(userSplit.amount, homeCurrency)}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-
-                {splits.length > 0 && (
-                  <View className="flex-row items-center mt-2 gap-1">
-                    <Users size={12} color={theme.textSecondary} />
-                    <Text className="text-xs" style={{ color: theme.textSecondary }}>
-                      {splits.length} {splits.length === 1 ? "split" : "splits"} · {splits.filter((s) => s.paid).length}{" "}
-                      {t.budget.paid.toLowerCase()}
-                    </Text>
-                  </View>
-                )}
+                <TrendingUp size={18} color={theme.accent.purple} />
+                <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+                  {t.budget.monthlyTrend}
+                </Text>
               </TouchableOpacity>
-            );
-          })}
-          {visibleBills.length === 0 && (
-            <Text className="text-center mt-10" style={{ color: theme.textSecondary }}>
-              {t.budget.noExpenses}
-            </Text>
-          )}
-        </View>
+            )}
 
-        {/* Receipt History Section */}
-        {receiptBills.length > 0 && (
-          <View className="mt-8">
-            <Text className="text-sm font-manrope-bold uppercase mb-3" style={{ color: theme.textSecondary }}>
-              {t.budget.receiptHistory}
-            </Text>
-            <View className="gap-3">
-              {receiptBills.map((bill) => {
-                const data = bill.ocrData as Record<string, any>;
-                const isExpanded = expandedReceiptId === bill.id;
-                const items = data.items || [];
+            <TouchableOpacity
+              className="flex-row items-center justify-center gap-2 py-3 mb-4 rounded-2xl"
+              style={{ backgroundColor: theme.surface }}
+              onPress={() => {
+                setBudgetPeriod("month");
+                setPeriodCursor(new Date());
+              }}
+              activeOpacity={0.7}
+            >
+              <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+                {t.budget.currentMonth}
+              </Text>
+            </TouchableOpacity>
+
+            <View className="mb-6">
+              <Text className="text-sm font-manrope-bold uppercase mb-3" style={{ color: theme.textSecondary }}>
+                {t.budget.categories}
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                <TouchableOpacity
+                  className="flex-row items-center px-3 py-2 rounded-2xl border gap-2"
+                  style={{
+                    backgroundColor: filterCategoryId === null ? theme.text : theme.surface,
+                    borderColor: filterCategoryId === null ? theme.text : theme.border,
+                  }}
+                  onPress={() => setFilterCategoryId(null)}
+                >
+                  <Text
+                    className="font-manrope-semibold text-sm"
+                    style={{ color: filterCategoryId === null ? theme.background : theme.text }}
+                  >
+                    {t.common.all}
+                  </Text>
+                </TouchableOpacity>
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    className="flex-row items-center px-3 py-2 rounded-2xl border gap-2"
+                    style={{
+                      backgroundColor: filterCategoryId === cat.id ? theme.text : theme.surface,
+                      borderColor: filterCategoryId === cat.id ? theme.text : theme.border,
+                    }}
+                    onPress={() => setFilterCategoryId(filterCategoryId === cat.id ? null : cat.id)}
+                    onLongPress={() => openCategoryActions(cat)}
+                  >
+                    <View
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: cat.color || theme.accent.yellow }}
+                    />
+                    {getBillCategoryIcon(cat.icon, 14, filterCategoryId === cat.id ? theme.background : theme.text)}
+                    <Text
+                      className="font-manrope-semibold text-sm"
+                      style={{ color: filterCategoryId === cat.id ? theme.background : theme.text }}
+                    >
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                {categories.length === 0 && (
+                  <Text className="italic" style={{ color: theme.textSecondary }}>
+                    {t.budget.noCategories}
+                  </Text>
+                )}
+              </ScrollView>
+            </View>
+
+            {/* Bills list */}
+            <View
+              className="gap-3"
+              style={{
+                flexDirection: isDesktop ? "row" : "column",
+                flexWrap: isDesktop ? "wrap" : "nowrap",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text className="text-sm font-manrope-bold uppercase mb-3" style={{ color: theme.textSecondary }}>
+                {t.budget.expenses}
+              </Text>
+              {visibleBills.map((bill) => {
+                const splits = bill.splits || [];
+                const userSplit = splits.find((s) => s.userId === user?.id);
+                const uploaderName = bill.user?.name ?? getMemberName(bill.uploadedBy);
 
                 return (
                   <TouchableOpacity
                     key={bill.id}
                     className="p-4 rounded-2xl"
-                    style={{ backgroundColor: theme.surface }}
-                    onPress={() => setExpandedReceiptId(isExpanded ? null : bill.id)}
+                    style={{ backgroundColor: theme.surface, width: isDesktop ? "49%" : "100%" }}
+                    onPress={() => openBillDetails(bill)}
+                    onLongPress={() => openBillActions(bill)}
                     activeOpacity={0.7}
                   >
                     <View className="flex-row items-center gap-3">
                       <View
                         className="w-10 h-10 rounded-full justify-center items-center"
-                        style={{ backgroundColor: theme.accent.yellow }}
+                        style={{ backgroundColor: getCategoryColor(bill.billCategoryId) }}
                       >
-                        <Receipt size={20} color="#1C1C1E" />
+                        {getBillCategoryIcon(bill.billCategory?.icon, 20, "#1C1C1E")}
                       </View>
                       <View className="flex-1">
                         <Text className="text-base font-manrope-semibold mb-0.5" style={{ color: theme.text }}>
-                          {data.vendor || getCategoryName(bill)}
+                          {getCategoryName(bill)}
                         </Text>
                         <Text className="text-xs" style={{ color: theme.textSecondary }}>
-                          {data.date || new Date(bill.createdAt).toLocaleDateString("pl-PL")}
-                          {items.length > 0 && ` \u2022 ${items.length} ${t.budget.items.toLowerCase()}`}
+                          {uploaderName} · {new Date(bill.createdAt).toLocaleDateString("pl-PL")}
                         </Text>
-                      </View>
-                      <Text className="text-lg font-manrope-bold mr-2" style={{ color: theme.text }}>
-                        {formatCurrencyAmount(bill.totalAmount, homeCurrency)}
-                      </Text>
-                      {isExpanded ? (
-                        <ChevronUp size={18} color={theme.textSecondary} />
-                      ) : (
-                        <ChevronDown size={18} color={theme.textSecondary} />
-                      )}
-                    </View>
-
-                    {isExpanded && items.length > 0 && (
-                      <View className="mt-3 pt-3" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
-                        {items.map((item: any, idx: number) => (
-                          <View key={idx} className="flex-row justify-between py-1.5">
-                            <Text className="text-sm flex-1" style={{ color: theme.text }}>
-                              {item.name}
-                              {item.quantity > 1 && (
-                                <Text style={{ color: theme.textSecondary }}> x{item.quantity}</Text>
-                              )}
-                            </Text>
-                            <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
-                              {formatCurrencyAmount(item.price || 0, homeCurrency)}
+                        {bill.public === false && (
+                          <View
+                            className="self-start flex-row items-center gap-1 px-2 py-0.5 rounded-full mt-1"
+                            style={{ backgroundColor: theme.background }}
+                          >
+                            <Shield size={10} color={theme.textSecondary} />
+                            <Text className="text-[10px] font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                              Private
                             </Text>
                           </View>
-                        ))}
+                        )}
                       </View>
-                    )}
-                    {isExpanded && bill.receiptImage && (
-                      <TouchableOpacity
-                        className="flex-row items-center justify-center gap-2 mt-3 py-2.5 rounded-xl"
-                        style={{ backgroundColor: theme.background }}
-                        onPress={() => {
-                          setReceiptImageUrl(bill.receiptImage!);
-                          setShowReceiptImageModal(true);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Eye size={16} color={theme.accent.purple} />
-                        <Text className="text-sm font-manrope-semibold" style={{ color: theme.accent.purple }}>
-                          {t.budget.viewReceipt}
+                      <View className="items-end">
+                        <Text className="text-lg font-manrope-bold mb-0.5" style={{ color: theme.text }}>
+                          {formatCurrencyAmount(bill.totalAmount, homeCurrency)}
                         </Text>
-                      </TouchableOpacity>
+                        {userSplit && (
+                          <Text className="text-xs" style={{ color: userSplit.paid ? "#22C55E" : theme.accent.pink }}>
+                            {t.budget.yourShare}: {formatCurrencyAmount(userSplit.amount, homeCurrency)}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+
+                    {splits.length > 0 && (
+                      <View className="flex-row items-center mt-2 gap-1">
+                        <Users size={12} color={theme.textSecondary} />
+                        <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                          {splits.length} {splits.length === 1 ? "split" : "splits"} ·{" "}
+                          {splits.filter((s) => s.paid).length} {t.budget.paid.toLowerCase()}
+                        </Text>
+                      </View>
                     )}
                   </TouchableOpacity>
                 );
               })}
             </View>
-          </View>
+
+            {/* Receipt History Section */}
+            {receiptBills.length > 0 && (
+              <View className="mt-8">
+                <Text className="text-sm font-manrope-bold uppercase mb-3" style={{ color: theme.textSecondary }}>
+                  {t.budget.receiptHistory}
+                </Text>
+                <View className="gap-3">
+                  {receiptBills.map((bill) => {
+                    const data = bill.ocrData as Record<string, any>;
+                    const isExpanded = expandedReceiptId === bill.id;
+                    const items = data.items || [];
+
+                    return (
+                      <TouchableOpacity
+                        key={bill.id}
+                        className="p-4 rounded-2xl"
+                        style={{ backgroundColor: theme.surface }}
+                        onPress={() => setExpandedReceiptId(isExpanded ? null : bill.id)}
+                        activeOpacity={0.7}
+                      >
+                        <View className="flex-row items-center gap-3">
+                          <View
+                            className="w-10 h-10 rounded-full justify-center items-center"
+                            style={{ backgroundColor: theme.accent.yellow }}
+                          >
+                            <Receipt size={20} color="#1C1C1E" />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-base font-manrope-semibold mb-0.5" style={{ color: theme.text }}>
+                              {data.vendor || getCategoryName(bill)}
+                            </Text>
+                            <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                              {data.date || new Date(bill.createdAt).toLocaleDateString("pl-PL")}
+                              {items.length > 0 && ` \u2022 ${items.length} ${t.budget.items.toLowerCase()}`}
+                            </Text>
+                          </View>
+                          <Text className="text-lg font-manrope-bold mr-2" style={{ color: theme.text }}>
+                            {formatCurrencyAmount(bill.totalAmount, homeCurrency)}
+                          </Text>
+                          {isExpanded ? (
+                            <ChevronUp size={18} color={theme.textSecondary} />
+                          ) : (
+                            <ChevronDown size={18} color={theme.textSecondary} />
+                          )}
+                        </View>
+
+                        {isExpanded && items.length > 0 && (
+                          <View className="mt-3 pt-3" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
+                            {items.map((item: any, idx: number) => (
+                              <View key={idx} className="flex-row justify-between py-1.5">
+                                <Text className="text-sm flex-1" style={{ color: theme.text }}>
+                                  {item.name}
+                                  {item.quantity > 1 && (
+                                    <Text style={{ color: theme.textSecondary }}> x{item.quantity}</Text>
+                                  )}
+                                </Text>
+                                <Text className="text-sm font-manrope-semibold" style={{ color: theme.text }}>
+                                  {formatCurrencyAmount(item.price || 0, homeCurrency)}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+                        {isExpanded && bill.receiptImage && (
+                          <TouchableOpacity
+                            className="flex-row items-center justify-center gap-2 mt-3 py-2.5 rounded-xl"
+                            style={{ backgroundColor: theme.background }}
+                            onPress={() => {
+                              setReceiptImageUrl(bill.receiptImage!);
+                              setShowReceiptImageModal(true);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Eye size={16} color={theme.accent.purple} />
+                            <Text className="text-sm font-manrope-semibold" style={{ color: theme.accent.purple }}>
+                              {t.budget.viewReceipt}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
+
+      {showAddMenu && (
+        <View className="absolute bottom-[188px] right-6 z-40 gap-2.5 items-end">
+          <TouchableOpacity
+            className="flex-row items-center gap-3 px-4 h-12 rounded-2xl shadow-lg"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              setShowAddMenu(false);
+              setShowCategoryModal(true);
+            }}
+            activeOpacity={0.85}
+          >
+            <Wallet size={18} color={theme.text} />
+            <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+              {t.budget.category}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center gap-3 px-4 h-12 rounded-2xl shadow-lg"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              setShowAddMenu(false);
+              handleOpenCreateModal();
+            }}
+            activeOpacity={0.85}
+          >
+            <Receipt size={18} color={theme.text} />
+            <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+              {t.budget.addExpense}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Floating Add Menu FAB */}
+      <TouchableOpacity
+        className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
+        style={{ backgroundColor: theme.accent.pink }}
+        onPress={() => setShowAddMenu((value) => !value)}
+        activeOpacity={0.8}
+      >
+        <Plus size={28} color="#FFFFFF" strokeWidth={2.5} />
+      </TouchableOpacity>
 
       {/* Create Expense Modal */}
       <Modal visible={showCreateModal} onClose={handleCloseCreateModal} title={t.budget.addExpense} height="full">

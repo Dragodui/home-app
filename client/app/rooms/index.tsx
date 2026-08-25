@@ -24,6 +24,7 @@ import { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/components/ui/alert";
+import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
 import { roomApi } from "@/lib/api";
@@ -249,22 +250,20 @@ export default function RoomsScreen() {
 
         {/* Rooms Grid */}
         {rooms.length === 0 ? (
-          <View className="items-center py-15">
+          <View className="items-center py-20 px-6">
             <View
-              className="w-24 h-24 rounded-full justify-center items-center mb-6"
+              className="w-16 h-16 rounded-full justify-center items-center mb-4"
               style={{ backgroundColor: theme.surface }}
             >
-              <DoorOpen size={48} color={theme.textSecondary} />
+              <DoorOpen size={32} color={theme.textSecondary} />
             </View>
-            <Text className="text-22 font-manrope-bold mb-2" style={{ color: theme.text }}>
+            <Text className="text-xl font-manrope-bold mb-2 text-center" style={{ color: theme.text }}>
               {t.rooms.noRooms}
             </Text>
-            <Text
-              className="text-sm font-manrope text-center px-5"
-              style={{ color: theme.textSecondary, lineHeight: 22 }}
-            >
+            <Text className="text-sm font-manrope text-center leading-5 mb-6" style={{ color: theme.textSecondary }}>
               {isAdmin ? t.rooms.noRoomsAdminHint : t.rooms.noRoomsMemberHint}
             </Text>
+            {isAdmin && <Button title={t.rooms.createRoom || "Create Room"} onPress={() => setShowCreateModal(true)} />}
           </View>
         ) : (
           <View
