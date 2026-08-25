@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { ChartColumn, CheckCircle, DollarSign, Home, ShoppingBag, User } from "lucide-react-native";
+import { ChartColumn, CheckCircle, DollarSign, Home, Notebook, ShoppingBag, User } from "lucide-react-native";
 import { View } from "react-native";
 import fonts from "@/constants/fonts";
 import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
@@ -116,6 +116,21 @@ export default function TabLayout() {
               }`}
             >
               <ChartColumn size={22} color={focused ? "#1C1C1E" : color} strokeWidth={focused ? 2.5 : 2} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notes"
+        options={{
+          title: t.tabs.notes,
+          tabBarIcon: ({ color, focused }) => (
+            <View
+              className={`w-12 h-12 rounded-16 justify-center items-center ${
+                focused ? (theme.isDark ? "bg-white" : "bg-accent-purple") : ""
+              }`}
+            >
+              <Notebook size={22} color={focused ? "#1C1C1E" : color} strokeWidth={focused ? 2.5 : 2} />
             </View>
           ),
         }}

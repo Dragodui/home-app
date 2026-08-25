@@ -40,8 +40,8 @@ import Modal from "@/components/ui/modal";
 import Colors from "@/constants/colors";
 import { shoppingApi } from "@/lib/api";
 import type { ShoppingCategory, ShoppingItem } from "@/lib/types";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
@@ -353,7 +353,9 @@ export default function ShoppingScreen() {
   const toggleItemBought = async (itemId: number) => {
     if (!home) return;
 
-    const categoryEntry = Object.entries(items).find(([, categoryItems]) => categoryItems.some((item) => item.id === itemId));
+    const categoryEntry = Object.entries(items).find(([, categoryItems]) =>
+      categoryItems.some((item) => item.id === itemId),
+    );
     if (!categoryEntry) return;
 
     const [categoryKey, categoryItems] = categoryEntry;
@@ -535,10 +537,7 @@ export default function ShoppingScreen() {
             ))}
 
             {pendingItems.length > 0 && boughtItems.length > 0 && (
-              <View
-                className="mt-3 pt-4"
-                style={{ borderTopWidth: 1, borderTopColor: theme.border }}
-              />
+              <View className="mt-3 pt-4" style={{ borderTopWidth: 1, borderTopColor: theme.border }} />
             )}
 
             {boughtItems.map((item) => (
@@ -687,7 +686,10 @@ export default function ShoppingScreen() {
         </View>
 
         {/* Category Grid - matches PDF layout */}
-        <View className="flex-row flex-wrap gap-3" style={{ justifyContent: isDesktop ? "flex-start" : "space-between" }}>
+        <View
+          className="flex-row flex-wrap gap-3"
+          style={{ justifyContent: isDesktop ? "flex-start" : "space-between" }}
+        >
           {categories.map((category) => {
             const categoryColor = category.color || CATEGORY_COLORS[0];
             const itemCount = items[category.id]?.length || 0;

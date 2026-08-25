@@ -8,10 +8,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NotificationsSkeleton } from "@/components/skeletons";
 import { useToast } from "@/components/ui/toast";
 import { notificationApi } from "@/lib/api";
+import { getPushState, isPushSupported, type PushPermissionState, subscribeToPush } from "@/lib/pushUtils";
 import type { HomeNotification, Notification } from "@/lib/types";
-import { getPushState, subscribeToPush, isPushSupported, type PushPermissionState } from "@/lib/pushUtils";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
@@ -140,7 +140,10 @@ export default function NotificationsScreen() {
       const success = await subscribeToPush();
       setPushState(success ? "granted" : await getPushState());
       if (success) {
-        show({ title: t.notifications.pushEnabled || "Enabled", message: t.notifications.pushEnabledText || "Push notifications enabled!" });
+        show({
+          title: t.notifications.pushEnabled || "Enabled",
+          message: t.notifications.pushEnabledText || "Push notifications enabled!",
+        });
       }
     } catch {
       show({ title: "Error", message: t.notifications.pushError || "Failed to enable push notifications" });
@@ -239,10 +242,7 @@ export default function NotificationsScreen() {
           </TouchableOpacity>
         )}
         {pushState === "denied" && (
-          <View
-            className="flex-row items-center p-4 rounded-16 mb-4 gap-3"
-            style={{ backgroundColor: theme.surface }}
-          >
+          <View className="flex-row items-center p-4 rounded-16 mb-4 gap-3" style={{ backgroundColor: theme.surface }}>
             <Bell size={22} color={theme.textSecondary} />
             <View className="flex-1">
               <Text className="text-15 font-manrope-bold" style={{ color: theme.text }}>
@@ -274,7 +274,11 @@ export default function NotificationsScreen() {
         ) : (
           <View
             className="gap-3"
-            style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+            style={{
+              flexDirection: isDesktop ? "row" : "column",
+              flexWrap: isDesktop ? "wrap" : "nowrap",
+              justifyContent: "space-between",
+            }}
           >
             {notifications.map((notification) => (
               <View key={getSwipeableKey(notification)} style={{ width: isDesktop ? "49%" : "100%" }}>
@@ -344,7 +348,10 @@ export default function NotificationsScreen() {
                         <Bell size={18} color="#1C1C1E" />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-15 font-manrope-medium mb-1" style={{ color: theme.text, lineHeight: 22 }}>
+                        <Text
+                          className="text-15 font-manrope-medium mb-1"
+                          style={{ color: theme.text, lineHeight: 22 }}
+                        >
                           {notification.description}
                         </Text>
                         <Text className="text-13 font-manrope" style={{ color: theme.textSecondary }}>

@@ -8,8 +8,8 @@ import Card from "@/components/ui/card";
 import { billApi, notificationApi, pollApi, taskApi } from "@/lib/api";
 import { formatCurrencyAmount, getHomeCurrency } from "@/lib/currency";
 import type { Poll, TaskAssignment } from "@/lib/types";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
@@ -363,7 +363,10 @@ export default function HomeScreen() {
                 <Text className="text-xs font-manrope-semibold text-muted tracking-widest">{t.home.monthlySpend}</Text>
               </View>
               <Text className="text-5xl font-manrope-extrabold text-primary mb-5">
-                {formatCurrencyAmount(monthlySpend, homeCurrency, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                {formatCurrencyAmount(monthlySpend, homeCurrency, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
               </Text>
               <View className="flex-row justify-between items-center">
                 <View className="bg-accent-pink/15 px-4 py-3 rounded-14">

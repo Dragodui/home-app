@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { type ColorSchemeName, Appearance } from "react-native";
+import { Appearance, type ColorSchemeName } from "react-native";
 import { create } from "zustand";
 import { accentColors, categoryColors, darkTheme, lightTheme, statusColors, userColors } from "@/constants/colors";
 

@@ -48,7 +48,10 @@ export const ToastProvider: FC<{ children: ReactNode }> = ({ children }) => {
     <ToastContext.Provider value={contextValue}>
       {children}
       {toast.visible && (
-        <View className="absolute top-14 left-4 right-4 z-[100] rounded-2xl p-4" style={{ backgroundColor: theme.surface }}>
+        <View
+          className="absolute top-14 left-4 right-4 z-[100] rounded-2xl p-4"
+          style={{ backgroundColor: theme.surface }}
+        >
           <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
             {toast.title}
           </Text>

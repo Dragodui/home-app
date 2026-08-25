@@ -11,8 +11,8 @@ import Input from "@/components/ui/input";
 import Modal from "@/components/ui/modal";
 import { pollApi } from "@/lib/api";
 import type { Poll, PollOption } from "@/lib/types";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
@@ -278,7 +278,11 @@ export default function PollsScreen() {
         ) : (
           <View
             className="gap-4"
-            style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+            style={{
+              flexDirection: isDesktop ? "row" : "column",
+              flexWrap: isDesktop ? "wrap" : "nowrap",
+              justifyContent: "space-between",
+            }}
           >
             {polls.map((poll, index) => {
               const voted = hasUserVoted(poll);

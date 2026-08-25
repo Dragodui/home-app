@@ -13,7 +13,11 @@ import { useTheme } from "@/stores/themeStore";
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { token, email: paramEmail, status } = useLocalSearchParams<{ token?: string; email?: string; status?: string }>();
+  const {
+    token,
+    email: paramEmail,
+    status,
+  } = useLocalSearchParams<{ token?: string; email?: string; status?: string }>();
   const { verifyEmail, resendVerification } = useAuth();
   const { t } = useI18n();
   const { theme } = useTheme();
@@ -91,7 +95,14 @@ export default function VerifyEmailScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View
           className="flex-1"
-          style={{ backgroundColor: theme.background, paddingTop: insets.top + 40, paddingHorizontal: horizontalPadding, width: "100%", maxWidth: 640, alignSelf: "center" }}
+          style={{
+            backgroundColor: theme.background,
+            paddingTop: insets.top + 40,
+            paddingHorizontal: horizontalPadding,
+            width: "100%",
+            maxWidth: 640,
+            alignSelf: "center",
+          }}
         >
           <View className="flex-1 justify-center items-center pb-20">
             {loading ? (
@@ -135,7 +146,14 @@ export default function VerifyEmailScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View
           className="flex-1"
-          style={{ backgroundColor: theme.background, paddingTop: insets.top + 40, paddingHorizontal: horizontalPadding, width: "100%", maxWidth: 640, alignSelf: "center" }}
+          style={{
+            backgroundColor: theme.background,
+            paddingTop: insets.top + 40,
+            paddingHorizontal: horizontalPadding,
+            width: "100%",
+            maxWidth: 640,
+            alignSelf: "center",
+          }}
         >
           <View className="flex-1 justify-center items-center pb-20">
             <View
@@ -171,7 +189,14 @@ export default function VerifyEmailScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View
         className="flex-1"
-        style={{ backgroundColor: theme.background, paddingTop: insets.top + 20, paddingHorizontal: horizontalPadding, width: "100%", maxWidth: 640, alignSelf: "center" }}
+        style={{
+          backgroundColor: theme.background,
+          paddingTop: insets.top + 20,
+          paddingHorizontal: horizontalPadding,
+          width: "100%",
+          maxWidth: 640,
+          alignSelf: "center",
+        }}
       >
         <TouchableOpacity
           className="w-12 h-12 rounded-3xl justify-center items-center"

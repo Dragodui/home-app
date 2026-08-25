@@ -7,8 +7,8 @@ import { MembersSkeleton } from "@/components/skeletons";
 import { useAlert } from "@/components/ui/alert";
 import { homeApi } from "@/lib/api";
 import type { HomeMembership } from "@/lib/types";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
@@ -323,7 +323,11 @@ export default function MembersScreen() {
                 </Text>
                 <View
                   className="gap-3"
-                  style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+                  style={{
+                    flexDirection: isDesktop ? "row" : "column",
+                    flexWrap: isDesktop ? "wrap" : "nowrap",
+                    justifyContent: "space-between",
+                  }}
                 >
                   {pendingMembers.map((member) => renderMemberCard(member, true))}
                 </View>
@@ -341,7 +345,11 @@ export default function MembersScreen() {
             ) : (
               <View
                 className="gap-3"
-                style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+                style={{
+                  flexDirection: isDesktop ? "row" : "column",
+                  flexWrap: isDesktop ? "wrap" : "nowrap",
+                  justifyContent: "space-between",
+                }}
               >
                 {members.map((member) => renderMemberCard(member))}
               </View>

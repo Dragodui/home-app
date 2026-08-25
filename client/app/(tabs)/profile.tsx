@@ -250,202 +250,202 @@ export default function ProfileScreen() {
         <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 24, alignItems: "stretch" }}>
           {/* Profile Avatar */}
           <View className="items-center mb-10" style={{ flex: isDesktop ? 0.9 : undefined }}>
-          <TouchableOpacity
-            className="w-[140px] h-[140px] rounded-full border-[3px] overflow-hidden mb-5"
-            style={{ borderColor: theme.accent.purple }}
-            onPress={pickImage}
-            activeOpacity={0.8}
-            disabled={isUploading}
-          >
-            {user?.avatar ? (
-              <Image
-                source={{ uri: user.avatar }}
-                className="w-full h-full"
-                style={isUploading ? { opacity: 0.5 } : undefined}
-              />
-            ) : (
-              <View className="w-full h-full justify-center items-center" style={{ backgroundColor: theme.surface }}>
-                <User size={64} color={theme.textSecondary} />
-              </View>
-            )}
-            {isUploading && (
-              <View className="absolute inset-0 justify-center items-center">
-                <ActivityIndicator size="small" color={theme.accent.purple} />
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <Text className="text-[28px] font-manrope-bold mb-1" style={{ color: theme.text }}>
-            {user?.name || "User"}
-          </Text>
-          {isEditingUsername ? (
-            <View className="mb-4 items-center">
-              <View className="flex-row items-center gap-2">
-                <Text className="text-[16px] font-manrope" style={{ color: theme.textSecondary }}>
-                  @
-                </Text>
-                <TextInput
-                  ref={usernameInputRef}
-                  className="text-[16px] font-manrope px-3 py-1.5 rounded-xl min-w-[150px]"
-                  style={{ color: theme.text, backgroundColor: theme.surface }}
-                  value={usernameInput}
-                  onChangeText={(text) => {
-                    setUsernameInput(text.toLowerCase().replace(/[^a-z0-9_]/g, ""));
-                    setUsernameError("");
-                  }}
-                  onSubmitEditing={saveUsername}
-                  onBlur={saveUsername}
-                  autoFocus
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  maxLength={32}
-                  editable={!isSavingUsername}
+            <TouchableOpacity
+              className="w-[140px] h-[140px] rounded-full border-[3px] overflow-hidden mb-5"
+              style={{ borderColor: theme.accent.purple }}
+              onPress={pickImage}
+              activeOpacity={0.8}
+              disabled={isUploading}
+            >
+              {user?.avatar ? (
+                <Image
+                  source={{ uri: user.avatar }}
+                  className="w-full h-full"
+                  style={isUploading ? { opacity: 0.5 } : undefined}
                 />
-                {isSavingUsername && <ActivityIndicator size="small" color={theme.accent.purple} />}
-              </View>
-              {usernameError ? (
-                <Text className="text-[12px] font-manrope mt-1" style={{ color: theme.accent.pink }}>
-                  {usernameError}
-                </Text>
-              ) : null}
-            </View>
-          ) : (
-            <TouchableOpacity
-              onPress={() => {
-                setUsernameInput(user?.username || "");
-                setUsernameError("");
-                setIsEditingUsername(true);
-              }}
-              className="mb-4"
-            >
-              <Text className="text-[16px] font-manrope" style={{ color: theme.textSecondary }}>
-                {displayUsername}
-              </Text>
+              ) : (
+                <View className="w-full h-full justify-center items-center" style={{ backgroundColor: theme.surface }}>
+                  <User size={64} color={theme.textSecondary} />
+                </View>
+              )}
+              {isUploading && (
+                <View className="absolute inset-0 justify-center items-center">
+                  <ActivityIndicator size="small" color={theme.accent.purple} />
+                </View>
+              )}
             </TouchableOpacity>
-          )}
 
-          {home && (
-            <View className="px-4 py-2 rounded-xl" style={{ backgroundColor: theme.surface }}>
-              <Text className="text-[13px] font-manrope-semibold" style={{ color: theme.textSecondary }}>
-                {isAdmin ? t.profile.homeAdmin : t.profile.member}
-              </Text>
-            </View>
-          )}
-
-          {home?.inviteCode && (
-            <TouchableOpacity
-              className="mt-4 px-5 py-3.5 rounded-2xl items-center"
-              style={{ backgroundColor: theme.surface }}
-              onPress={async () => {
-                await Clipboard.setStringAsync(home.inviteCode);
-                alert(t.common.copied, t.profile.inviteCodeCopied);
-              }}
-              activeOpacity={0.7}
-            >
-              <Text
-                className="text-[11px] font-manrope-semibold tracking-wide mb-1"
-                style={{ color: theme.textSecondary }}
+            <Text className="text-[28px] font-manrope-bold mb-1" style={{ color: theme.text }}>
+              {user?.name || "User"}
+            </Text>
+            {isEditingUsername ? (
+              <View className="mb-4 items-center">
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-[16px] font-manrope" style={{ color: theme.textSecondary }}>
+                    @
+                  </Text>
+                  <TextInput
+                    ref={usernameInputRef}
+                    className="text-[16px] font-manrope px-3 py-1.5 rounded-xl min-w-[150px]"
+                    style={{ color: theme.text, backgroundColor: theme.surface }}
+                    value={usernameInput}
+                    onChangeText={(text) => {
+                      setUsernameInput(text.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+                      setUsernameError("");
+                    }}
+                    onSubmitEditing={saveUsername}
+                    onBlur={saveUsername}
+                    autoFocus
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    maxLength={32}
+                    editable={!isSavingUsername}
+                  />
+                  {isSavingUsername && <ActivityIndicator size="small" color={theme.accent.purple} />}
+                </View>
+                {usernameError ? (
+                  <Text className="text-[12px] font-manrope mt-1" style={{ color: theme.accent.pink }}>
+                    {usernameError}
+                  </Text>
+                ) : null}
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={() => {
+                  setUsernameInput(user?.username || "");
+                  setUsernameError("");
+                  setIsEditingUsername(true);
+                }}
+                className="mb-4"
               >
-                {t.profile.homeCode}
-              </Text>
-              <View className="flex-row items-center gap-2">
-                <Text className="text-[18px] font-manrope-bold tracking-widest" style={{ color: theme.text }}>
-                  {home.inviteCode}
+                <Text className="text-[16px] font-manrope" style={{ color: theme.textSecondary }}>
+                  {displayUsername}
                 </Text>
-                <Copy size={16} color={theme.textSecondary} />
+              </TouchableOpacity>
+            )}
+
+            {home && (
+              <View className="px-4 py-2 rounded-xl" style={{ backgroundColor: theme.surface }}>
+                <Text className="text-[13px] font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                  {isAdmin ? t.profile.homeAdmin : t.profile.member}
+                </Text>
               </View>
-            </TouchableOpacity>
-          )}
+            )}
+
+            {home?.inviteCode && (
+              <TouchableOpacity
+                className="mt-4 px-5 py-3.5 rounded-2xl items-center"
+                style={{ backgroundColor: theme.surface }}
+                onPress={async () => {
+                  await Clipboard.setStringAsync(home.inviteCode);
+                  alert(t.common.copied, t.profile.inviteCodeCopied);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text
+                  className="text-[11px] font-manrope-semibold tracking-wide mb-1"
+                  style={{ color: theme.textSecondary }}
+                >
+                  {t.profile.homeCode}
+                </Text>
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-[18px] font-manrope-bold tracking-widest" style={{ color: theme.text }}>
+                    {home.inviteCode}
+                  </Text>
+                  <Copy size={16} color={theme.textSecondary} />
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={{ flex: isDesktop ? 1.1 : undefined }}>
             {/* Menu Items */}
             <View className="gap-3 mb-8">
-          {MENU_ITEMS.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <TouchableOpacity
-                key={index}
-                className="flex-row items-center p-4 rounded-[20px] gap-3.5"
-                style={{ backgroundColor: theme.surface }}
-                onPress={item.onPress}
-                activeOpacity={0.8}
-              >
-                <View
-                  className="w-11 h-11 rounded-[14px] justify-center items-center"
-                  style={{ backgroundColor: item.color }}
-                >
-                  <Icon size={22} color="#1C1C1E" />
-                </View>
-                <Text className="flex-1 text-[16px] font-manrope-semibold" style={{ color: theme.text }}>
-                  {item.label}
-                </Text>
-                <ChevronRight size={20} color={theme.textSecondary} />
-              </TouchableOpacity>
-            );
-          })}
-            </View>
-
-            {/* My Homes */}
-            <View className="mb-8">
-          <Text
-            className="text-[12px] font-manrope-bold tracking-widest mb-3 ml-1"
-            style={{ color: theme.textSecondary }}
-          >
-            {t.profile.myHomes || "MY HOMES"}
-          </Text>
-
-          {homes.length > 0 && (
-            <View className="gap-2.5 mb-4">
-              {homes.map((h) => {
-                const isCurrent = h.id === home?.id;
+              {MENU_ITEMS.map((item, index) => {
+                const Icon = item.icon;
                 return (
                   <TouchableOpacity
-                    key={h.id}
+                    key={index}
                     className="flex-row items-center p-4 rounded-[20px] gap-3.5"
-                    style={{
-                      backgroundColor: isCurrent ? theme.accent.purple : theme.surface,
-                    }}
-                    onPress={() => switchHome(h.id)}
+                    style={{ backgroundColor: theme.surface }}
+                    onPress={item.onPress}
                     activeOpacity={0.8}
                   >
                     <View
                       className="w-11 h-11 rounded-[14px] justify-center items-center"
-                      style={{
-                        backgroundColor: isCurrent ? "rgba(0,0,0,0.15)" : theme.accent.yellow,
-                      }}
+                      style={{ backgroundColor: item.color }}
                     >
-                      <HomeIcon size={22} color={isCurrent ? "#FFFFFF" : "#1C1C1E"} />
+                      <Icon size={22} color="#1C1C1E" />
                     </View>
-                    <Text
-                      className="flex-1 text-[16px] font-manrope-semibold"
-                      style={{ color: isCurrent ? "#1C1C1E" : theme.text }}
-                    >
-                      {h.name}
+                    <Text className="flex-1 text-[16px] font-manrope-semibold" style={{ color: theme.text }}>
+                      {item.label}
                     </Text>
-                    {isCurrent && <Check size={20} color="#1C1C1E" />}
+                    <ChevronRight size={20} color={theme.textSecondary} />
                   </TouchableOpacity>
                 );
               })}
             </View>
-          )}
 
-          <View className="flex-row gap-3">
-            <Button
-              title={t.profile.createHome}
-              onPress={() => setShowCreateModal(true)}
-              variant="yellow"
-              style={{ flex: 1 }}
-              icon={<Plus size={18} color="#1C1C1E" />}
-            />
-            <Button
-              title={t.profile.joinHome}
-              onPress={() => setShowJoinModal(true)}
-              variant="purple"
-              style={{ flex: 1 }}
-              icon={<Plus size={18} color="#1C1C1E" />}
-            />
-          </View>
+            {/* My Homes */}
+            <View className="mb-8">
+              <Text
+                className="text-[12px] font-manrope-bold tracking-widest mb-3 ml-1"
+                style={{ color: theme.textSecondary }}
+              >
+                {t.profile.myHomes || "MY HOMES"}
+              </Text>
+
+              {homes.length > 0 && (
+                <View className="gap-2.5 mb-4">
+                  {homes.map((h) => {
+                    const isCurrent = h.id === home?.id;
+                    return (
+                      <TouchableOpacity
+                        key={h.id}
+                        className="flex-row items-center p-4 rounded-[20px] gap-3.5"
+                        style={{
+                          backgroundColor: isCurrent ? theme.accent.purple : theme.surface,
+                        }}
+                        onPress={() => switchHome(h.id)}
+                        activeOpacity={0.8}
+                      >
+                        <View
+                          className="w-11 h-11 rounded-[14px] justify-center items-center"
+                          style={{
+                            backgroundColor: isCurrent ? "rgba(0,0,0,0.15)" : theme.accent.yellow,
+                          }}
+                        >
+                          <HomeIcon size={22} color={isCurrent ? "#FFFFFF" : "#1C1C1E"} />
+                        </View>
+                        <Text
+                          className="flex-1 text-[16px] font-manrope-semibold"
+                          style={{ color: isCurrent ? "#1C1C1E" : theme.text }}
+                        >
+                          {h.name}
+                        </Text>
+                        {isCurrent && <Check size={20} color="#1C1C1E" />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
+              <View className="flex-row gap-3">
+                <Button
+                  title={t.profile.createHome}
+                  onPress={() => setShowCreateModal(true)}
+                  variant="yellow"
+                  style={{ flex: 1 }}
+                  icon={<Plus size={18} color="#1C1C1E" />}
+                />
+                <Button
+                  title={t.profile.joinHome}
+                  onPress={() => setShowJoinModal(true)}
+                  variant="purple"
+                  style={{ flex: 1 }}
+                  icon={<Plus size={18} color="#1C1C1E" />}
+                />
+              </View>
             </View>
 
             {/* Leave Home Button */}

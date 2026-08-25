@@ -1,6 +1,6 @@
 FROM golang:1.25
 
-RUN go install github.com/air-verse/air@latest
+RUN go install github.com/air-verse/air@v1.61.1
 
 ENV PATH="$PATH:/go/bin"
 WORKDIR /app

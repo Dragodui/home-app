@@ -12,8 +12,8 @@ import Modal from "@/components/ui/modal";
 import { userColors } from "@/constants/colors";
 import { taskApi, taskScheduleApi } from "@/lib/api";
 import type { Task, TaskAssignment } from "@/lib/types";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
@@ -576,7 +576,11 @@ export default function TasksScreen() {
         ) : (
           <View
             className="gap-3"
-            style={{ flexDirection: isDesktop ? "row" : "column", flexWrap: isDesktop ? "wrap" : "nowrap", justifyContent: "space-between" }}
+            style={{
+              flexDirection: isDesktop ? "row" : "column",
+              flexWrap: isDesktop ? "wrap" : "nowrap",
+              justifyContent: "space-between",
+            }}
           >
             {getFilteredTasks().map((task, index) => renderTaskItem(task, index))}
           </View>

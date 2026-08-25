@@ -250,7 +250,6 @@ export default function SettingsScreen() {
                   </Text>
                   <ChevronRight size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
-
               </>
             )}
 
