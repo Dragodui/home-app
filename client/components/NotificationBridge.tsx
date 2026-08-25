@@ -1,9 +1,9 @@
- import { useEffect } from "react";
+import { useEffect } from "react";
 import { Platform } from "react-native";
 import { useToast } from "@/components/ui/toast";
+import { isPushSupported, subscribeToPush } from "@/lib/pushUtils";
 import { wsManager } from "@/lib/websocket";
 import { useAuthStore } from "@/stores/authStore";
-import { subscribeToPush, isPushSupported } from "@/lib/pushUtils";
 
 function getNotificationDescription(data: unknown): string {
   if (!data || typeof data !== "object") return "";
@@ -46,9 +46,7 @@ export function NotificationBridge() {
     if (!isAuthenticated || !isPushSupported()) return;
     if (Notification.permission !== "granted") return;
 
-    subscribeToPush().catch((err) =>
-      console.error("Failed to subscribe to push notifications", err),
-    );
+    subscribeToPush().catch((err) => console.error("Failed to subscribe to push notifications", err));
   }, [isAuthenticated]);
 
   return null;

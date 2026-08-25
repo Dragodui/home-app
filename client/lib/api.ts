@@ -12,6 +12,8 @@ import type {
   CreateCategoryForm,
   CreateItemForm,
   CreateItemsForm,
+  CreateNoteCategoryForm,
+  CreateNoteForm,
   CreatePollForm,
   CreateScheduleForm,
   CreateTaskForm,
@@ -19,6 +21,8 @@ import type {
   Home,
   HomeMembership,
   HomeNotification,
+  Note,
+  NoteCategory,
   Notification,
   OCRResult,
   Poll,
@@ -30,10 +34,12 @@ import type {
   TaskAssignment,
   TaskSchedule,
   UpdateDeviceRequest,
+  UpdateNoteCategoryForm,
+  UpdateNoteForm,
   User,
 } from "./types";
 
-export const isDevMode = process.env.EXPO_NODE_ENV === "dev";
+export const isDevMode = process.env.EXPO_NODE_ENV !== "prod";
 const API_BASE_URL = isDevMode ? process.env.EXPO_PUBLIC_API_URL_DEV : process.env.EXPO_PUBLIC_API_URL;
 const API_PREFIX = "/api";
 
@@ -620,9 +626,12 @@ export const billCategoryApi = {
 
   getAll: async (homeId: number, scope: "home" | "private" = "home"): Promise<BillCategory[]> => {
     const params = scope === "private" ? { private: true } : undefined;
-    const response = await api.get<{ status: boolean; categories: BillCategory[] }>(`/homes/${homeId}/bill_categories`, {
-      params,
-    });
+    const response = await api.get<{ status: boolean; categories: BillCategory[] }>(
+      `/homes/${homeId}/bill_categories`,
+      {
+        params,
+      },
+    );
     return response.data.categories || [];
   },
 
@@ -922,6 +931,60 @@ export const smarthomeApi = {
   },
 };
 
+// ============ Note API ============
+export const noteApi = {
+  create: async (homeId: number, data: CreateNoteForm): Promise<Note> => {
+    const response = await api.post<{ status: boolean; data: Note }>(`/homes/${homeId}/notes`, data);
+    return response.data.data;
+  },
+
+  getByHomeId: async (homeId: number, categoryId?: number): Promise<Note[]> => {
+    const params = categoryId ? { category_id: categoryId } : undefined;
+    const response = await api.get<{ status: boolean; data: Note[] }>(`/homes/${homeId}/notes`, { params });
+    return response.data.data || [];
+  },
+
+  getById: async (homeId: number, noteId: number): Promise<Note> => {
+    const response = await api.get<{ status: boolean; data: Note }>(`/homes/${homeId}/notes/${noteId}`);
+    return response.data.data;
+  },
+
+  update: async (homeId: number, noteId: number, data: UpdateNoteForm): Promise<Note> => {
+    const response = await api.put<{ status: boolean; data: Note }>(`/homes/${homeId}/notes/${noteId}`, data);
+    return response.data.data;
+  },
+
+  delete: async (homeId: number, noteId: number): Promise<{ message: string }> => {
+    const response = await api.delete<{ status: boolean; message: string }>(`/homes/${homeId}/notes/${noteId}`);
+    return { message: response.data.message };
+  },
+
+  createCategory: async (homeId: number, data: CreateNoteCategoryForm): Promise<NoteCategory> => {
+    const response = await api.post<{ status: boolean; data: NoteCategory }>(`/homes/${homeId}/note_categories`, data);
+    return response.data.data;
+  },
+
+  getCategoriesByHomeId: async (homeId: number): Promise<NoteCategory[]> => {
+    const response = await api.get<{ status: boolean; data: NoteCategory[] }>(`/homes/${homeId}/note_categories`);
+    return response.data.data || [];
+  },
+
+  updateCategory: async (homeId: number, categoryId: number, data: UpdateNoteCategoryForm): Promise<NoteCategory> => {
+    const response = await api.put<{ status: boolean; data: NoteCategory }>(
+      `/homes/${homeId}/note_categories/${categoryId}`,
+      data,
+    );
+    return response.data.data;
+  },
+
+  deleteCategory: async (homeId: number, categoryId: number): Promise<{ message: string }> => {
+    const response = await api.delete<{ status: boolean; message: string }>(
+      `/homes/${homeId}/note_categories/${categoryId}`,
+    );
+    return { message: response.data.message };
+  },
+};
+
 // ============ Image Upload API ============
 export const imageApi = {
   upload: async (formData: FormData): Promise<{ url: string }> => {
@@ -968,6 +1031,8 @@ export type {
   HomeAssistantConfig,
   HomeMembership,
   HomeNotification,
+  Note,
+  NoteCategory,
   Notification,
   OCRResult,
   Poll,

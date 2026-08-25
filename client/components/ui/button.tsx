@@ -56,6 +56,8 @@ const Button: FC<ButtonProps> = ({
         return "text-primary";
       case "outline":
         return "text-muted";
+      case "secondary":
+        return theme.isDark ? "text-white" : "text-primary";
       case "danger":
         return "text-white";
       default:

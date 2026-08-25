@@ -68,7 +68,10 @@ export default function ResetPasswordScreen() {
   if (success) {
     return (
       <View className="flex-1" style={{ backgroundColor: theme.background, paddingTop: insets.top }}>
-        <View className="flex-1 justify-center items-center" style={{ paddingHorizontal: horizontalPadding, width: "100%", maxWidth: 640, alignSelf: "center" }}>
+        <View
+          className="flex-1 justify-center items-center"
+          style={{ paddingHorizontal: horizontalPadding, width: "100%", maxWidth: 640, alignSelf: "center" }}
+        >
           <View
             className="w-[120px] h-[120px] rounded-full justify-center items-center mb-8"
             style={{ backgroundColor: `${theme.accent.green}20` }}

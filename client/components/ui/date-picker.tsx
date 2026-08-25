@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { type FC, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,

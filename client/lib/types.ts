@@ -376,3 +376,74 @@ export interface OCRResult {
   rawText?: string;
   confidence?: number;
 }
+
+// Note types
+export interface NoteCategory {
+  id: number;
+  homeId: number;
+  createdBy: number;
+  name: string;
+  icon?: string;
+  color: string;
+  createdAt: string;
+  creator?: User;
+}
+
+export interface Note {
+  id: number;
+  homeId: number;
+  noteCategoryId?: number;
+  createdBy: number;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  creator?: User;
+  noteCategory?: NoteCategory;
+
+  mentionedUsers?: User[];
+  mentionedTasks?: Task[];
+  mentionedBills?: Bill[];
+  mentionedShoppingItems?: ShoppingItem[];
+  mentionedNoteCategories?: NoteCategory[];
+  mentionedBillCategories?: BillCategory[];
+  mentionedShoppingCategories?: ShoppingCategory[];
+}
+
+export interface CreateNoteForm {
+  noteCategoryId?: number | null;
+  title: string;
+  content: string;
+  mentionedUserIds?: number[];
+  mentionedTaskIds?: number[];
+  mentionedBillIds?: number[];
+  mentionedShoppingItemIds?: number[];
+  mentionedNoteCategoryIds?: number[];
+  mentionedBillCategoryIds?: number[];
+  mentionedShoppingCategoryIds?: number[];
+}
+
+export interface UpdateNoteForm {
+  noteCategoryId?: number | null;
+  title?: string;
+  content?: string;
+  mentionedUserIds?: number[];
+  mentionedTaskIds?: number[];
+  mentionedBillIds?: number[];
+  mentionedShoppingItemIds?: number[];
+  mentionedNoteCategoryIds?: number[];
+  mentionedBillCategoryIds?: number[];
+  mentionedShoppingCategoryIds?: number[];
+}
+
+export interface CreateNoteCategoryForm {
+  name: string;
+  icon?: string;
+  color?: string;
+}
+
+export interface UpdateNoteCategoryForm {
+  name?: string;
+  icon?: string;
+  color?: string;
+}

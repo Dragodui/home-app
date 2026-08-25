@@ -267,7 +267,10 @@ export default function RoomsScreen() {
             </Text>
           </View>
         ) : (
-          <View className="flex-row flex-wrap gap-4" style={{ justifyContent: isDesktop ? "flex-start" : "space-between" }}>
+          <View
+            className="flex-row flex-wrap gap-4"
+            style={{ justifyContent: isDesktop ? "flex-start" : "space-between" }}
+          >
             {rooms.map((room, index) => {
               const ROOM_COLORS = [
                 theme.accent.yellow,

@@ -272,7 +272,13 @@ export default function SmartHomeDashboard() {
       {/* Header */}
       <View
         className="flex-row items-center justify-between mb-6"
-        style={{ paddingTop: insets.top + 16, paddingHorizontal: horizontalPadding, width: "100%", maxWidth: contentMaxWidth, alignSelf: "center" }}
+        style={{
+          paddingTop: insets.top + 16,
+          paddingHorizontal: horizontalPadding,
+          width: "100%",
+          maxWidth: contentMaxWidth,
+          alignSelf: "center",
+        }}
       >
         <TouchableOpacity
           onPress={() => router.back()}
@@ -304,7 +310,12 @@ export default function SmartHomeDashboard() {
       {haStatus && (
         <View
           className="mb-6 p-4 rounded-20 flex-row items-center justify-between"
-          style={{ width: "100%", maxWidth: contentMaxWidth, alignSelf: "center", backgroundColor: haStatus.connected ? `${theme.accent.cyan}20` : `${theme.accent.danger}20` }}
+          style={{
+            width: "100%",
+            maxWidth: contentMaxWidth,
+            alignSelf: "center",
+            backgroundColor: haStatus.connected ? `${theme.accent.cyan}20` : `${theme.accent.danger}20`,
+          }}
         >
           <View className="flex-row items-center gap-3">
             {haStatus.connected ? (
@@ -335,7 +346,10 @@ export default function SmartHomeDashboard() {
       )}
 
       {/* Content */}
-      <View className="flex-1" style={{ width: "100%", maxWidth: contentMaxWidth, alignSelf: "center", paddingHorizontal: horizontalPadding }}>
+      <View
+        className="flex-1"
+        style={{ width: "100%", maxWidth: contentMaxWidth, alignSelf: "center", paddingHorizontal: horizontalPadding }}
+      >
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
             All Devices

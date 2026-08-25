@@ -265,7 +265,13 @@ export default function RoomDetailScreen() {
       {/* Header */}
       <View
         className="flex-row items-center justify-between mb-6"
-        style={{ paddingTop: insets.top + 16, paddingHorizontal: horizontalPadding, width: "100%", maxWidth: contentMaxWidth, alignSelf: "center" }}
+        style={{
+          paddingTop: insets.top + 16,
+          paddingHorizontal: horizontalPadding,
+          width: "100%",
+          maxWidth: contentMaxWidth,
+          alignSelf: "center",
+        }}
       >
         <TouchableOpacity
           onPress={() => router.back()}
@@ -337,112 +343,112 @@ export default function RoomDetailScreen() {
             </View>
 
             <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 24, alignItems: "flex-start" }}>
-            <View className="mb-6" style={{ flex: isDesktop ? 1 : undefined, width: "100%" }}>
-              <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
-                  Room Tasks
-                </Text>
-                <View className="flex-row items-center gap-2">
-                  <TouchableOpacity
-                    className="px-3 py-2"
-                    style={{ backgroundColor: theme.surface, borderRadius: '12px' }}
-                    onPress={() => router.push("/(tabs)/tasks")}
-                  >
-                    <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
-                      {t.tasks.title}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    className="px-3 py-2"
-                    style={{ backgroundColor: theme.accent.yellow, borderRadius: '12px' }}
-                    onPress={() => setShowTaskModal(true)}
-                  >
-                    <Text className="text-xs font-manrope-bold" style={{ color: "#1C1C1E" }}>
-                      {t.tasks.newTask}
-                    </Text>
-                  </TouchableOpacity>
+              <View className="mb-6" style={{ flex: isDesktop ? 1 : undefined, width: "100%" }}>
+                <View className="flex-row items-center justify-between mb-3">
+                  <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
+                    Room Tasks
+                  </Text>
+                  <View className="flex-row items-center gap-2">
+                    <TouchableOpacity
+                      className="px-3 py-2"
+                      style={{ backgroundColor: theme.surface, borderRadius: "12px" }}
+                      onPress={() => router.push("/(tabs)/tasks")}
+                    >
+                      <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                        {t.tasks.title}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="px-3 py-2"
+                      style={{ backgroundColor: theme.accent.yellow, borderRadius: "12px" }}
+                      onPress={() => setShowTaskModal(true)}
+                    >
+                      <Text className="text-xs font-manrope-bold" style={{ color: "#1C1C1E" }}>
+                        {t.tasks.newTask}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
+
+                {tasks.length === 0 ? (
+                  <View className="rounded-20 p-4" style={{ backgroundColor: theme.surface }}>
+                    <Text style={{ color: theme.textSecondary }}>{t.tasks.noTasks}</Text>
+                  </View>
+                ) : (
+                  <View className="gap-3">
+                    {tasks.map((task) => {
+                      const completed = isTaskCompleted(task);
+                      return (
+                        <TouchableOpacity
+                          key={task.id}
+                          className="rounded-20 p-4"
+                          style={{ backgroundColor: theme.surface }}
+                          onPress={() => router.push({ pathname: "/tasks/[id]", params: { id: String(task.id) } })}
+                          activeOpacity={0.8}
+                        >
+                          <View className="flex-row items-start justify-between gap-3">
+                            <View className="flex-1">
+                              <Text
+                                className={`text-base font-manrope-bold ${completed ? "line-through opacity-60" : ""}`}
+                                style={{ color: theme.text }}
+                              >
+                                {task.name}
+                              </Text>
+                              {task.description ? (
+                                <Text
+                                  className={`text-sm mt-1 ${completed ? "line-through opacity-50" : ""}`}
+                                  style={{ color: theme.textSecondary }}
+                                  numberOfLines={2}
+                                >
+                                  {task.description}
+                                </Text>
+                              ) : null}
+                              <View className="flex-row items-center gap-1 mt-2">
+                                <Calendar size={12} color={theme.textSecondary} />
+                                <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
+                                  {formatTaskDueText(task)}
+                                </Text>
+                              </View>
+                            </View>
+                            {completed ? (
+                              <View
+                                className="px-2 py-1 rounded-full"
+                                style={{ backgroundColor: `${theme.status.success}20` }}
+                              >
+                                <Text className="text-xs font-manrope-bold" style={{ color: theme.status.success }}>
+                                  {t.common.done}
+                                </Text>
+                              </View>
+                            ) : (
+                              <View
+                                className="px-2 py-1 rounded-full"
+                                style={{ backgroundColor: theme.accent.pinkLight }}
+                              >
+                                <Text className="text-xs font-manrope-bold" style={{ color: theme.accent.pink }}>
+                                  Active
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
 
-              {tasks.length === 0 ? (
-                <View className="rounded-20 p-4" style={{ backgroundColor: theme.surface }}>
-                  <Text style={{ color: theme.textSecondary }}>{t.tasks.noTasks}</Text>
-                </View>
-              ) : (
-                <View className="gap-3">
-                  {tasks.map((task) => {
-                    const completed = isTaskCompleted(task);
-                    return (
-                      <TouchableOpacity
-                        key={task.id}
-                        className="rounded-20 p-4"
-                        style={{ backgroundColor: theme.surface }}
-                        onPress={() => router.push({ pathname: "/tasks/[id]", params: { id: String(task.id) } })}
-                        activeOpacity={0.8}
-                      >
-                        <View className="flex-row items-start justify-between gap-3">
-                          <View className="flex-1">
-                            <Text
-                              className={`text-base font-manrope-bold ${completed ? "line-through opacity-60" : ""}`}
-                              style={{ color: theme.text }}
-                            >
-                              {task.name}
-                            </Text>
-                            {task.description ? (
-                              <Text
-                                className={`text-sm mt-1 ${completed ? "line-through opacity-50" : ""}`}
-                                style={{ color: theme.textSecondary }}
-                                numberOfLines={2}
-                              >
-                                {task.description}
-                              </Text>
-                            ) : null}
-                            <View className="flex-row items-center gap-1 mt-2">
-                              <Calendar size={12} color={theme.textSecondary} />
-                              <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
-                                {formatTaskDueText(task)}
-                              </Text>
-                            </View>
-                          </View>
-                          {completed ? (
-                            <View
-                              className="px-2 py-1 rounded-full"
-                              style={{ backgroundColor: `${theme.status.success}20` }}
-                            >
-                              <Text className="text-xs font-manrope-bold" style={{ color: theme.status.success }}>
-                                {t.common.done}
-                              </Text>
-                            </View>
-                          ) : (
-                            <View
-                              className="px-2 py-1 rounded-full"
-                              style={{ backgroundColor: theme.accent.pinkLight }}
-                            >
-                              <Text className="text-xs font-manrope-bold" style={{ color: theme.accent.pink }}>
-                                Active
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-
-            <View className="mb-4" style={{ flex: isDesktop ? 1 : undefined, width: "100%" }}>
-              <Text className="text-lg font-manrope-bold mb-3" style={{ color: theme.text }}>
-                Devices
-              </Text>
-              {devices.length === 0 ? (
-                <View className="rounded-20 p-4" style={{ backgroundColor: theme.surface }}>
-                  <Text style={{ color: theme.textSecondary }}>No devices in this room</Text>
-                </View>
-              ) : (
-                devices.map((device) => <View key={device.id}>{renderDevice({ item: device })}</View>)
-              )}
-            </View>
+              <View className="mb-4" style={{ flex: isDesktop ? 1 : undefined, width: "100%" }}>
+                <Text className="text-lg font-manrope-bold mb-3" style={{ color: theme.text }}>
+                  Devices
+                </Text>
+                {devices.length === 0 ? (
+                  <View className="rounded-20 p-4" style={{ backgroundColor: theme.surface }}>
+                    <Text style={{ color: theme.textSecondary }}>No devices in this room</Text>
+                  </View>
+                ) : (
+                  devices.map((device) => <View key={device.id}>{renderDevice({ item: device })}</View>)
+                )}
+              </View>
             </View>
           </>
         )}

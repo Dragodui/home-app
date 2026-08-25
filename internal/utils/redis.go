@@ -146,3 +146,20 @@ func GetBillCategoriesKey(homeID, userID int, public bool) string {
 	}
 	return "bill_categories:home:" + strconv.Itoa(homeID) + ":" + scope
 }
+
+func GetNoteKey(noteID int) string {
+	return "note:" + strconv.Itoa(noteID)
+}
+
+func GetAllNotesForHomeKey(homeID int) string {
+	return "notes:home:" + strconv.Itoa(homeID)
+}
+
+func GetNoteCategoryKey(categoryID int) string {
+	return "note_category:" + strconv.Itoa(categoryID)
+}
+
+func GetAllNoteCategoriesForHomeKey(homeID int) string {
+	return "note_categories:home:" + strconv.Itoa(homeID)
+}
+

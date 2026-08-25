@@ -6,7 +6,7 @@ const config = getDefaultConfig(__dirname);
 // Disable package exports to fix Zustand import.meta issue on web
 config.resolver = {
   ...config.resolver,
-  unstable_enablePackageExports: false,
+  unstable_enablePackageExports: true,
 };
 
 module.exports = withNativeWind(config, { input: "./global.css" });

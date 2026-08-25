@@ -29,5 +29,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.HomeAssistantConfig{},
 		&models.SmartDevice{},
 		&models.PushSubscription{},
+		&models.NoteCategory{},
+		&models.Note{},
 	)
 }

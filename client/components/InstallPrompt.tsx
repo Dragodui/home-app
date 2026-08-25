@@ -1,7 +1,7 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Download, Share, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
-import { Download, Share, X } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "@/stores/themeStore";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -23,10 +23,7 @@ function isIOSSafari(): boolean {
 
 function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as any).standalone === true
-  );
+  return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
 }
 
 export function InstallPrompt() {

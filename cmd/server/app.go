@@ -38,6 +38,7 @@ type repositories struct {
 	smartHome    repository.SmartHomeRepository
 	taskSchedule repository.TaskScheduleRepository
 	pushSub      repository.PushSubscriptionRepository
+	note         repository.NoteRepository
 }
 
 type serviceSet struct {
@@ -57,6 +58,7 @@ type serviceSet struct {
 	ocr          *services.OCRService
 	smartHome    services.ISmartHomeService
 	taskSchedule *services.TaskScheduleService
+	note         *services.NoteService
 }
 
 type handlerSet struct {
@@ -76,6 +78,7 @@ type handlerSet struct {
 	ocr          *handlers.OCRHandler
 	smartHome    *handlers.SmartHomeHandler
 	pushSub      *handlers.PushSubscriptionHandler
+	note         *handlers.NoteHandler
 }
 
 func newAppDeps(cfg *config.Config, db *gorm.DB, cache *redis.Client) (*appDeps, error) {
@@ -112,6 +115,7 @@ func newRepositories(db *gorm.DB) repositories {
 		smartHome:    repository.NewSmartHomeRepository(db),
 		taskSchedule: repository.NewTaskScheduleRepository(db),
 		pushSub:      repository.NewPushSubscriptionRepository(db),
+		note:         repository.NewNoteRepository(db),
 	}
 }
 
@@ -137,6 +141,16 @@ func newServices(cfg *config.Config, cache *redis.Client, repos repositories) (s
 	shoppingSvc := services.NewShoppingService(repos.shopping, cache)
 	pollSvc := services.NewPollService(repos.poll, cache, notificationSvc)
 	userSvc := services.NewUserService(repos.user, cache)
+	noteSvc := services.NewNoteService(
+		repos.note,
+		repos.user,
+		repos.home,
+		repos.task,
+		repos.bill,
+		repos.billCategory,
+		repos.shopping,
+		cache,
+	)
 
 	imageSvc, err := services.NewImageService(cfg.R2S3Bucket, cfg.R2Region, cfg.R2AccountID, cfg.R2AccessKeyID, cfg.R2SecretAccessKey, cfg.R2PublicUrl)
 	if err != nil {
@@ -160,6 +174,7 @@ func newServices(cfg *config.Config, cache *redis.Client, repos repositories) (s
 		ocr:          services.NewOCRService(cfg.GeminiAPIKey),
 		smartHome:    services.NewSmartHomeService(repos.smartHome, cache, cfg.HAEncryptionKey),
 		taskSchedule: services.NewTaskScheduleService(repos.taskSchedule, repos.task, cache, notificationSvc),
+		note:         noteSvc,
 	}, nil
 }
 
@@ -187,6 +202,7 @@ func newHandlers(cfg *config.Config, repos repositories, services serviceSet) ha
 		ocr:          handlers.NewOCRHandler(services.ocr),
 		smartHome:    handlers.NewSmartHomeHandler(services.smartHome),
 		pushSub:      handlers.NewPushSubscriptionHandler(services.pushSub),
+		note:         handlers.NewNoteHandler(services.note, repos.home),
 	}
 }
 
@@ -208,5 +224,6 @@ func (h handlerSet) RouterHandlers() router.HandlerSet {
 		OCR:          h.ocr,
 		SmartHome:    h.smartHome,
 		PushSub:      h.pushSub,
+		Note:         h.note,
 	}
 }

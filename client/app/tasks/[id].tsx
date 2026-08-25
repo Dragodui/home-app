@@ -7,8 +7,8 @@ import { useAlert } from "@/components/ui/alert";
 import Button from "@/components/ui/button";
 import { taskApi } from "@/lib/api";
 import type { Task } from "@/lib/types";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
+import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
@@ -178,7 +178,11 @@ export default function TaskDetailScreen() {
           >
             <ArrowLeft size={22} color={theme.text} />
           </TouchableOpacity>
-          <Text className="flex-1 text-lg font-manrope-bold text-center mx-2" style={{ color: theme.text }} numberOfLines={1}>
+          <Text
+            className="flex-1 text-lg font-manrope-bold text-center mx-2"
+            style={{ color: theme.text }}
+            numberOfLines={1}
+          >
             Task #{task.id}
           </Text>
           {isAdmin && (
@@ -206,7 +210,7 @@ export default function TaskDetailScreen() {
           </Text>
         </View>
 
-          <View className="rounded-3xl p-5 mb-4 gap-3" style={{ backgroundColor: theme.surface }}>
+        <View className="rounded-3xl p-5 mb-4 gap-3" style={{ backgroundColor: theme.surface }}>
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <Calendar size={16} color={theme.textSecondary} />
@@ -246,7 +250,7 @@ export default function TaskDetailScreen() {
             </Text>
           </View>
 
-            {task.room && (
+          {task.room && (
             <View className="flex-row items-center justify-between">
               <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
                 {t.tasks.room}
@@ -272,16 +276,16 @@ export default function TaskDetailScreen() {
                 {scheduleLabel}
               </Text>
             </View>
-            )}
-            <View className="flex-row items-center justify-between">
-              <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
-                {t.tasks.reminderLabel}
-              </Text>
-              <Text className="text-sm font-manrope-semibold text-right flex-1 ml-3" style={{ color: theme.text }}>
-                {reminderText}
-              </Text>
-            </View>
+          )}
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
+              {t.tasks.reminderLabel}
+            </Text>
+            <Text className="text-sm font-manrope-semibold text-right flex-1 ml-3" style={{ color: theme.text }}>
+              {reminderText}
+            </Text>
           </View>
+        </View>
 
         <Button
           title={completed ? "Undo complete" : t.tasks.complete}
