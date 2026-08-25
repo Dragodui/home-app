@@ -383,6 +383,7 @@ export default function BudgetScreen() {
 
   // Trend modal
   const [showTrendModal, setShowTrendModal] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
 
   // Receipt image viewer
   const [showReceiptImageModal, setShowReceiptImageModal] = useState(false);
@@ -1121,17 +1122,6 @@ export default function BudgetScreen() {
           <Text className="text-3xl font-manrope-bold" style={{ color: theme.text }}>
             {t.budget.title}
           </Text>
-          <View className="flex-row gap-2.5">
-            <TouchableOpacity
-              className="px-4 py-2 rounded-xl justify-center items-center"
-              style={{ backgroundColor: theme.surface }}
-              onPress={() => setShowCategoryModal(true)}
-            >
-              <Text className="text-xs font-manrope-semibold" style={{ color: theme.text }}>
-                + {t.budget.category}
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         <View className="flex-row gap-2 mb-6 rounded-3xl p-1.5" style={{ backgroundColor: theme.surface }}>
@@ -1518,11 +1508,44 @@ export default function BudgetScreen() {
         )}
       </ScrollView>
 
-      {/* Floating Add Expense FAB */}
+      {showAddMenu && (
+        <View className="absolute bottom-[188px] right-6 z-40 gap-2.5 items-end">
+          <TouchableOpacity
+            className="flex-row items-center gap-3 px-4 h-12 rounded-2xl shadow-lg"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              setShowAddMenu(false);
+              setShowCategoryModal(true);
+            }}
+            activeOpacity={0.85}
+          >
+            <Wallet size={18} color={theme.text} />
+            <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+              {t.budget.category}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center gap-3 px-4 h-12 rounded-2xl shadow-lg"
+            style={{ backgroundColor: theme.surface }}
+            onPress={() => {
+              setShowAddMenu(false);
+              handleOpenCreateModal();
+            }}
+            activeOpacity={0.85}
+          >
+            <Receipt size={18} color={theme.text} />
+            <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
+              {t.budget.addExpense}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Floating Add Menu FAB */}
       <TouchableOpacity
         className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
         style={{ backgroundColor: theme.accent.pink }}
-        onPress={handleOpenCreateModal}
+        onPress={() => setShowAddMenu((value) => !value)}
         activeOpacity={0.8}
       >
         <Plus size={28} color="#FFFFFF" strokeWidth={2.5} />
