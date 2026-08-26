@@ -37,7 +37,7 @@ export default function ProfileDropdown() {
       const allNotifs = [...(userNotifs || []), ...(homeNotifs || [])];
       setUnreadCount(allNotifs.filter((n) => !n.read).length);
     } catch (error) {
-      console.error(`error while load nottifications: ${error}`);
+      console.error(`error while load notifications: ${error}`);
     }
   }, [home, user]);
 
@@ -137,7 +137,7 @@ export default function ProfileDropdown() {
       >
         <TouchableOpacity
           onPress={() => toggleMenu(!isOpen)}
-          className="flex gap-4 flex-row px-0 py-1"
+          className="flex gap-4 flex-row px-2 py-2"
           activeOpacity={0.8}
         >
           <TouchableOpacity
@@ -149,7 +149,7 @@ export default function ProfileDropdown() {
             <Bell size={22} color={theme.text} />
             {unreadCount > 0 && (
               <View
-                className="absolute -top-1 -right-1 min-w-5 min-h-5 rounded-full justify-center items-center px-1"
+                className="absolute -top-[-3] -right-[-4] min-w-5 min-h-5 rounded-full justify-center items-center px-1"
                 style={{ backgroundColor: theme.accent.pink }}
               >
                 <Text className="text-[11px] font-manrope-bold text-white">
@@ -178,7 +178,7 @@ export default function ProfileDropdown() {
         pointerEvents="none"
         onLayout={(e) => {
           const h = e.nativeEvent.layout.height;
-          if (h > 0 && Math.abs(h - menuHeight) > 0.5) setMenuHeight(h);
+          if (h > 0 && Math.abs(h - menuHeight) > 0.5) setMenuHeight(h+20);
         }}
       >
         <MenuContent items={menuItems} theme={theme} onPress={() => {}} />
@@ -243,6 +243,8 @@ const styles = StyleSheet.create({
     position: "relative",
     alignItems: "flex-end",
     width: 48,
+    top: -20,
+    left: 5,
     height: 48,
     zIndex: 50,
   },
@@ -266,7 +268,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.14,
     shadowRadius: 24,
-    elevation: 12,
+    elevation: 12
   },
   measureHidden: {
     position: "absolute",

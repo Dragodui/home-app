@@ -188,7 +188,7 @@ export default function HomeScreen() {
         {/* Header */}
         <View className="flex-row justify-between items-center mb-6">
           <View className="flex-1">
-            <Text className="text-lg font-manrope italic mb-1" style={{ color: theme.textSecondary }}>
+            <Text className="text-lg font-manrope italic leading-none" style={{ color: theme.textSecondary }}>
               {getGreeting()}
             </Text>
             <Text className="text-4xl font-manrope-bold" style={{ color: theme.text }}>
