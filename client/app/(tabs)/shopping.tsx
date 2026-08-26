@@ -501,12 +501,12 @@ export default function ShoppingScreen() {
             <Text className="flex-1 text-2xl font-manrope-bold" style={{ color: theme.text }}>
               {activeCategory.name}
             </Text>
-            <View
+            {/* <View
               className="w-14 h-14 rounded-[18px] justify-center items-center"
               style={{ backgroundColor: categoryColor }}
             >
               {getCategoryIcon(activeCategory)}
-            </View>
+            </View> */}
           </View>
 
           {/* Items List */}
