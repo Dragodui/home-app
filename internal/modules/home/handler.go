@@ -1,0 +1,615 @@
+package home
+
+import (
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/Dragodui/diploma-server/internal/modules/audit"
+
+	"github.com/Dragodui/diploma-server/internal/http/middleware"
+	"github.com/Dragodui/diploma-server/internal/models"
+	"github.com/Dragodui/diploma-server/internal/utils"
+	"github.com/go-chi/chi/v5"
+)
+
+type Handler struct {
+	svc      IService
+	auditSvc audit.IService
+}
+
+func NewHandler(svc IService) *Handler {
+	return &Handler{svc: svc}
+}
+
+func (h *Handler) SetAuditService(auditSvc audit.IService) {
+	h.auditSvc = auditSvc
+}
+
+// Create godoc
+// @Summary      Create a new home
+// @Description  Create a new home with a name
+// @Tags         home
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        input body models.CreateHomeRequest true "Create Home Request"
+// @Success      201  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Router       /homes/create [post]
+func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
+	var req models.CreateHomeRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// validation
+	if err := utils.Validate.Struct(req); err != nil {
+		utils.JSONValidationErrors(w, err)
+		return
+	}
+
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if err := h.svc.CreateHome(r.Context(), req.Name, userID); err != nil {
+		utils.JSONError(w, "Invalid data", http.StatusBadRequest)
+		return
+	}
+
+	utils.JSON(w, http.StatusCreated, map[string]interface{}{"status": true, "message": "Created successfully"})
+}
+
+// RegenerateInviteCode godoc
+// @Summary      Regenerate invite code
+// @Description  Regenerate invite code for a home
+// @Tags         home
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Router       /homes/{home_id}/regenerate_code [post]
+func (h *Handler) RegenerateInviteCode(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.RegenerateInviteCode(r.Context(), homeID); err != nil {
+		utils.SafeError(w, err, "Failed to regenerate invite code", http.StatusBadRequest)
+		return
+	}
+
+	h.recordAudit(r, audit.EventInviteRegenerate, homeID, "home", &homeID, nil)
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Invite code regenerated successfully"})
+}
+
+// Join godoc
+// @Summary      Join a home
+// @Description  Join a home with an invite code
+// @Tags         home
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        input body models.JoinRequest true "Join Request"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Router       /homes/join [post]
+func (h *Handler) Join(w http.ResponseWriter, r *http.Request) {
+	var req models.JoinRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// validation
+	if err := utils.Validate.Struct(req); err != nil {
+		utils.JSONValidationErrors(w, err)
+		return
+	}
+
+	if strings.TrimSpace(req.Code) == "" {
+		utils.JSONError(w, "Invite code is required", http.StatusBadRequest)
+		return
+	}
+
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := h.svc.JoinHomeByCode(r.Context(), req.Code, userID); err != nil {
+		utils.SafeError(w, err, "Failed to join home", http.StatusBadRequest)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Join request sent, waiting for admin approval"})
+}
+
+// GetUserHomes godoc
+// @Summary      Get all user homes
+// @Description  Get all homes the user belongs to
+// @Tags         home
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  map[string][]models.Home
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /homes/list [get]
+func (h *Handler) GetUserHomes(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	homes, err := h.svc.GetUserHomes(r.Context(), userID)
+	if err != nil {
+		utils.SafeError(w, err, "Error getting user homes", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{
+		"homes": homes,
+	})
+}
+
+// GetUserHome godoc
+// @Summary      Get user's home
+// @Description  Get the home the user belongs to
+// @Tags         home
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  map[string]models.Home
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Router       /homes/my [get]
+func (h Handler) GetUserHome(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	home, err := h.svc.GetUserHome(r.Context(), userID)
+	if err != nil {
+
+		utils.SafeError(w, err, "Error get user home", http.StatusBadRequest)
+		return
+	}
+
+	if home == nil {
+		utils.JSONError(w, "Home not found", http.StatusNotFound)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]*models.Home{
+		"home": home,
+	})
+}
+
+// GetByID godoc
+// @Summary      Get home by ID
+// @Description  Get home details by ID
+// @Tags         home
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Success      200  {object}  map[string]models.Home
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /homes/{home_id} [get]
+func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+	home, err := h.svc.GetHomeByID(r.Context(), homeID)
+	if err != nil {
+		utils.SafeError(w, err, "Error get home by ID", http.StatusInternalServerError)
+		return
+	}
+	if home == nil {
+		utils.JSONError(w, "Home not found", http.StatusNotFound)
+		return
+	}
+	utils.JSON(w, http.StatusOK, map[string]*models.Home{
+		"home": home,
+	})
+}
+
+// Delete godoc
+// @Summary      Delete home
+// @Description  Delete a home by ID
+// @Tags         home
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /homes/{home_id} [delete]
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+	if err := h.svc.DeleteHome(r.Context(), homeID); err != nil {
+		utils.SafeError(w, err, "Error delete home", http.StatusInternalServerError)
+		return
+	}
+	h.recordAuditWithoutHome(r, audit.EventHomeDeleted, "home", &homeID, map[string]any{"deleted_home_id": homeID})
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Deleted successfully"})
+}
+
+// Leave godoc
+// @Summary      Leave home
+// @Description  Leave the current home
+// @Tags         home
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Router       /homes/{home_id}/leave [post]
+func (h *Handler) Leave(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := h.svc.LeaveHome(r.Context(), homeID, userID); err != nil {
+		utils.SafeError(w, err, "Error leave home", http.StatusBadRequest)
+		return
+	}
+
+	h.recordAudit(r, audit.EventMemberLeft, homeID, "user", &userID, nil)
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Left successfully"})
+}
+
+// GetMembers godoc
+// @Summary      Get home members
+// @Description  Get all members of a home (admin only)
+// @Tags         home
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Success      200  {object}  map[string][]models.HomeMembership
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Router       /homes/{home_id}/members [get]
+func (h *Handler) GetMembers(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	members, err := h.svc.GetMembers(r.Context(), homeID)
+	if err != nil {
+		utils.SafeError(w, err, "Error getting members", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{
+		"members": members,
+	})
+}
+
+// RemoveMember godoc
+// @Summary      Remove member
+// @Description  Remove a member from the home
+// @Tags         home
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Param        user_id path int true "User ID"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Router       /homes/{home_id}/members/{user_id} [delete]
+func (h *Handler) RemoveMember(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	userIDStr := chi.URLParam(r, "user_id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	currentUserID := middleware.GetUserID(r)
+	if currentUserID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := h.svc.RemoveMember(r.Context(), homeID, userID, currentUserID); err != nil {
+		utils.SafeError(w, err, "Error remove member", http.StatusBadRequest)
+		return
+	}
+
+	h.recordAudit(r, audit.EventMemberRemoved, homeID, "user", &userID, map[string]any{"removed_user_id": userID})
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "User removed successfully"})
+}
+
+// GetPendingMembers godoc
+// @Summary      Get pending members
+// @Description  Get all pending membership requests for a home (admin only)
+// @Tags         home
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Success      200  {object}  map[string][]models.HomeMembership
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Router       /homes/{home_id}/pending-members [get]
+func (h *Handler) GetPendingMembers(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	members, err := h.svc.GetPendingMembers(r.Context(), homeID)
+	if err != nil {
+		utils.SafeError(w, err, "Error getting pending members", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{
+		"members": members,
+	})
+}
+
+// ApproveMember godoc
+// @Summary      Approve member
+// @Description  Approve a pending membership request (admin only)
+// @Tags         home
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Param        user_id path int true "User ID"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Router       /homes/{home_id}/members/{user_id}/approve [post]
+func (h *Handler) ApproveMember(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	userIDStr := chi.URLParam(r, "user_id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.ApproveMember(r.Context(), homeID, userID); err != nil {
+		utils.SafeError(w, err, "Error approving member", http.StatusBadRequest)
+		return
+	}
+
+	h.recordAudit(r, audit.EventMemberApproved, homeID, "user", &userID, map[string]any{"approved_user_id": userID})
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Member approved successfully"})
+}
+
+// RejectMember godoc
+// @Summary      Reject member
+// @Description  Reject a pending membership request (admin only)
+// @Tags         home
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Param        user_id path int true "User ID"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Router       /homes/{home_id}/members/{user_id}/reject [post]
+func (h *Handler) RejectMember(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	userIDStr := chi.URLParam(r, "user_id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.RejectMember(r.Context(), homeID, userID); err != nil {
+		utils.SafeError(w, err, "Error rejecting member", http.StatusBadRequest)
+		return
+	}
+
+	h.recordAudit(r, audit.EventMemberRejected, homeID, "user", &userID, map[string]any{"rejected_user_id": userID})
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Member rejected successfully"})
+}
+
+// UpdateMemberRole godoc
+// @Summary      Update member role
+// @Description  Update a member's role (admin only)
+// @Tags         home
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Param        user_id path int true "User ID"
+// @Param        input body models.UpdateRoleRequest true "Update Role Request"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Router       /homes/{home_id}/members/{user_id}/role [patch]
+func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	userIDStr := chi.URLParam(r, "user_id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	var req models.UpdateRoleRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := utils.Validate.Struct(req); err != nil {
+		utils.JSONValidationErrors(w, err)
+		return
+	}
+
+	if err := h.svc.UpdateMemberRole(r.Context(), homeID, userID, req.Role); err != nil {
+		utils.SafeError(w, err, "Error updating member role", http.StatusBadRequest)
+		return
+	}
+
+	h.recordAudit(r, audit.EventRoleUpdated, homeID, "user", &userID, map[string]any{"role": req.Role})
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Role updated successfully"})
+}
+
+// UpdateHome godoc
+// @Summary      Update home
+// @Description  Update a home's name and/or currency in one call (admin only); send whichever fields are changing
+// @Tags         home
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        home_id path int true "Home ID"
+// @Param        input body models.UpdateHomeRequest true "Update Home Request"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Router       /homes/{home_id} [patch]
+func (h *Handler) UpdateHome(w http.ResponseWriter, r *http.Request) {
+	homeIDStr := chi.URLParam(r, "home_id")
+	homeID, err := strconv.Atoi(homeIDStr)
+	if err != nil {
+		utils.JSONError(w, "invalid home ID", http.StatusBadRequest)
+		return
+	}
+
+	var req models.UpdateHomeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := utils.Validate.Struct(req); err != nil {
+		utils.JSONValidationErrors(w, err)
+		return
+	}
+
+	if err := h.svc.UpdateHome(r.Context(), homeID, req); err != nil {
+		utils.SafeError(w, err, "Error updating home", http.StatusBadRequest)
+		return
+	}
+
+	auditData := map[string]any{}
+	if req.Name != nil {
+		auditData["name"] = *req.Name
+	}
+	if req.Currency != nil {
+		auditData["currency"] = *req.Currency
+	}
+	h.recordAudit(r, audit.EventHomeUpdated, homeID, "home", &homeID, auditData)
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Home updated successfully"})
+}
+
+func (h *Handler) recordAudit(r *http.Request, eventType string, homeID int, entityType string, entityID *int, metadata map[string]any) {
+	if h.auditSvc == nil {
+		return
+	}
+	actorUserID := middleware.GetUserID(r)
+	record := audit.Record{
+		HomeID:     &homeID,
+		EventType:  eventType,
+		EntityType: entityType,
+		EntityID:   entityID,
+		Metadata:   metadata,
+		IP:         audit.RequestIP(r),
+		UserAgent:  audit.UserAgent(r),
+	}
+	if actorUserID != 0 {
+		record.ActorUserID = &actorUserID
+	}
+	h.auditSvc.RecordBestEffort(r.Context(), record)
+}
+
+func (h *Handler) recordAuditWithoutHome(r *http.Request, eventType string, entityType string, entityID *int, metadata map[string]any) {
+	if h.auditSvc == nil {
+		return
+	}
+	actorUserID := middleware.GetUserID(r)
+	record := audit.Record{
+		EventType:  eventType,
+		EntityType: entityType,
+		EntityID:   entityID,
+		Metadata:   metadata,
+		IP:         audit.RequestIP(r),
+		UserAgent:  audit.UserAgent(r),
+	}
+	if actorUserID != 0 {
+		record.ActorUserID = &actorUserID
+	}
+	h.auditSvc.RecordBestEffort(r.Context(), record)
+}

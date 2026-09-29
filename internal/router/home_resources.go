@@ -3,7 +3,7 @@ package router
 import (
 	"github.com/Dragodui/diploma-server/internal/http/middleware"
 	ratelimiter "github.com/Dragodui/diploma-server/internal/http/rate_limiter"
-	"github.com/Dragodui/diploma-server/internal/repository"
+	"github.com/Dragodui/diploma-server/internal/modules/home"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -100,7 +100,7 @@ func mountPollRoutes(r chi.Router, deps RoutesDeps) {
 	r.With(middleware.RequireMember(homeRepo)).Delete("/{poll_id}/vote", deps.Handlers.Poll.Unvote)
 }
 
-func mountSmartHomeRoutes(r chi.Router, deps RoutesDeps, rateLimiter *ratelimiter.IPRateLimiter, homeRepo repository.HomeRepository) {
+func mountSmartHomeRoutes(r chi.Router, deps RoutesDeps, rateLimiter *ratelimiter.IPRateLimiter, homeRepo home.Repository) {
 	r.With(middleware.RequireAdmin(homeRepo)).Post("/connect", deps.Handlers.SmartHome.Connect)
 	r.With(middleware.RequireAdmin(homeRepo)).Delete("/disconnect", deps.Handlers.SmartHome.Disconnect)
 	r.With(middleware.RequireMember(homeRepo)).Get("/status", deps.Handlers.SmartHome.Status)
@@ -145,4 +145,3 @@ func mountNoteCategoryRoutes(r chi.Router, deps RoutesDeps) {
 	r.With(middleware.RequireMember(homeRepo)).Put("/{category_id}", deps.Handlers.Note.UpdateCategory)
 	r.With(middleware.RequireMember(homeRepo)).Delete("/{category_id}", deps.Handlers.Note.DeleteCategory)
 }
-

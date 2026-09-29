@@ -42,12 +42,12 @@ build:
 	go build -v ./cmd/server
 
 test:
-	go test -v ./internal/test/handlers ./internal/test/middleware ./internal/test/services
+	go test -v ./tests/...
 
 test-verbose: test
 
 swagger:
-	swag init
+	swag init -d ./cmd/server,./internal -g main.go -o ./docs --parseDependency
 
 # ---- Docker Compose ----
 

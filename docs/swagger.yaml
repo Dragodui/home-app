@@ -1,5 +1,35 @@
 basePath: /api
 definitions:
+  github_com_Dragodui_diploma-server_internal_modules_smarthome_homeassistant.HAState:
+    properties:
+      attributes:
+        additionalProperties: true
+        type: object
+      entity_id:
+        type: string
+      last_changed:
+        type: string
+      last_updated:
+        type: string
+      state:
+        type: string
+    type: object
+  models.AddDeviceRequest:
+    properties:
+      entity_id:
+        type: string
+      icon:
+        type: string
+      name:
+        maxLength: 128
+        minLength: 1
+        type: string
+      room_id:
+        type: integer
+    required:
+    - entity_id
+    - name
+    type: object
   models.AssignUserRequest:
     properties:
       date:
@@ -16,36 +46,324 @@ definitions:
       assignment_id:
         type: integer
     type: object
-  models.CreateBillRequest:
-    type: object
-  models.CreateCategoryRequest:
+  models.Bill:
     properties:
+      bill_category:
+        $ref: '#/definitions/models.BillCategory'
+      bill_category_id:
+        type: integer
+      created_at:
+        type: string
+      description:
+        type: string
+      home:
+        allOf:
+        - $ref: '#/definitions/models.Home'
+        description: relations
+      home_id:
+        type: integer
+      id:
+        type: integer
+      is_payed:
+        type: boolean
+      ocr_data:
+        items:
+          type: integer
+        type: array
+      payment_date:
+        type: string
+      period_end:
+        type: string
+      period_start:
+        type: string
+      public:
+        description: separates home/private budget
+        type: boolean
+      receipt_image:
+        type: string
+      splits:
+        items:
+          $ref: '#/definitions/models.BillSplit'
+        type: array
+      total_amount:
+        type: number
+      type:
+        description: Kept for backward compatibility or as fallback
+        type: string
+      uploaded_by:
+        type: integer
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.BillCategory:
+    properties:
+      color:
+        description: Hex color
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: integer
+      creator:
+        $ref: '#/definitions/models.User'
+      home:
+        allOf:
+        - $ref: '#/definitions/models.Home'
+        description: relations
+      home_id:
+        type: integer
+      icon:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      public:
+        type: boolean
+    type: object
+  models.BillListResponse:
+    properties:
+      bills:
+        items:
+          $ref: '#/definitions/models.Bill'
+        type: array
+      status:
+        example: true
+        type: boolean
+    type: object
+  models.BillSplit:
+    properties:
+      amount:
+        type: number
+      bill:
+        $ref: '#/definitions/models.Bill'
+      bill_id:
+        type: integer
+      id:
+        type: integer
+      paid:
+        type: boolean
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: integer
+    type: object
+  models.ConnectHARequest:
+    properties:
+      token:
+        minLength: 10
+        type: string
+      url:
+        type: string
+    required:
+    - token
+    - url
+    type: object
+  models.ControlDeviceRequest:
+    properties:
+      data:
+        additionalProperties: true
+        type: object
+      service:
+        type: string
+    required:
+    - service
+    type: object
+  models.CreateBillCategoryRequest:
+    properties:
+      color:
+        type: string
+      home_id:
+        type: integer
       icon:
         type: string
       name:
+        maxLength: 64
+        minLength: 2
         type: string
+      public:
+        type: boolean
+    required:
+    - home_id
+    - name
     type: object
-  models.CreateHomeRequest:
+  models.CreateBillRequest:
     properties:
+      bill_category_id:
+        type: integer
+      description:
+        type: string
+      is_regular:
+        type: boolean
+      ocr_data:
+        items:
+          type: integer
+        type: array
+      period_end:
+        type: string
+      period_start:
+        type: string
+      public:
+        type: boolean
+      receipt_image:
+        type: string
+      recurrence_day:
+        type: integer
+      recurrence_type:
+        type: string
+      splits:
+        items:
+          $ref: '#/definitions/models.SplitInput'
+        type: array
+      total_amount:
+        minimum: 0
+        type: number
+      type:
+        description: Optional if CategoryID is provided
+        type: string
+    required:
+    - ocr_data
+    - period_end
+    - period_start
+    - total_amount
+    type: object
+  models.CreateCategoryRequest:
+    properties:
+      color:
+        type: string
+      icon:
+        type: string
       name:
-        minLength: 8
+        maxLength: 64
+        minLength: 1
         type: string
     required:
     - name
     type: object
+  models.CreateChatMessageRequest:
+    properties:
+      content:
+        type: string
+      image_url:
+        type: string
+      mentioned_bill_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_bill_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_note_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_shopping_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_shopping_item_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_task_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_user_ids:
+        items:
+          type: integer
+        type: array
+      mentions_all:
+        type: boolean
+      recipient_id:
+        description: |-
+          RecipientID targets a direct conversation; omit it to post to the
+          shared home chat.
+        type: integer
+    type: object
+  models.CreateHomeRequest:
+    properties:
+      name:
+        minLength: 3
+        type: string
+    required:
+    - name
+    type: object
+  models.CreateNoteCategoryRequest:
+    properties:
+      color:
+        type: string
+      home_id:
+        type: integer
+      icon:
+        type: string
+      name:
+        maxLength: 64
+        minLength: 2
+        type: string
+    required:
+    - home_id
+    - name
+    type: object
+  models.CreateNoteRequest:
+    properties:
+      content:
+        type: string
+      mentioned_bill_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_bill_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_note_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_shopping_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_shopping_item_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_task_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_user_ids:
+        items:
+          type: integer
+        type: array
+      note_category_id:
+        type: integer
+      title:
+        maxLength: 256
+        minLength: 1
+        type: string
+    required:
+    - title
+    type: object
   models.CreatePollRequest:
     properties:
+      allow_revote:
+        type: boolean
+      ends_at:
+        type: string
       options:
         items:
           $ref: '#/definitions/models.OptionRequest'
-        minItems: 1
+        minItems: 2
         type: array
       question:
         type: string
       type:
         enum:
-        - single
-        - multiple
+        - public
+        - anonymous
         type: string
     required:
     - question
@@ -53,8 +371,12 @@ definitions:
     type: object
   models.CreateRoomRequest:
     properties:
+      color:
+        type: string
       home_id:
         type: integer
+      icon:
+        type: string
       name:
         type: string
     type: object
@@ -67,7 +389,7 @@ definitions:
       link:
         type: string
       name:
-        minLength: 3
+        minLength: 1
         type: string
     required:
     - category_id
@@ -75,20 +397,60 @@ definitions:
     type: object
   models.CreateTaskRequest:
     properties:
+      assign_user_ids:
+        items:
+          type: integer
+        type: array
       description:
+        type: string
+      due_date:
         type: string
       home_id:
         type: integer
       name:
         type: string
+      reminder_minutes:
+        type: integer
       room_id:
         type: integer
       schedule_type:
         type: string
     type: object
+  models.CreateTaskScheduleRequest:
+    properties:
+      home_id:
+        type: integer
+      recurrence_type:
+        description: daily, weekly, monthly
+        type: string
+      task_id:
+        type: integer
+      user_ids:
+        items:
+          type: integer
+        type: array
+    type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        example: invalid home ID
+        type: string
+      status:
+        example: false
+        type: boolean
+    type: object
+  models.GoogleSignInInput:
+    properties:
+      access_token:
+        type: string
+    required:
+    - access_token
+    type: object
   models.Home:
     properties:
       created_at:
+        type: string
+      currency:
         type: string
       id:
         type: integer
@@ -124,6 +486,8 @@ definitions:
         type: string
       role:
         type: string
+      status:
+        type: string
       user:
         allOf:
         - $ref: '#/definitions/models.User'
@@ -138,13 +502,6 @@ definitions:
     required:
     - code
     type: object
-  models.LeaveRequest:
-    properties:
-      home_id:
-        type: string
-    required:
-    - home_id
-    type: object
   models.LoginInput:
     properties:
       email:
@@ -155,6 +512,50 @@ definitions:
     required:
     - email
     - password
+    type: object
+  models.MarkChatReadRequest:
+    properties:
+      last_message_id:
+        type: integer
+      recipient_id:
+        description: |-
+          RecipientID scopes the read receipt to one direct conversation; omit
+          it to mark the shared home chat as read.
+        type: integer
+    required:
+    - last_message_id
+    type: object
+  models.OCRItem:
+    properties:
+      name:
+        type: string
+      price:
+        type: number
+      quantity:
+        type: number
+    type: object
+  models.OCRResult:
+    properties:
+      confidence:
+        description: Recognition confidence (0-1)
+        type: number
+      date:
+        description: Receipt date
+        type: string
+      items:
+        description: List of items
+        items:
+          $ref: '#/definitions/models.OCRItem'
+        type: array
+      raw_text:
+        description: Raw text for debugging
+        type: string
+      total:
+        description: Total amount
+        type: number
+      vendor:
+        description: Store/company name
+        type: string
     type: object
   models.OptionRequest:
     properties:
@@ -180,31 +581,34 @@ definitions:
       password:
         minLength: 8
         type: string
+      username:
+        maxLength: 32
+        minLength: 3
+        type: string
     required:
     - email
     - name
     - password
-    type: object
-  models.RemoveMemberRequest:
-    properties:
-      home_id:
-        type: string
-      user_id:
-        type: string
-    required:
-    - home_id
-    - user_id
+    - username
     type: object
   models.Room:
     properties:
+      color:
+        type: string
       created_at:
         type: string
+      created_by:
+        type: integer
+      creator:
+        $ref: '#/definitions/models.User'
       home:
         allOf:
         - $ref: '#/definitions/models.Home'
         description: relations
       home_id:
         type: integer
+      icon:
+        type: string
       id:
         type: integer
       name:
@@ -214,6 +618,36 @@ definitions:
           $ref: '#/definitions/models.Task'
         type: array
     type: object
+  models.SmartDevice:
+    properties:
+      created_at:
+        type: string
+      entity_id:
+        type: string
+      home:
+        $ref: '#/definitions/models.Home'
+      home_id:
+        type: integer
+      icon:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      room:
+        $ref: '#/definitions/models.Room'
+      room_id:
+        type: integer
+      type:
+        type: string
+    type: object
+  models.SplitInput:
+    properties:
+      amount:
+        type: number
+      user_id:
+        type: integer
+    type: object
   models.Task:
     properties:
       assignments:
@@ -222,7 +656,13 @@ definitions:
         type: array
       created_at:
         type: string
+      created_by:
+        type: integer
+      creator:
+        $ref: '#/definitions/models.User'
       description:
+        type: string
+      due_date:
         type: string
       home:
         allOf:
@@ -234,10 +674,14 @@ definitions:
         type: integer
       name:
         type: string
+      reminder_minutes:
+        type: integer
       room:
         $ref: '#/definitions/models.Room'
       room_id:
         type: integer
+      schedule:
+        $ref: '#/definitions/models.TaskSchedule'
       schedule_type:
         type: string
     type: object
@@ -251,6 +695,8 @@ definitions:
         type: string
       id:
         type: integer
+      reminder_sent_at:
+        type: string
       status:
         type: string
       task:
@@ -264,8 +710,162 @@ definitions:
       user_id:
         type: integer
     type: object
+  models.TaskSchedule:
+    properties:
+      created_at:
+        type: string
+      current_rotation_index:
+        type: integer
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      next_run_date:
+        type: string
+      recurrence_type:
+        description: daily, weekly, monthly
+        type: string
+      rotation_user_ids:
+        description: JSON array of user IDs in order
+        type: string
+      task:
+        allOf:
+        - $ref: '#/definitions/models.Task'
+        description: relations
+      task_id:
+        type: integer
+    type: object
+  models.UpdateChatMessageRequest:
+    properties:
+      content:
+        minLength: 1
+        type: string
+      image_url:
+        type: string
+      mentioned_bill_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_bill_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_note_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_shopping_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_shopping_item_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_task_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_user_ids:
+        items:
+          type: integer
+        type: array
+      mentions_all:
+        type: boolean
+    type: object
+  models.UpdateDeviceRequest:
+    properties:
+      icon:
+        type: string
+      name:
+        maxLength: 128
+        minLength: 1
+        type: string
+      room_id:
+        type: integer
+    required:
+    - name
+    type: object
+  models.UpdateHomeRequest:
+    properties:
+      currency:
+        enum:
+        - USD
+        - EUR
+        - GBP
+        - PLN
+        - UAH
+        - BYN
+        type: string
+      name:
+        maxLength: 64
+        minLength: 3
+        type: string
+    type: object
+  models.UpdateNoteCategoryRequest:
+    properties:
+      color:
+        type: string
+      icon:
+        type: string
+      name:
+        maxLength: 64
+        minLength: 2
+        type: string
+    type: object
+  models.UpdateNoteRequest:
+    properties:
+      content:
+        type: string
+      mentioned_bill_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_bill_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_note_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_shopping_category_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_shopping_item_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_task_ids:
+        items:
+          type: integer
+        type: array
+      mentioned_user_ids:
+        items:
+          type: integer
+        type: array
+      note_category_id:
+        type: integer
+      title:
+        maxLength: 256
+        minLength: 1
+        type: string
+    type: object
+  models.UpdateRoleRequest:
+    properties:
+      role:
+        enum:
+        - admin
+        - member
+        type: string
+    required:
+    - role
+    type: object
   models.UpdateShoppingCategoryRequest:
     properties:
+      color:
+        type: string
       icon:
         type: string
       name:
@@ -282,7 +882,7 @@ definitions:
       link:
         type: string
       name:
-        minLength: 3
+        minLength: 1
         type: string
     type: object
   models.User:
@@ -293,7 +893,7 @@ definitions:
         type: string
       email:
         type: string
-      emailVerified:
+      email_verified:
         type: boolean
       id:
         type: integer
@@ -304,17 +904,13 @@ definitions:
         type: array
       name:
         type: string
-      resetExpiresAt:
-        type: string
-      resetToken:
-        type: string
+      profile_public:
+        type: boolean
       task_assignments:
         items:
           $ref: '#/definitions/models.TaskAssignment'
         type: array
-      verifyExpiresAt:
-        type: string
-      verifyToken:
+      username:
         type: string
     type: object
   models.VoteRequest:
@@ -371,6 +967,41 @@ paths:
       summary: OAuth2 Callback
       tags:
       - auth
+  /auth/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Change password for authenticated user (requires current password)
+      parameters:
+      - description: Change Password Input
+        in: body
+        name: input
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Change password
+      tags:
+      - auth
   /auth/forgot:
     post:
       consumes:
@@ -391,6 +1022,39 @@ paths:
             additionalProperties: true
             type: object
       summary: Forgot password
+      tags:
+      - auth
+  /auth/google/mobile:
+    post:
+      consumes:
+      - application/json
+      description: Sign in or register with Google credentials from mobile app
+      parameters:
+      - description: Google Sign-In Input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.GoogleSignInInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Sign in with Google (mobile)
       tags:
       - auth
   /auth/login:
@@ -424,6 +1088,27 @@ paths:
             additionalProperties: true
             type: object
       summary: Login user
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Invalidate the current JWT token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Logout user
       tags:
       - auth
   /auth/register:
@@ -518,18 +1203,27 @@ paths:
     get:
       consumes:
       - application/json
-      description: Resends the verification email to the user
+      description: Resends the verification email to the user using token (preferred)
+        or email
       parameters:
+      - description: Old Verification Token
+        in: query
+        name: token
+        type: string
       - description: User Email
         in: query
         name: email
-        required: true
         type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
           schema:
             additionalProperties: true
             type: object
@@ -620,7 +1314,231 @@ paths:
       summary: Get home by ID
       tags:
       - home
+    patch:
+      consumes:
+      - application/json
+      description: Update a home's name and/or currency in one call (admin only);
+        send whichever fields are changing
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Update Home Request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateHomeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update home
+      tags:
+      - home
+  /homes/{home_id}/bill_categories:
+    get:
+      description: Get all bill categories for a home
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all bill categories
+      tags:
+      - BillCategory
+    post:
+      consumes:
+      - application/json
+      description: Create a new bill category for a home
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Create Bill Category Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateBillCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new bill category
+      tags:
+      - BillCategory
+  /homes/{home_id}/bill_categories/{category_id}:
+    delete:
+      description: Delete a bill category by ID
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Category ID
+        in: path
+        name: category_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a bill category
+      tags:
+      - BillCategory
+    patch:
+      description: Update a bill category by ID
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Category ID
+        in: path
+        name: category_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a bill category
+      tags:
+      - BillCategory
   /homes/{home_id}/bills:
+    get:
+      description: Get all bills in a home
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Filter by category ID
+        in: query
+        name: category_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get bills by home ID
+      tags:
+      - bill
     post:
       consumes:
       - application/json
@@ -784,10 +1702,394 @@ paths:
       summary: Mark bill as payed
       tags:
       - bill
-  /homes/{home_id}/leave:
+  /homes/{home_id}/bills/{bill_id}/splits:
+    put:
+      consumes:
+      - application/json
+      description: Update how a bill is split between users (uploader or admin only)
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Bill ID
+        in: path
+        name: bill_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update bill splits
+      tags:
+      - bill
+  /homes/{home_id}/bills/{bill_id}/splits/{split_id}/paid:
+    patch:
+      description: Mark a single user's bill split as paid
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Bill ID
+        in: path
+        name: bill_id
+        required: true
+        type: integer
+      - description: Split ID
+        in: path
+        name: split_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark a split as paid
+      tags:
+      - bill
+  /homes/{home_id}/bills/private:
+    get:
+      description: Returns bills in the selected home where public=false and uploaded_by
+        is the authenticated user. The user must be a member of the home.
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Filter by bill category ID
+        in: query
+        name: category_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Private bills list
+          schema:
+            $ref: '#/definitions/models.BillListResponse'
+        "400":
+          description: Invalid home_id or category_id
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Missing or invalid authentication
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: User is not a member of the home
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to retrieve bills
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List current user's private bills
+      tags:
+      - bill
+  /homes/{home_id}/chat:
+    get:
+      description: Get a page of home chat messages, newest first; pass before_id
+        to page into history
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Return messages older than this message ID
+        in: query
+        name: before_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get chat messages
+      tags:
+      - chat
     post:
       consumes:
       - application/json
+      description: Post a message to the home chat, optionally mentioning users, tasks,
+        bills, shopping items and categories
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Create Chat Message Request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateChatMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Send a chat message
+      tags:
+      - chat
+  /homes/{home_id}/chat/{message_id}:
+    delete:
+      description: Delete your own chat message
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Message ID
+        in: path
+        name: message_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a chat message
+      tags:
+      - chat
+    put:
+      consumes:
+      - application/json
+      description: Edit your own chat message
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Message ID
+        in: path
+        name: message_id
+        required: true
+        type: integer
+      - description: Update Chat Message Request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateChatMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Edit a chat message
+      tags:
+      - chat
+  /homes/{home_id}/chat/conversations:
+    get:
+      description: The shared home chat plus a direct chat with every other member,
+        each with its last message and unread count
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List chat conversations
+      tags:
+      - chat
+  /homes/{home_id}/chat/read:
+    post:
+      consumes:
+      - application/json
+      description: Mark every message up to and including last_message_id as read
+        by the caller
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Mark Chat Read Request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.MarkChatReadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark chat messages as read
+      tags:
+      - chat
+  /homes/{home_id}/chat/unread:
+    get:
+      description: Number of chat messages in the home the caller hasn't read yet
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get unread chat message count
+      tags:
+      - chat
+  /homes/{home_id}/leave:
+    post:
       description: Leave the current home
       parameters:
       - description: Home ID
@@ -795,12 +2097,6 @@ paths:
         name: home_id
         required: true
         type: integer
-      - description: Leave Request
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/models.LeaveRequest'
       produces:
       - application/json
       responses:
@@ -824,10 +2120,43 @@ paths:
       summary: Leave home
       tags:
       - home
+  /homes/{home_id}/members:
+    get:
+      description: Get all members of a home (admin only)
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.HomeMembership'
+              type: array
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get home members
+      tags:
+      - home
   /homes/{home_id}/members/{user_id}:
     delete:
-      consumes:
-      - application/json
       description: Remove a member from the home
       parameters:
       - description: Home ID
@@ -840,12 +2169,6 @@ paths:
         name: user_id
         required: true
         type: integer
-      - description: Remove Member Request
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/models.RemoveMemberRequest'
       produces:
       - application/json
       responses:
@@ -869,6 +2192,490 @@ paths:
       summary: Remove member
       tags:
       - home
+  /homes/{home_id}/members/{user_id}/approve:
+    post:
+      description: Approve a pending membership request (admin only)
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Approve member
+      tags:
+      - home
+  /homes/{home_id}/members/{user_id}/reject:
+    post:
+      description: Reject a pending membership request (admin only)
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Reject member
+      tags:
+      - home
+  /homes/{home_id}/members/{user_id}/role:
+    patch:
+      consumes:
+      - application/json
+      description: Update a member's role (admin only)
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: Update Role Request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update member role
+      tags:
+      - home
+  /homes/{home_id}/note_categories:
+    get:
+      description: Get all note categories in a home
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all note categories
+      tags:
+      - note_category
+    post:
+      consumes:
+      - application/json
+      description: Create a new category for notes in a home
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Create Category Request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateNoteCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create note category
+      tags:
+      - note_category
+  /homes/{home_id}/note_categories/{category_id}:
+    delete:
+      description: Delete a note category by ID
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Category ID
+        in: path
+        name: category_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete note category
+      tags:
+      - note_category
+    put:
+      consumes:
+      - application/json
+      description: Update a note category by ID
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Category ID
+        in: path
+        name: category_id
+        required: true
+        type: integer
+      - description: Update Category Request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateNoteCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update note category
+      tags:
+      - note_category
+  /homes/{home_id}/notes:
+    get:
+      description: Get all notes for a home, optionally filtered by note category
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Category ID filter
+        in: query
+        name: category_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all notes
+      tags:
+      - note
+    post:
+      consumes:
+      - application/json
+      description: Create a new note in a home, optionally mentioning users, tasks,
+        bills, shopping items, and categories
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Create Note Request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateNoteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new note
+      tags:
+      - note
+  /homes/{home_id}/notes/{note_id}:
+    delete:
+      description: Delete a note from a home
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Note ID
+        in: path
+        name: note_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a note
+      tags:
+      - note
+    get:
+      description: Get detailed information of a note including its mentions
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Note ID
+        in: path
+        name: note_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get note by ID
+      tags:
+      - note
+    put:
+      consumes:
+      - application/json
+      description: Update a note details and its mentions
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Note ID
+        in: path
+        name: note_id
+        required: true
+        type: integer
+      - description: Update Note Request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateNoteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a note
+      tags:
+      - note
   /homes/{home_id}/notifications:
     get:
       description: Get all notifications for a home
@@ -948,6 +2755,41 @@ paths:
       summary: Mark home notification as read
       tags:
       - notification
+  /homes/{home_id}/pending-members:
+    get:
+      description: Get all pending membership requests for a home (admin only)
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.HomeMembership'
+              type: array
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get pending members
+      tags:
+      - home
   /homes/{home_id}/polls:
     get:
       description: Get all polls in a home
@@ -1145,6 +2987,42 @@ paths:
       tags:
       - poll
   /homes/{home_id}/polls/{poll_id}/vote:
+    delete:
+      description: Remove user's vote from a poll
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Poll ID
+        in: path
+        name: poll_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove vote from poll
+      tags:
+      - poll
     post:
       consumes:
       - application/json
@@ -1380,6 +3258,34 @@ paths:
       summary: Get room by ID
       tags:
       - room
+  /homes/{home_id}/rooms/{room_id}/devices:
+    get:
+      description: Get all devices assigned to a room
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Room ID
+        in: path
+        name: room_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SmartDevice'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get devices by room
+      tags:
+      - smarthome
   /homes/{home_id}/shopping/categories:
     post:
       consumes:
@@ -1849,6 +3755,305 @@ paths:
       summary: Edit shopping item
       tags:
       - shopping
+  /homes/{home_id}/smarthome/connect:
+    post:
+      consumes:
+      - application/json
+      description: Connect a Home Assistant server to the home
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: HA Connection
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ConnectHARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Connect Home Assistant
+      tags:
+      - smarthome
+  /homes/{home_id}/smarthome/devices:
+    get:
+      description: Get all added devices for the home
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SmartDevice'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get devices
+      tags:
+      - smarthome
+    post:
+      consumes:
+      - application/json
+      description: Add a device from Home Assistant to the app
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Device Info
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AddDeviceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add device
+      tags:
+      - smarthome
+  /homes/{home_id}/smarthome/devices/{device_id}:
+    delete:
+      description: Remove device from the app
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Device ID
+        in: path
+        name: device_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete device
+      tags:
+      - smarthome
+    get:
+      description: Get device details with current state
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Device ID
+        in: path
+        name: device_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get device
+      tags:
+      - smarthome
+    put:
+      consumes:
+      - application/json
+      description: Update device name, room, or icon
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Device ID
+        in: path
+        name: device_id
+        required: true
+        type: integer
+      - description: Device Update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateDeviceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update device
+      tags:
+      - smarthome
+  /homes/{home_id}/smarthome/devices/{device_id}/control:
+    post:
+      consumes:
+      - application/json
+      description: Call a service on the device (turn_on, turn_off, etc.)
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Device ID
+        in: path
+        name: device_id
+        required: true
+        type: integer
+      - description: Control Command
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ControlDeviceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Control device
+      tags:
+      - smarthome
+  /homes/{home_id}/smarthome/disconnect:
+    delete:
+      description: Disconnect Home Assistant from the home
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Disconnect Home Assistant
+      tags:
+      - smarthome
+  /homes/{home_id}/smarthome/discover:
+    get:
+      description: Discover all available devices from Home Assistant
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Dragodui_diploma-server_internal_modules_smarthome_homeassistant.HAState'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Discover devices
+      tags:
+      - smarthome
+  /homes/{home_id}/smarthome/states:
+    get:
+      description: Get current states of all added devices
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Dragodui_diploma-server_internal_modules_smarthome_homeassistant.HAState'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get all device states
+      tags:
+      - smarthome
+  /homes/{home_id}/smarthome/status:
+    get:
+      description: Get connection status and config
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Home Assistant status
+      tags:
+      - smarthome
   /homes/{home_id}/tasks:
     get:
       description: Get all tasks in a home
@@ -2100,6 +4305,49 @@ paths:
       summary: Delete assignment
       tags:
       - task
+  /homes/{home_id}/tasks/{task_id}/complete:
+    patch:
+      description: Mark a task as completed for the current user (auto-assigns if
+        not assigned)
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark task as completed for current user
+      tags:
+      - task
   /homes/{home_id}/tasks/{task_id}/mark-completed:
     patch:
       consumes:
@@ -2150,6 +4398,56 @@ paths:
       summary: Mark assignment as completed
       tags:
       - task
+  /homes/{home_id}/tasks/{task_id}/mark-uncompleted:
+    patch:
+      consumes:
+      - application/json
+      description: Mark an assignment as uncompleted
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      - description: Assignment ID Request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.AssignmentIDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark assignment as uncompleted
+      tags:
+      - task
   /homes/{home_id}/tasks/{task_id}/reassign-room:
     patch:
       consumes:
@@ -2195,6 +4493,142 @@ paths:
       summary: Reassign room for task
       tags:
       - task
+  /homes/{home_id}/tasks/{task_id}/schedule:
+    get:
+      description: Get the recurring schedule configuration for a task
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get schedule for a task
+      tags:
+      - task-schedule
+  /homes/{home_id}/tasks/schedules:
+    get:
+      description: Get all active recurring task schedules in a home
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all schedules for a home
+      tags:
+      - task-schedule
+    post:
+      consumes:
+      - application/json
+      description: Admin creates a schedule that rotates task assignments between
+        users on a daily/weekly/monthly basis
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Create Schedule Request
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateTaskScheduleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a recurring schedule for a task
+      tags:
+      - task-schedule
+  /homes/{home_id}/tasks/schedules/{schedule_id}:
+    delete:
+      description: Delete a recurring task schedule (admin only)
+      parameters:
+      - description: Home ID
+        in: path
+        name: home_id
+        required: true
+        type: integer
+      - description: Schedule ID
+        in: path
+        name: schedule_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a schedule
+      tags:
+      - task-schedule
   /homes/{home_id}/users/{user_id}/assignments:
     get:
       description: Get all assignments for a user in a home
@@ -2349,6 +4783,35 @@ paths:
       summary: Join a home
       tags:
       - home
+  /homes/list:
+    get:
+      description: Get all homes the user belongs to
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.Home'
+              type: array
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all user homes
+      tags:
+      - home
   /homes/my:
     get:
       description: Get the home the user belongs to
@@ -2383,12 +4846,23 @@ paths:
       - home
   /homes/notifications:
     get:
-      description: Get all notifications for the current user
+      description: Get notifications for the current user, optionally scoped to one
+        home via ?home_id=
+      parameters:
+      - description: Home ID to scope notifications to
+        in: query
+        name: home_id
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
           schema:
             additionalProperties: true
             type: object
@@ -2444,6 +4918,44 @@ paths:
       summary: Mark notification as read
       tags:
       - notification
+  /ocr/process:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a file directly for OCR processing. Supports images and
+        PDFs.
+      parameters:
+      - description: Receipt file (image or PDF)
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Language of the receipt text
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.OCRResult'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Process receipt file (image or PDF) with OCR
+      tags:
+      - ocr
   /upload:
     post:
       consumes:

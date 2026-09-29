@@ -1,0 +1,180 @@
+package billing
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/Dragodui/diploma-server/internal/models"
+	"gorm.io/gorm"
+)
+
+type Repository interface {
+	Create(ctx context.Context, b *models.Bill) error
+	FindByID(ctx context.Context, id int) (*models.Bill, error)
+	FindByHomeID(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error)
+	FindPrivateByUserID(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error)
+	Update(ctx context.Context, b *models.Bill) error
+	Delete(ctx context.Context, id int) error
+	MarkPayed(ctx context.Context, id int) error
+	CreateSplits(ctx context.Context, billID int, splits []models.BillSplit) error
+	UpdateSplits(ctx context.Context, billID int, splits []models.BillSplit) error
+	MarkSplitPaid(ctx context.Context, splitID int) error
+	FindSplitByID(ctx context.Context, splitID int) (*models.BillSplit, error)
+	CreateSchedule(ctx context.Context, schedule *models.BillSchedule) error
+	FindDueSchedules(ctx context.Context, now time.Time) ([]models.BillSchedule, error)
+	UpdateSchedule(ctx context.Context, schedule *models.BillSchedule) error
+}
+
+type billRepo struct {
+	db *gorm.DB
+}
+
+func NewRepository(db *gorm.DB) Repository {
+	return &billRepo{db}
+}
+
+func (r *billRepo) Create(ctx context.Context, b *models.Bill) error {
+	return r.db.WithContext(ctx).Create(b).Error
+}
+
+func (r *billRepo) FindByID(ctx context.Context, id int) (*models.Bill, error) {
+	var bill models.Bill
+
+	if err := r.db.WithContext(ctx).
+		Preload("User").
+		Preload("BillSplits").
+		Preload("BillSplits.User").
+		Preload("BillCategory").
+		First(&bill, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &bill, nil
+}
+
+func (r *billRepo) FindByHomeID(ctx context.Context, homeID int, categoryID *int) ([]models.Bill, error) {
+	var bills []models.Bill
+
+	query := r.db.WithContext(ctx).Where("home_id = ?", homeID).Where("public = ?", true)
+	if categoryID != nil {
+		query = query.Where("bill_category_id = ?", *categoryID)
+	}
+
+	if err := query.
+		Preload("User").
+		Preload("BillSplits").
+		Preload("BillSplits.User").
+		Preload("BillCategory").
+		Order("created_at DESC").
+		Find(&bills).Error; err != nil {
+		return nil, err
+	}
+
+	return bills, nil
+}
+
+func (r *billRepo) FindPrivateByUserID(ctx context.Context, homeID, userID int, categoryID *int) ([]models.Bill, error) {
+	var bills []models.Bill
+
+	query := r.db.WithContext(ctx).Where("home_id = ?", homeID).Where("uploaded_by = ?", userID).Where("public = ?", false)
+	if categoryID != nil {
+		query = query.Where("bill_category_id = ?", *categoryID)
+	}
+
+	if err := query.
+		Preload("User").
+		Preload("BillSplits").
+		Preload("BillSplits.User").
+		Preload("BillCategory").
+		Order("created_at DESC").
+		Find(&bills).Error; err != nil {
+		return nil, err
+	}
+
+	return bills, nil
+}
+
+func (r *billRepo) Delete(ctx context.Context, id int) error {
+	if err := r.db.WithContext(ctx).Where("bill_id = ?", id).Delete(&models.BillSplit{}).Error; err != nil {
+		return err
+	}
+	return r.db.WithContext(ctx).Delete(&models.Bill{}, id).Error
+}
+
+func (r *billRepo) Update(ctx context.Context, b *models.Bill) error {
+	return r.db.WithContext(ctx).Save(b).Error
+}
+
+func (r *billRepo) MarkPayed(ctx context.Context, id int) error {
+	var bill models.Bill
+	if err := r.db.WithContext(ctx).First(&bill, id).Error; err != nil {
+		return err
+	}
+
+	bill.Payed = true
+	now := time.Now()
+	bill.PaymentDate = &now
+	if err := r.db.WithContext(ctx).Save(&bill).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *billRepo) CreateSplits(ctx context.Context, billID int, splits []models.BillSplit) error {
+	for i := range splits {
+		splits[i].BillID = billID
+	}
+	return r.db.WithContext(ctx).Create(&splits).Error
+}
+
+func (r *billRepo) UpdateSplits(ctx context.Context, billID int, splits []models.BillSplit) error {
+	// Delete existing splits and create new ones
+	if err := r.db.WithContext(ctx).Where("bill_id = ?", billID).Delete(&models.BillSplit{}).Error; err != nil {
+		return err
+	}
+	if len(splits) == 0 {
+		return nil
+	}
+	for i := range splits {
+		splits[i].BillID = billID
+	}
+	return r.db.WithContext(ctx).Create(&splits).Error
+}
+
+func (r *billRepo) FindSplitByID(ctx context.Context, splitID int) (*models.BillSplit, error) {
+	var split models.BillSplit
+	if err := r.db.WithContext(ctx).First(&split, splitID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &split, nil
+}
+
+func (r *billRepo) MarkSplitPaid(ctx context.Context, splitID int) error {
+	return r.db.WithContext(ctx).Model(&models.BillSplit{}).Where("id = ?", splitID).Update("paid", true).Error
+}
+
+func (r *billRepo) CreateSchedule(ctx context.Context, schedule *models.BillSchedule) error {
+	return r.db.WithContext(ctx).Create(schedule).Error
+}
+
+func (r *billRepo) FindDueSchedules(ctx context.Context, now time.Time) ([]models.BillSchedule, error) {
+	var schedules []models.BillSchedule
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Preload("BillCategory").
+		Where("is_active = ? AND next_run_date <= ?", true, now).
+		Find(&schedules).Error
+	return schedules, err
+}
+
+func (r *billRepo) UpdateSchedule(ctx context.Context, schedule *models.BillSchedule) error {
+	return r.db.WithContext(ctx).Save(schedule).Error
+}

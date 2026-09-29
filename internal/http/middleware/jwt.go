@@ -8,7 +8,6 @@ import (
 
 	"github.com/Dragodui/diploma-server/internal/metrics"
 	"github.com/Dragodui/diploma-server/internal/models"
-	"github.com/Dragodui/diploma-server/internal/repository"
 	"github.com/Dragodui/diploma-server/internal/utils"
 	"github.com/Dragodui/diploma-server/pkg/security"
 	"github.com/redis/go-redis/v9"
@@ -77,11 +76,11 @@ func GetUser(r *http.Request, db *gorm.DB) (*models.User, error) {
 		return nil, errors.New("invalid user ID")
 	}
 
-	userRepo := repository.NewUserRepository(db)
-	user, err := userRepo.FindByID(r.Context(), id)
-	if err != nil {
-		return nil, err
+	var u models.User
+	err := db.WithContext(r.Context()).Where("id=?", id).First(&u).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
 
-	return user, nil
+	return &u, err
 }

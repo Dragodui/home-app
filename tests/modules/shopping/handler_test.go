@@ -1,0 +1,998 @@
+package shopping_test
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/Dragodui/diploma-server/internal/models"
+	"github.com/Dragodui/diploma-server/internal/modules/shopping"
+	"github.com/Dragodui/diploma-server/internal/utils"
+	"github.com/Dragodui/diploma-server/tests/testutil"
+	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// Test fixtures
+var (
+	validCategory = &models.ShoppingCategory{
+		ID:     1,
+		Name:   "Groceries",
+		Icon:   stringPtr("🛒"),
+		Color:  "#ffffff",
+		HomeID: 1,
+	}
+
+	validItem = &models.ShoppingItem{
+		ID:         1,
+		CategoryID: 1,
+		Name:       "Milk",
+		Image:      stringPtr("milk.jpg"),
+		Link:       stringPtr("http://example.com"),
+		UploadedBy: 123,
+		IsBought:   false,
+	}
+
+	validCreateCategoryRequest = models.CreateCategoryRequest{
+		Name:  "Groceries",
+		Icon:  stringPtr("🛒"),
+		Color: "#ffffff",
+	}
+
+	validCreateItemRequest = models.CreateShoppingItemRequest{
+		CategoryID: 1,
+		Name:       "Milk",
+		Image:      stringPtr("milk.jpg"),
+		Link:       stringPtr("http://example.com"),
+	}
+
+	validCreateItemsRequest = models.CreateShoppingItemsRequest{
+		CategoryID: 1,
+		Items: []models.CreateShoppingItemPayload{
+			{Name: "Milk"},
+			{Name: "Bread"},
+		},
+	}
+
+	validUpdateCategoryRequest = models.UpdateShoppingCategoryRequest{
+		Name:  stringPtr("Updated Category"),
+		Icon:  stringPtr("🆕"),
+		Color: stringPtr("#000000"),
+	}
+
+	validUpdateItemRequest = models.UpdateShoppingItemRequest{
+		Name:     stringPtr("Updated Item"),
+		Image:    stringPtr("updated.jpg"),
+		Link:     stringPtr("http://updated.com"),
+		IsBought: boolPtr(true),
+		BoughtAt: timePtr(time.Now()),
+	}
+)
+
+// Helper functions
+func stringPtr(s string) *string     { return &s }
+func boolPtr(b bool) *bool           { return &b }
+func timePtr(t time.Time) *time.Time { return &t }
+
+func setupShoppingHandler(mockSvc *mockShoppingService) *shopping.Handler {
+	return shopping.NewHandler(mockSvc, nil)
+}
+
+func setupShoppingRouter(h *shopping.Handler) *chi.Mux {
+	r := chi.NewRouter()
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r = r.WithContext(utils.WithUserID(r.Context(), 123))
+			next.ServeHTTP(w, r)
+		})
+	})
+	// Categories
+	r.Post("/homes/{home_id}/categories", h.CreateCategory)
+	r.Get("/homes/{home_id}/categories", h.GetAllCategories)
+	r.Get("/homes/{home_id}/categories/{category_id}", h.GetCategoryByID)
+	r.Put("/homes/{home_id}/categories/{category_id}", h.EditCategory)
+	r.Delete("/homes/{home_id}/categories/{category_id}", h.DeleteCategory)
+
+	// Items
+	r.Post("/homes/{home_id}/shopping/items", h.CreateItem)
+	r.Get("/homes/{home_id}/shopping/items/{item_id}", h.GetItemByID)
+	r.Get("/homes/{home_id}/shopping/categories/{category_id}/items", h.GetItemsByCategoryID)
+	r.Put("/homes/{home_id}/shopping/items/{item_id}", h.EditItem)
+	r.Delete("/homes/{home_id}/shopping/items/{item_id}", h.DeleteItem)
+	r.Put("/homes/{home_id}/shopping/items/{item_id}/mark-bought", h.MarkIsBought)
+
+	return r
+}
+
+func assertJSONEqual(t *testing.T, rr *httptest.ResponseRecorder, expected interface{}) {
+	t.Helper()
+	expectedJSON, _ := json.Marshal(expected)
+	assert.JSONEq(t, string(expectedJSON), rr.Body.String())
+}
+
+// Mock service
+type mockShoppingService struct {
+	// Categories
+	CreateCategoryFunc           func(ctx context.Context, name string, icon *string, color string, homeID, createdBy int) error
+	FindAllCategoriesForHomeFunc func(ctx context.Context, homeID int) (*[]models.ShoppingCategory, error)
+	FindCategoryByIDFunc         func(ctx context.Context, categoryID, homeID int) (*models.ShoppingCategory, error)
+	DeleteCategoryFunc           func(ctx context.Context, categoryID, homeID int) error
+	EditCategoryFunc             func(ctx context.Context, categoryID, homeID int, name, icon, color *string) error
+
+	// Items
+	CreateItemFunc            func(ctx context.Context, categoryID, userID int, name string, image, link *string) error
+	FindItemByIDFunc          func(ctx context.Context, itemID int) (*models.ShoppingItem, error)
+	FindItemsByCategoryIDFunc func(ctx context.Context, categoryID int) ([]models.ShoppingItem, error)
+	DeleteItemFunc            func(ctx context.Context, itemID int) error
+	MarkIsBoughtFunc          func(ctx context.Context, itemID int) error
+	EditItemFunc              func(ctx context.Context, itemID int, name, image, link *string, isBought *bool, boughtAt *time.Time) error
+}
+
+// Category methods
+func (m *mockShoppingService) CreateCategory(ctx context.Context, name string, icon *string, color string, homeID, createdBy int) error {
+	if m.CreateCategoryFunc != nil {
+		return m.CreateCategoryFunc(ctx, name, icon, color, homeID, createdBy)
+	}
+	return nil
+}
+
+func (m *mockShoppingService) FindAllCategoriesForHome(ctx context.Context, homeID int) (*[]models.ShoppingCategory, error) {
+	if m.FindAllCategoriesForHomeFunc != nil {
+		return m.FindAllCategoriesForHomeFunc(ctx, homeID)
+	}
+	return nil, nil
+}
+
+func (m *mockShoppingService) FindCategoryByID(ctx context.Context, categoryID, homeID int) (*models.ShoppingCategory, error) {
+	if m.FindCategoryByIDFunc != nil {
+		return m.FindCategoryByIDFunc(ctx, categoryID, homeID)
+	}
+	return &models.ShoppingCategory{
+		ID:        categoryID,
+		Name:      validCategory.Name,
+		Icon:      validCategory.Icon,
+		Color:     validCategory.Color,
+		HomeID:    homeID,
+		CreatedBy: 123,
+	}, nil
+}
+
+func (m *mockShoppingService) DeleteCategory(ctx context.Context, categoryID, homeID int) error {
+	if m.DeleteCategoryFunc != nil {
+		return m.DeleteCategoryFunc(ctx, categoryID, homeID)
+	}
+	return nil
+}
+
+func (m *mockShoppingService) EditCategory(ctx context.Context, categoryID, homeID int, name, icon, color *string) error {
+	if m.EditCategoryFunc != nil {
+		return m.EditCategoryFunc(ctx, categoryID, homeID, name, icon, color)
+	}
+	return nil
+}
+
+// Item methods
+func (m *mockShoppingService) CreateItem(ctx context.Context, categoryID, userID int, name string, image, link *string) error {
+	if m.CreateItemFunc != nil {
+		return m.CreateItemFunc(ctx, categoryID, userID, name, image, link)
+	}
+	return nil
+}
+
+func (m *mockShoppingService) FindItemByID(ctx context.Context, itemID int) (*models.ShoppingItem, error) {
+	if m.FindItemByIDFunc != nil {
+		return m.FindItemByIDFunc(ctx, itemID)
+	}
+	return &models.ShoppingItem{
+		ID:         itemID,
+		CategoryID: validItem.CategoryID,
+		Name:       validItem.Name,
+		Image:      validItem.Image,
+		Link:       validItem.Link,
+		UploadedBy: validItem.UploadedBy,
+		IsBought:   validItem.IsBought,
+	}, nil
+}
+
+func (m *mockShoppingService) FindItemsByCategoryID(ctx context.Context, categoryID int) ([]models.ShoppingItem, error) {
+	if m.FindItemsByCategoryIDFunc != nil {
+		return m.FindItemsByCategoryIDFunc(ctx, categoryID)
+	}
+	return nil, nil
+}
+
+func (m *mockShoppingService) DeleteItem(ctx context.Context, itemID int) error {
+	if m.DeleteItemFunc != nil {
+		return m.DeleteItemFunc(ctx, itemID)
+	}
+	return nil
+}
+
+func (m *mockShoppingService) MarkIsBought(ctx context.Context, itemID int) error {
+	if m.MarkIsBoughtFunc != nil {
+		return m.MarkIsBoughtFunc(ctx, itemID)
+	}
+	return nil
+}
+
+func (m *mockShoppingService) EditItem(ctx context.Context, itemID int, name, image, link *string, isBought *bool, boughtAt *time.Time) error {
+	if m.EditItemFunc != nil {
+		return m.EditItemFunc(ctx, itemID, name, image, link, isBought, boughtAt)
+	}
+	return nil
+}
+
+// CATEGORY TESTS
+func TestShoppingHandler_Categories(t *testing.T) {
+	t.Run("CreateCategory", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			homeID         string
+			body           interface{}
+			mockFunc       func(ctx context.Context, name string, icon *string, color string, homeID, createdBy int) error
+			expectedStatus int
+			expectedBody   string
+		}{
+			{
+				name:   "Success",
+				homeID: "1",
+				body:   validCreateCategoryRequest,
+				mockFunc: func(ctx context.Context, name string, icon *string, color string, homeID, createdBy int) error {
+					assert.Equal(t, "Groceries", name)
+					assert.Equal(t, "🛒", *icon)
+					assert.Equal(t, "#ffffff", color)
+					assert.Equal(t, 1, homeID)
+					return nil
+				},
+				expectedStatus: http.StatusCreated,
+				expectedBody:   "Created successfully",
+			},
+			{
+				name:           "Invalid Home ID",
+				homeID:         "invalid",
+				body:           validCreateCategoryRequest,
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid home ID",
+			},
+			{
+				name:           "Invalid JSON",
+				homeID:         "1",
+				body:           "{bad json}",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "Invalid JSON",
+			},
+			{
+				name:   "Service Error",
+				homeID: "1",
+				body:   validCreateCategoryRequest,
+				mockFunc: func(ctx context.Context, name string, icon *string, color string, homeID, createdBy int) error {
+					return errors.New("service error")
+				},
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "Invalid data",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				svc := &mockShoppingService{
+					CreateCategoryFunc: tt.mockFunc,
+				}
+
+				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
+
+				var req *http.Request
+				if tt.name == "Invalid JSON" {
+					req = httptest.NewRequest(http.MethodPost, "/homes/"+tt.homeID+"/categories",
+						bytes.NewBufferString("{bad json}"))
+				} else {
+					req = testutil.MakeJSONRequest(http.MethodPost, "/homes/"+tt.homeID+"/categories", tt.body)
+				}
+
+				rr := httptest.NewRecorder()
+				r.ServeHTTP(rr, req)
+
+				testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+			})
+		}
+	})
+
+	t.Run("GetAllCategories", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			homeID         string
+			mockFunc       func(ctx context.Context, homeID int) (*[]models.ShoppingCategory, error)
+			expectedStatus int
+			expectedBody   string
+		}{
+			{
+				name:   "Success",
+				homeID: "1",
+				mockFunc: func(ctx context.Context, homeID int) (*[]models.ShoppingCategory, error) {
+					require.Equal(t, 1, homeID)
+					categories := []models.ShoppingCategory{*validCategory}
+					return &categories, nil
+				},
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Groceries",
+			},
+			{
+				name:           "Invalid Home ID",
+				homeID:         "invalid",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid home ID",
+			},
+			{
+				name:   "Service Error",
+				homeID: "1",
+				mockFunc: func(ctx context.Context, homeID int) (*[]models.ShoppingCategory, error) {
+					return nil, errors.New("service error")
+				},
+				expectedStatus: http.StatusInternalServerError,
+				expectedBody:   "Failed to retrieve categories",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				svc := &mockShoppingService{
+					FindAllCategoriesForHomeFunc: tt.mockFunc,
+				}
+
+				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
+
+				req := httptest.NewRequest(http.MethodGet, "/homes/"+tt.homeID+"/categories", nil)
+				rr := httptest.NewRecorder()
+
+				r.ServeHTTP(rr, req)
+
+				testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+			})
+		}
+	})
+
+	t.Run("GetCategoryByID", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			categoryID     string
+			homeID         string
+			mockFunc       func(ctx context.Context, categoryID, homeID int) (*models.ShoppingCategory, error)
+			expectedStatus int
+			expectedBody   string
+		}{
+			{
+				name:       "Success",
+				categoryID: "1",
+				homeID:     "1",
+				mockFunc: func(ctx context.Context, categoryID, homeID int) (*models.ShoppingCategory, error) {
+					require.Equal(t, 1, categoryID)
+					return validCategory, nil
+				},
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Groceries",
+			},
+			{
+				name:           "Invalid Category ID",
+				categoryID:     "invalid",
+				homeID:         "1",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid category ID",
+			},
+			{
+				name:           "Invalid Home ID",
+				categoryID:     "1",
+				homeID:         "invalid",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid home ID",
+			},
+			{
+				name:       "Service Error",
+				categoryID: "1",
+				homeID:     "1",
+				mockFunc: func(ctx context.Context, categoryID, homeID int) (*models.ShoppingCategory, error) {
+					return nil, errors.New("service error")
+				},
+				expectedStatus: http.StatusInternalServerError,
+				expectedBody:   "Failed to retrieve category",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				svc := &mockShoppingService{
+					FindCategoryByIDFunc: tt.mockFunc,
+				}
+
+				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
+
+				req := httptest.NewRequest(http.MethodGet,
+					"/homes/"+tt.homeID+"/categories/"+tt.categoryID, nil)
+				rr := httptest.NewRecorder()
+
+				r.ServeHTTP(rr, req)
+
+				testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+			})
+		}
+	})
+
+	t.Run("EditCategory", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			categoryID     string
+			homeID         string
+			body           interface{}
+			mockFunc       func(ctx context.Context, categoryID, homeID int, name, icon, color *string) error
+			expectedStatus int
+			expectedBody   string
+		}{
+			{
+				name:       "Success",
+				categoryID: "1",
+				homeID:     "1",
+				body:       validUpdateCategoryRequest,
+				mockFunc: func(ctx context.Context, categoryID, homeID int, name, icon, color *string) error {
+					assert.Equal(t, 1, categoryID)
+					assert.Equal(t, 1, homeID)
+					assert.Equal(t, "Updated Category", *name)
+					assert.Equal(t, "#000000", *color)
+					assert.Equal(t, "🆕", *icon)
+					return nil
+				},
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Updated successfully",
+			},
+			{
+				name:           "Invalid Category ID",
+				categoryID:     "invalid",
+				homeID:         "1",
+				body:           validUpdateCategoryRequest,
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid category ID",
+			},
+			{
+				name:           "Invalid Home ID",
+				categoryID:     "1",
+				homeID:         "invalid",
+				body:           validUpdateCategoryRequest,
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid home ID",
+			},
+			{
+				name:           "Invalid JSON",
+				categoryID:     "1",
+				homeID:         "1",
+				body:           "{bad json}",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "Invalid data",
+			},
+			{
+				name:       "Service Error",
+				categoryID: "1",
+				homeID:     "1",
+				body:       validUpdateCategoryRequest,
+				mockFunc: func(ctx context.Context, categoryID, homeID int, name, icon, color *string) error {
+					return errors.New("edit failed")
+				},
+				expectedStatus: http.StatusInternalServerError,
+				expectedBody:   "Failed to update category",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				svc := &mockShoppingService{
+					EditCategoryFunc: tt.mockFunc,
+				}
+
+				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
+
+				var req *http.Request
+				if tt.name == "Invalid JSON" {
+					req = httptest.NewRequest(http.MethodPut,
+						"/homes/"+tt.homeID+"/categories/"+tt.categoryID,
+						bytes.NewBufferString("{bad json}"))
+				} else {
+					req = testutil.MakeJSONRequest(http.MethodPut,
+						"/homes/"+tt.homeID+"/categories/"+tt.categoryID, tt.body)
+				}
+
+				rr := httptest.NewRecorder()
+				r.ServeHTTP(rr, req)
+
+				testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+			})
+		}
+	})
+
+	t.Run("DeleteCategory", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			categoryID     string
+			homeID         string
+			mockFunc       func(ctx context.Context, categoryID, homeID int) error
+			expectedStatus int
+			expectedBody   string
+		}{
+			{
+				name:       "Success",
+				categoryID: "1",
+				homeID:     "1",
+				mockFunc: func(ctx context.Context, categoryID, homeID int) error {
+					assert.Equal(t, 1, categoryID)
+					assert.Equal(t, 1, homeID)
+					return nil
+				},
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Deleted successfully",
+			},
+			{
+				name:           "Invalid Category ID",
+				categoryID:     "invalid",
+				homeID:         "1",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid category ID",
+			},
+			{
+				name:           "Invalid Home ID",
+				categoryID:     "1",
+				homeID:         "invalid",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid home ID",
+			},
+			{
+				name:       "Service Error",
+				categoryID: "1",
+				homeID:     "1",
+				mockFunc: func(ctx context.Context, categoryID, homeID int) error {
+					return errors.New("delete failed")
+				},
+				expectedStatus: http.StatusInternalServerError,
+				expectedBody:   "Failed to delete category",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				svc := &mockShoppingService{
+					DeleteCategoryFunc: tt.mockFunc,
+					FindCategoryByIDFunc: func(ctx context.Context, categoryID, homeID int) (*models.ShoppingCategory, error) {
+						return &models.ShoppingCategory{ID: categoryID, HomeID: homeID, CreatedBy: 123}, nil
+					},
+				}
+
+				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
+
+				req := httptest.NewRequest(http.MethodDelete,
+					"/homes/"+tt.homeID+"/categories/"+tt.categoryID, nil)
+				rr := httptest.NewRecorder()
+
+				r.ServeHTTP(rr, req)
+
+				testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+			})
+		}
+	})
+}
+
+// ITEM TESTS
+func TestShoppingHandler_Items(t *testing.T) {
+	t.Run("CreateItem", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			body           interface{}
+			mockFunc       func(ctx context.Context, categoryID, userID int, name string, image, link *string) error
+			expectedCalls  int
+			expectedStatus int
+			expectedBody   string
+		}{
+			{
+				name: "Success",
+				body: validCreateItemRequest,
+				mockFunc: func(ctx context.Context, categoryID, userID int, name string, image, link *string) error {
+					assert.Equal(t, 1, categoryID)
+					assert.Equal(t, "Milk", name)
+					assert.Equal(t, "milk.jpg", *image)
+					assert.Equal(t, "http://example.com", *link)
+					return nil
+				},
+				expectedCalls:  1,
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Created successfully",
+			},
+			{
+				name: "Bulk Success",
+				body: validCreateItemsRequest,
+				mockFunc: func() func(ctx context.Context, categoryID, userID int, name string, image, link *string) error {
+					calls := 0
+					return func(ctx context.Context, categoryID, userID int, name string, image, link *string) error {
+						assert.Equal(t, 1, categoryID)
+						calls++
+						if calls == 1 {
+							assert.Equal(t, "Milk", name)
+						}
+						if calls == 2 {
+							assert.Equal(t, "Bread", name)
+						}
+						return nil
+					}
+				}(),
+				expectedCalls:  2,
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Created successfully",
+			},
+			{
+				name:           "Invalid JSON",
+				body:           "{bad json}",
+				mockFunc:       nil,
+				expectedCalls:  0,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "Invalid data",
+			},
+			{
+				name: "Service Error",
+				body: validCreateItemRequest,
+				mockFunc: func(ctx context.Context, categoryID, userID int, name string, image, link *string) error {
+					return errors.New("service error")
+				},
+				expectedCalls:  1,
+				expectedStatus: http.StatusInternalServerError,
+				expectedBody:   "Failed to create item",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				callCount := 0
+				svc := &mockShoppingService{
+					CreateItemFunc: func(ctx context.Context, categoryID, userID int, name string, image, link *string) error {
+						callCount++
+						if tt.mockFunc == nil {
+							return nil
+						}
+						return tt.mockFunc(ctx, categoryID, userID, name, image, link)
+					},
+				}
+
+				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
+
+				var req *http.Request
+				if tt.name == "Invalid JSON" {
+					req = httptest.NewRequest(http.MethodPost, "/homes/1/shopping/items",
+						bytes.NewBufferString("{bad json}"))
+				} else {
+					req = testutil.MakeJSONRequest(http.MethodPost, "/homes/1/shopping/items", tt.body)
+				}
+
+				rr := httptest.NewRecorder()
+				r.ServeHTTP(rr, req)
+
+				testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+				assert.Equal(t, tt.expectedCalls, callCount)
+			})
+		}
+	})
+
+	t.Run("GetItemByID", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			itemID         string
+			mockFunc       func(ctx context.Context, itemID int) (*models.ShoppingItem, error)
+			expectedStatus int
+			expectedBody   string
+		}{
+			{
+				name:   "Success",
+				itemID: "1",
+				mockFunc: func(ctx context.Context, itemID int) (*models.ShoppingItem, error) {
+					require.Equal(t, 1, itemID)
+					return validItem, nil
+				},
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Milk",
+			},
+			{
+				name:           "Invalid Item ID",
+				itemID:         "invalid",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid item ID",
+			},
+			{
+				name:   "Service Error",
+				itemID: "1",
+				mockFunc: func(ctx context.Context, itemID int) (*models.ShoppingItem, error) {
+					return nil, errors.New("service error")
+				},
+				expectedStatus: http.StatusInternalServerError,
+				expectedBody:   "Failed to retrieve item",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				svc := &mockShoppingService{
+					FindItemByIDFunc: tt.mockFunc,
+				}
+
+				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
+
+				req := httptest.NewRequest(http.MethodGet, "/homes/1/shopping/items/"+tt.itemID, nil)
+				rr := httptest.NewRecorder()
+
+				r.ServeHTTP(rr, req)
+
+				testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+			})
+		}
+	})
+
+	t.Run("GetItemsByCategoryID", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			categoryID     string
+			mockFunc       func(ctx context.Context, categoryID int) ([]models.ShoppingItem, error)
+			expectedStatus int
+			expectedBody   string
+		}{
+			{
+				name:       "Success",
+				categoryID: "1",
+				mockFunc: func(ctx context.Context, categoryID int) ([]models.ShoppingItem, error) {
+					require.Equal(t, 1, categoryID)
+					return []models.ShoppingItem{*validItem}, nil
+				},
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Milk",
+			},
+			{
+				name:           "Invalid Category ID",
+				categoryID:     "invalid",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid category ID",
+			},
+			{
+				name:       "Service Error",
+				categoryID: "1",
+				mockFunc: func(ctx context.Context, categoryID int) ([]models.ShoppingItem, error) {
+					return nil, errors.New("service error")
+				},
+				expectedStatus: http.StatusInternalServerError,
+				expectedBody:   "Failed to retrieve items",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				svc := &mockShoppingService{
+					FindItemsByCategoryIDFunc: tt.mockFunc,
+				}
+
+				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
+
+				req := httptest.NewRequest(http.MethodGet,
+					"/homes/1/shopping/categories/"+tt.categoryID+"/items", nil)
+				rr := httptest.NewRecorder()
+
+				r.ServeHTTP(rr, req)
+
+				testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+			})
+		}
+	})
+
+	t.Run("EditItem", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			itemID         string
+			body           interface{}
+			mockFunc       func(ctx context.Context, itemID int, name, image, link *string, isBought *bool, boughtAt *time.Time) error
+			expectedStatus int
+			expectedBody   string
+		}{
+			{
+				name:   "Success",
+				itemID: "1",
+				body:   validUpdateItemRequest,
+				mockFunc: func(ctx context.Context, itemID int, name, image, link *string, isBought *bool, boughtAt *time.Time) error {
+					assert.Equal(t, 1, itemID)
+					assert.Equal(t, "Updated Item", *name)
+					assert.Equal(t, "updated.jpg", *image)
+					assert.True(t, *isBought)
+					return nil
+				},
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Edited successfully",
+			},
+			{
+				name:           "Invalid Item ID",
+				itemID:         "invalid",
+				body:           validUpdateItemRequest,
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid item ID",
+			},
+			{
+				name:           "Invalid JSON",
+				itemID:         "1",
+				body:           "{bad json}",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid data",
+			},
+			{
+				name:   "Service Error",
+				itemID: "1",
+				body:   validUpdateItemRequest,
+				mockFunc: func(ctx context.Context, itemID int, name, image, link *string, isBought *bool, boughtAt *time.Time) error {
+					return errors.New("edit failed")
+				},
+				expectedStatus: http.StatusInternalServerError,
+				expectedBody:   "Failed to update item",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				svc := &mockShoppingService{
+					EditItemFunc: tt.mockFunc,
+				}
+
+				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
+
+				var req *http.Request
+				if tt.name == "Invalid JSON" {
+					req = httptest.NewRequest(http.MethodPut, "/homes/1/shopping/items/"+tt.itemID,
+						bytes.NewBufferString("{bad json}"))
+				} else {
+					req = testutil.MakeJSONRequest(http.MethodPut, "/homes/1/shopping/items/"+tt.itemID, tt.body)
+				}
+
+				rr := httptest.NewRecorder()
+				r.ServeHTTP(rr, req)
+
+				testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+			})
+		}
+	})
+
+	t.Run("DeleteItem", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			itemID         string
+			mockFunc       func(ctx context.Context, itemID int) error
+			expectedStatus int
+			expectedBody   string
+		}{
+			{
+				name:   "Success",
+				itemID: "1",
+				mockFunc: func(ctx context.Context, itemID int) error {
+					assert.Equal(t, 1, itemID)
+					return nil
+				},
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Deleted successfully",
+			},
+			{
+				name:           "Invalid Item ID",
+				itemID:         "invalid",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid item ID",
+			},
+			{
+				name:   "Service Error",
+				itemID: "1",
+				mockFunc: func(ctx context.Context, itemID int) error {
+					return errors.New("delete failed")
+				},
+				expectedStatus: http.StatusInternalServerError,
+				expectedBody:   "Failed to delete item",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				svc := &mockShoppingService{
+					DeleteItemFunc: tt.mockFunc,
+					FindItemByIDFunc: func(ctx context.Context, itemID int) (*models.ShoppingItem, error) {
+						return &models.ShoppingItem{ID: itemID, CategoryID: 1, UploadedBy: 123}, nil
+					},
+				}
+
+				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
+
+				req := httptest.NewRequest(http.MethodDelete, "/homes/1/shopping/items/"+tt.itemID, nil)
+				rr := httptest.NewRecorder()
+
+				r.ServeHTTP(rr, req)
+
+				testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+			})
+		}
+	})
+
+	t.Run("MarkIsBought", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			itemID         string
+			mockFunc       func(ctx context.Context, itemID int) error
+			expectedStatus int
+			expectedBody   string
+		}{
+			{
+				name:   "Success",
+				itemID: "1",
+				mockFunc: func(ctx context.Context, itemID int) error {
+					assert.Equal(t, 1, itemID)
+					return nil
+				},
+				expectedStatus: http.StatusOK,
+				expectedBody:   "Marked successfully",
+			},
+			{
+				name:           "Invalid Item ID",
+				itemID:         "invalid",
+				mockFunc:       nil,
+				expectedStatus: http.StatusBadRequest,
+				expectedBody:   "invalid item ID",
+			},
+			{
+				name:   "Service Error",
+				itemID: "1",
+				mockFunc: func(ctx context.Context, itemID int) error {
+					return errors.New("mark failed")
+				},
+				expectedStatus: http.StatusInternalServerError,
+				expectedBody:   "Failed to mark item as bought",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				svc := &mockShoppingService{
+					MarkIsBoughtFunc: tt.mockFunc,
+				}
+
+				h := setupShoppingHandler(svc)
+				r := setupShoppingRouter(h)
+
+				req := httptest.NewRequest(http.MethodPut, "/homes/1/shopping/items/"+tt.itemID+"/mark-bought", nil)
+				rr := httptest.NewRecorder()
+
+				r.ServeHTTP(rr, req)
+
+				testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+			})
+		}
+	})
+
+}

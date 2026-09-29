@@ -21,38 +21,39 @@ air
 go build -v ./cmd/server
 
 # Run the full test suite (same set CI runs)
-go test -v ./internal/test/handlers ./internal/test/middleware ./internal/test/services
+go test -v ./tests/...   # or: make test
 
 # Run a single test
-go test -v ./internal/test/handlers -run TestRoomHandler_Create
+go test -v ./tests/modules/room -run TestRoomHandler_Create
 
 # Run everything via Docker Compose (API, Postgres, Redis, Prometheus, Grafana)
 docker compose -f docker-compose.dev.yaml up --build   # dev, hot-reload
 docker compose up --build -d                            # prod-like
 ```
 
-Swagger docs are pre-generated into `docs/` (`docs.go`, `swagger.json`, `swagger.yaml`) from `@Summary`/`@Router` annotations on handler methods (see any file in `internal/http/handlers`); regenerate with `swag init` after changing handler annotations. Served at `/swagger/*` behind Basic Auth (`AdminUsername`/`AdminPassword`).
+Swagger docs are pre-generated into `docs/` (`docs.go`, `swagger.json`, `swagger.yaml`) from `@Summary`/`@Router` annotations on handler methods (see any `handler.go` in `internal/modules/*`); regenerate with `make swagger` after changing handler annotations. Served at `/swagger/*` behind Basic Auth (`AdminUsername`/`AdminPassword`).
 
 ### Architecture
 
 Strictly layered, dependency-injected by hand (no DI framework):
 
 ```
-router → handlers → services (interfaces) → repository (interfaces) → models (GORM)
+router → modules/<domain> (handler → service interface → repository interface) → models (GORM)
 ```
 
 - **`cmd/server/`** — composition root. `app.go` builds every repository, service, and handler and wires them into `serviceSet`/`handlerSet`/`repositories` structs; `server.go` (`NewServer`/`Run`) owns DB/Redis connections, migrations, background workers, and graceful shutdown; `workers.go` starts the scheduled goroutines (task scheduler, task reminders, bill scheduler). When adding a new domain, extend all three struct groups in `app.go` the same way existing ones (e.g. `room`, `bill`) are wired.
 - **`internal/router/setup_routes.go`** — single source of truth for all HTTP routes, built with `go-chi`. Routes are nested under `/api/homes/{home_id}/...`; most domain routes are split into per-domain `mountXRoutes(r, deps)` helpers in sibling files (`home_resources.go` etc.). Route-level middleware enforces membership (`middleware.RequireMember`) or admin role (`middleware.RequireAdmin`) per home — check the existing route tree before adding a new protected route rather than reinventing auth checks in the handler.
-- **`internal/http/handlers/`** — thin HTTP layer: decode request, call one service method, write response via `utils.JSON`/`utils.JSONError`/`utils.SafeError`. Ownership/admin checks that need cross-cutting data (e.g. "is this room's home the one in the URL, and is the caller its creator or a home admin") live here, using `middleware.GetUserID(r)` and the injected `repository.HomeRepository`, not inside the service.
-- **`internal/services/`** — business logic. Each domain exposes a public `IXService` interface (e.g. `IRoomService`, `IBillService`) implemented by an unexported struct; handlers depend on the interface, enabling mocking in tests (see `internal/test/handlers/room_test.go` for the mock pattern). Services commonly take a Redis cache client and the `NotificationService` as dependencies for cache invalidation and cross-domain notifications.
-- **`internal/repository/`** — GORM data access behind an interface per domain, same interface/struct pattern as services.
+- **`internal/modules/<domain>/`** — one Go package per domain (`auth`, `user`, `home`, `room`, `task`, `billing`, `shopping`, `poll`, `note`, `chat`, `notification`, `audit`, `smarthome`, `image`). Each package holds its handler, service, and repository layers side by side in `handler.go`/`service.go`/`repository.go`. Names don't repeat the package: `room.Handler`/`room.NewHandler`, `room.IService` (interface) + `room.Service` (implementation)/`room.NewService`, `room.Repository`/`room.NewRepository`. When a module groups several subdomains, the secondary ones get a prefix in both file and type names: `billing` = bills + `Category*` (`category_*.go`) + `OCR*` (`ocr_*.go`); `task` = tasks + `Schedule*`; `notification` = notifications + `Push*` (push subscriptions). Modules import each other directly (e.g. `billing` uses `home.IService` and `notification.IService`); keep the import graph acyclic — when a lower-level package needs something from a module that imports it, declare a small consumer-side interface instead (see `middleware.HomeRoleChecker`, `notification.HomeMembersGetter`).
+  - **Handlers** — thin HTTP layer: decode request, call one service method, write response via `utils.JSON`/`utils.JSONError`/`utils.SafeError`. Ownership/admin checks that need cross-cutting data (e.g. "is this room's home the one in the URL, and is the caller its creator or a home admin") live here, using `middleware.GetUserID(r)` and the injected `home.Repository`, not inside the service.
+  - **Services** — business logic. Each domain exposes a public `IService` interface (e.g. `room.IService`, `billing.ICategoryService`); handlers depend on the interface, enabling mocking in tests (see `tests/modules/room/handler_test.go` for the mock pattern). Services commonly take a Redis cache client and the notification service as dependencies for cache invalidation and cross-domain notifications.
+  - **Repositories** — GORM data access behind an interface per domain, same interface/struct pattern as services.
 - **`internal/models/`** — GORM models plus request/response DTOs (e.g. `CreateRoomRequest`) colocated in the same file as the model they belong to.
 - **`internal/http/middleware/`** — JWT auth, home membership/role checks, rate limiting (global + per-route "strict" limiters via `middleware.StrictRateLimitMiddleware`, see auth/upload/OCR routes in `setup_routes.go` for the pattern), request logging, Prometheus metrics, security headers, body size limits.
 - **`internal/http/websocket/`** — WebSocket hub for real-time push; events are dispatched by module (TASK, BILL, POLL, etc.) — see `internal/event/event.go`.
 - **`internal/metrics/`** — Prometheus metrics, including a GORM plugin (`gorm_plugin.go`) that auto-instruments DB queries. Exposed at `/metrics` behind Basic Auth.
 - **`internal/config/config.go`** — all env-driven config in one `Config` struct, loaded once in `NewServer`. Add new env vars here.
 - **`pkg/security/`** — standalone JWT/hashing helpers, importable outside `internal/`.
-- **Tests** live in `internal/test/{handlers,services,middleware}`, not next to the code they test. Handler tests mock the service interface; service tests mock the repository interface.
+- **Tests** live in the top-level `tests/` directory, never next to the code they test: `tests/modules/<domain>/` (`handler_test.go`, `service_test.go`, `main_test.go` with a `TestMain` that calls `logger.Init()`), `tests/middleware/`, `tests/router/`. They are black-box `<pkg>_test` packages, so anything a test needs must be exported. Shared helpers (`MakeJSONRequest`, `AssertJSONResponse`, `MockNotificationService`) live in `tests/testutil/`. Handler tests mock the service interface; service tests mock the repository interface.
 
 ## Client (Expo/React Native, `client/`)
 
