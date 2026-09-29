@@ -24,6 +24,60 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/change-password": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Change password for authenticated user (requires current password)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Change password",
+                "parameters": [
+                    {
+                        "description": "Change Password Input",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/auth/forgot": {
             "post": {
                 "description": "Send reset password link to email",
@@ -49,6 +103,55 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/mobile": {
+            "post": {
+                "description": "Sign in or register with Google credentials from mobile app",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Sign in with Google (mobile)",
+                "parameters": [
+                    {
+                        "description": "Google Sign-In Input",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.GoogleSignInInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -91,6 +194,39 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Invalidate the current JWT token",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logout user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -238,7 +374,7 @@ const docTemplate = `{
         },
         "/auth/verify/regenerate": {
             "get": {
-                "description": "Resends the verification email to the user",
+                "description": "Resends the verification email to the user using token (preferred) or email",
                 "consumes": [
                     "application/json"
                 ],
@@ -252,15 +388,27 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Old Verification Token",
+                        "name": "token",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "User Email",
                         "name": "email",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -327,6 +475,11 @@ const docTemplate = `{
         },
         "/homes/create": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new home with a name",
                 "consumes": [
                     "application/json"
@@ -371,16 +524,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/join": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Join a home with an invite code",
                 "consumes": [
                     "application/json"
@@ -425,16 +578,61 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/list": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Get all homes the user belongs to",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "home"
+                ],
+                "summary": "Get all user homes",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.Home"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/homes/my": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get the home the user belongs to",
                 "produces": [
                     "application/json"
@@ -474,17 +672,17 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/notifications": {
             "get": {
-                "description": "Get all notifications for the current user",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get notifications for the current user, optionally scoped to one home via ?home_id=",
                 "produces": [
                     "application/json"
                 ],
@@ -492,9 +690,24 @@ const docTemplate = `{
                     "notification"
                 ],
                 "summary": "Get notifications by user ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID to scope notifications to",
+                        "name": "home_id",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -514,16 +727,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/notifications/{notification_id}": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Mark a notification as read",
                 "produces": [
                     "application/json"
@@ -570,16 +783,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get home details by ID",
                 "produces": [
                     "application/json"
@@ -635,14 +848,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete a home by ID",
                 "produces": [
                     "application/json"
@@ -689,16 +902,349 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Update a home's name and/or currency in one call (admin only); send whichever fields are changing",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "home"
+                ],
+                "summary": "Update home",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Home Request",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateHomeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/bill_categories": {
+            "get": {
+                "description": "Get all bill categories for a home",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BillCategory"
+                ],
+                "summary": "Get all bill categories",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new bill category for a home",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BillCategory"
+                ],
+                "summary": "Create a new bill category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create Bill Category Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateBillCategoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/bill_categories/{category_id}": {
+            "delete": {
+                "description": "Delete a bill category by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BillCategory"
+                ],
+                "summary": "Delete a bill category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Category ID",
+                        "name": "category_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Update a bill category by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "BillCategory"
+                ],
+                "summary": "Update a bill category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Category ID",
+                        "name": "category_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/bills": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all bills in a home",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bill"
+                ],
+                "summary": "Get bills by home ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by category ID",
+                        "name": "category_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new bill in a home",
                 "consumes": [
                     "application/json"
@@ -750,16 +1296,80 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/{home_id}/bills/private": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Returns bills in the selected home where public=false and uploaded_by is the authenticated user. The user must be a member of the home.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bill"
+                ],
+                "summary": "List current user's private bills",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by bill category ID",
+                        "name": "category_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Private bills list",
+                        "schema": {
+                            "$ref": "#/definitions/models.BillListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid home_id or category_id",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid authentication",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "User is not a member of the home",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to retrieve bills",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/bills/{bill_id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get bill details by ID",
                 "produces": [
                     "application/json"
@@ -813,14 +1423,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete a bill by ID",
                 "produces": [
                     "application/json"
@@ -874,14 +1484,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "patch": {
+                ],
                 "description": "Mark a bill as payed",
                 "produces": [
                     "application/json"
@@ -935,17 +1545,17 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/{home_id}/bills/{bill_id}/splits": {
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            }
-        },
-        "/homes/{home_id}/leave": {
-            "post": {
-                "description": "Leave the current home",
+                ],
+                "description": "Update how a bill is split between users (uploader or admin only)",
                 "consumes": [
                     "application/json"
                 ],
@@ -953,9 +1563,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "home"
+                    "bill"
                 ],
-                "summary": "Leave home",
+                "summary": "Update bill splits",
                 "parameters": [
                     {
                         "type": "integer",
@@ -965,12 +1575,296 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Leave Request",
+                        "type": "integer",
+                        "description": "Bill ID",
+                        "name": "bill_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/bills/{bill_id}/splits/{split_id}/paid": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mark a single user's bill split as paid",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bill"
+                ],
+                "summary": "Mark a split as paid",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Bill ID",
+                        "name": "bill_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Split ID",
+                        "name": "split_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/chat": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a page of home chat messages, newest first; pass before_id to page into history",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Get chat messages",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 50, max 200)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Return messages older than this message ID",
+                        "name": "before_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Post a message to the home chat, optionally mentioning users, tasks, bills, shopping items and categories",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Send a chat message",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create Chat Message Request",
                         "name": "input",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.LeaveRequest"
+                            "$ref": "#/definitions/models.CreateChatMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/chat/conversations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The shared home chat plus a direct chat with every other member, each with its last message and unread count",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "List chat conversations",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/chat/read": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mark every message up to and including last_message_id as read by the caller",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Mark chat messages as read",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Mark Chat Read Request",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.MarkChatReadRequest"
                         }
                     }
                 ],
@@ -996,20 +1890,291 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/{home_id}/chat/unread": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Number of chat messages in the home the caller hasn't read yet",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Get unread chat message count",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/chat/{message_id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Edit your own chat message",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Edit a chat message",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Message ID",
+                        "name": "message_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Chat Message Request",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateChatMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete your own chat message",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Delete a chat message",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Message ID",
+                        "name": "message_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/leave": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Leave the current home",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "home"
+                ],
+                "summary": "Leave home",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/members": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all members of a home (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "home"
+                ],
+                "summary": "Get home members",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.HomeMembership"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/members/{user_id}": {
             "delete": {
-                "description": "Remove a member from the home",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
                 ],
+                "description": "Remove a member from the home",
                 "produces": [
                     "application/json"
                 ],
@@ -1031,15 +2196,6 @@ const docTemplate = `{
                         "name": "user_id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Remove Member Request",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.RemoveMemberRequest"
-                        }
                     }
                 ],
                 "responses": {
@@ -1064,16 +2220,744 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/{home_id}/members/{user_id}/approve": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Approve a pending membership request (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "home"
+                ],
+                "summary": "Approve member",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/members/{user_id}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reject a pending membership request (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "home"
+                ],
+                "summary": "Reject member",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/members/{user_id}/role": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update a member's role (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "home"
+                ],
+                "summary": "Update member role",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Role Request",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/note_categories": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all note categories in a home",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "note_category"
+                ],
+                "summary": "Get all note categories",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new category for notes in a home",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "note_category"
+                ],
+                "summary": "Create note category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create Category Request",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateNoteCategoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/note_categories/{category_id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update a note category by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "note_category"
+                ],
+                "summary": "Update note category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Category ID",
+                        "name": "category_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Category Request",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateNoteCategoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a note category by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "note_category"
+                ],
+                "summary": "Delete note category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Category ID",
+                        "name": "category_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/notes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all notes for a home, optionally filtered by note category",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "note"
+                ],
+                "summary": "Get all notes",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Category ID filter",
+                        "name": "category_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new note in a home, optionally mentioning users, tasks, bills, shopping items, and categories",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "note"
+                ],
+                "summary": "Create a new note",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create Note Request",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateNoteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/notes/{note_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a note including its mentions",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "note"
+                ],
+                "summary": "Get note by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Note ID",
+                        "name": "note_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update a note details and its mentions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "note"
+                ],
+                "summary": "Update a note",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Note ID",
+                        "name": "note_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Note Request",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateNoteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a note from a home",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "note"
+                ],
+                "summary": "Delete a note",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Note ID",
+                        "name": "note_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/notifications": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get all notifications for a home",
                 "produces": [
                     "application/json"
@@ -1120,16 +3004,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/notifications/{notification_id}": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Mark a home notification as read",
                 "produces": [
                     "application/json"
@@ -1183,16 +3067,70 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/{home_id}/pending-members": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Get all pending membership requests for a home (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "home"
+                ],
+                "summary": "Get pending members",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.HomeMembership"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/polls": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get all polls in a home",
                 "produces": [
                     "application/json"
@@ -1239,14 +3177,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "post": {
+                ],
                 "description": "Create a new poll in a home",
                 "consumes": [
                     "application/json"
@@ -1298,16 +3236,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/polls/{poll_id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get poll details by ID",
                 "produces": [
                     "application/json"
@@ -1368,14 +3306,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete a poll by ID",
                 "produces": [
                     "application/json"
@@ -1422,16 +3360,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/polls/{poll_id}/close": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Close a poll by ID",
                 "produces": [
                     "application/json"
@@ -1478,16 +3416,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/polls/{poll_id}/vote": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Vote in a poll",
                 "consumes": [
                     "application/json"
@@ -1546,16 +3484,70 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Remove user's vote from a poll",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "poll"
+                ],
+                "summary": "Remove vote from poll",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Poll ID",
+                        "name": "poll_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/regenerate_code": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Regenerate invite code for a home",
                 "produces": [
                     "application/json"
@@ -1595,16 +3587,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/rooms": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get all rooms in a home",
                 "produces": [
                     "application/json"
@@ -1651,14 +3643,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "post": {
+                ],
                 "description": "Create a new room in a home",
                 "consumes": [
                     "application/json"
@@ -1710,16 +3702,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/rooms/{room_id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get room details by ID",
                 "produces": [
                     "application/json"
@@ -1773,14 +3765,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete a room by ID",
                 "produces": [
                     "application/json"
@@ -1834,16 +3826,60 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/{home_id}/rooms/{room_id}/devices": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Get all devices assigned to a room",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Get devices by room",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Room ID",
+                        "name": "room_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.SmartDevice"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/shopping/categories": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new shopping category in a home",
                 "consumes": [
                     "application/json"
@@ -1895,16 +3931,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/shopping/categories/all": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get all shopping categories in a home",
                 "produces": [
                     "application/json"
@@ -1951,16 +3987,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/shopping/categories/{category_id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get shopping category details by ID",
                 "produces": [
                     "application/json"
@@ -2014,14 +4050,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "put": {
+                ],
                 "description": "Edit a shopping category by ID",
                 "consumes": [
                     "application/json"
@@ -2087,14 +4123,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete a shopping category by ID",
                 "produces": [
                     "application/json"
@@ -2148,16 +4184,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/shopping/categories/{category_id}/items": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get all shopping items in a category",
                 "produces": [
                     "application/json"
@@ -2211,16 +4247,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/shopping/items": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create a new shopping item in a category",
                 "consumes": [
                     "application/json"
@@ -2279,16 +4315,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/shopping/items/{item_id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get shopping item details by ID",
                 "produces": [
                     "application/json"
@@ -2342,14 +4378,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "put": {
+                ],
                 "description": "Edit a shopping item by ID",
                 "consumes": [
                     "application/json"
@@ -2415,14 +4451,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete a shopping item by ID",
                 "produces": [
                     "application/json"
@@ -2476,14 +4512,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "patch": {
+                ],
                 "description": "Mark a shopping item as bought",
                 "produces": [
                     "application/json"
@@ -2537,16 +4573,484 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/{home_id}/smarthome/connect": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Connect a Home Assistant server to the home",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Connect Home Assistant",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "HA Connection",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ConnectHARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/smarthome/devices": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all added devices for the home",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Get devices",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.SmartDevice"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a device from Home Assistant to the app",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Add device",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Device Info",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AddDeviceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/smarthome/devices/{device_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get device details with current state",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Get device",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Device ID",
+                        "name": "device_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update device name, room, or icon",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Update device",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Device ID",
+                        "name": "device_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Device Update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateDeviceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove device from the app",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Delete device",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Device ID",
+                        "name": "device_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/smarthome/devices/{device_id}/control": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Call a service on the device (turn_on, turn_off, etc.)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Control device",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Device ID",
+                        "name": "device_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Control Command",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ControlDeviceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/smarthome/disconnect": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Disconnect Home Assistant from the home",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Disconnect Home Assistant",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/smarthome/discover": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Discover all available devices from Home Assistant",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Discover devices",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_Dragodui_diploma-server_internal_modules_smarthome_homeassistant.HAState"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/smarthome/states": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get current states of all added devices",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Get all device states",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_Dragodui_diploma-server_internal_modules_smarthome_homeassistant.HAState"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/smarthome/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get connection status and config",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "smarthome"
+                ],
+                "summary": "Get Home Assistant status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/tasks": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get all tasks in a home",
                 "produces": [
                     "application/json"
@@ -2593,14 +5097,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "post": {
+                ],
                 "description": "Create a new task in a home",
                 "consumes": [
                     "application/json"
@@ -2652,16 +5156,173 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/{home_id}/tasks/schedules": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Get all active recurring task schedules in a home",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "task-schedule"
+                ],
+                "summary": "Get all schedules for a home",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin creates a schedule that rotates task assignments between users on a daily/weekly/monthly basis",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "task-schedule"
+                ],
+                "summary": "Create a recurring schedule for a task",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create Schedule Request",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateTaskScheduleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/homes/{home_id}/tasks/schedules/{schedule_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a recurring task schedule (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "task-schedule"
+                ],
+                "summary": "Delete a schedule",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Schedule ID",
+                        "name": "schedule_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/tasks/{task_id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get task details by ID",
                 "produces": [
                     "application/json"
@@ -2715,14 +5376,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete a task by ID",
                 "produces": [
                     "application/json"
@@ -2776,16 +5437,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/tasks/{task_id}/assign": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Assign a user to a task",
                 "consumes": [
                     "application/json"
@@ -2844,16 +5505,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/tasks/{task_id}/assignments/{assignment_id}": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete an assignment by ID",
                 "produces": [
                     "application/json"
@@ -2914,16 +5575,79 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/{home_id}/tasks/{task_id}/complete": {
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Mark a task as completed for the current user (auto-assigns if not assigned)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "task"
+                ],
+                "summary": "Mark task as completed for current user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/tasks/{task_id}/mark-completed": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Mark an assignment as completed",
                 "consumes": [
                     "application/json"
@@ -2989,16 +5713,91 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/{home_id}/tasks/{task_id}/mark-uncompleted": {
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Mark an assignment as uncompleted",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "task"
+                ],
+                "summary": "Mark assignment as uncompleted",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Assignment ID Request",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AssignmentIDRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/tasks/{task_id}/reassign-room": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Reassign a room for a task",
                 "consumes": [
                     "application/json"
@@ -3057,16 +5856,65 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/homes/{home_id}/tasks/{task_id}/schedule": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Get the recurring schedule configuration for a task",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "task-schedule"
+                ],
+                "summary": "Get schedule for a task",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Home ID",
+                        "name": "home_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Task ID",
+                        "name": "task_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/homes/{home_id}/users/{user_id}/assignments": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get all assignments for a user in a home",
                 "produces": [
                     "application/json"
@@ -3120,16 +5968,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/homes/{home_id}/users/{user_id}/assignments/closest": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get the closest assignment for a user in a home",
                 "produces": [
                     "application/json"
@@ -3183,16 +6031,73 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            }
+        },
+        "/ocr/process": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "Upload a file directly for OCR processing. Supports images and PDFs.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ocr"
+                ],
+                "summary": "Process receipt file (image or PDF) with OCR",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Receipt file (image or PDF)",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language of the receipt text",
+                        "name": "language",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.OCRResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/upload": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Upload an image file",
                 "consumes": [
                     "multipart/form-data"
@@ -3235,16 +6140,16 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/user": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get details of the currently logged in user",
                 "produces": [
                     "application/json"
@@ -3282,14 +6187,14 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
+                }
+            },
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
-            },
-            "patch": {
+                ],
                 "description": "Update user name or avatar",
                 "consumes": [
                     "multipart/form-data"
@@ -3344,16 +6249,55 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
+                }
             }
         }
     },
     "definitions": {
+        "github_com_Dragodui_diploma-server_internal_modules_smarthome_homeassistant.HAState": {
+            "type": "object",
+            "properties": {
+                "attributes": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "entity_id": {
+                    "type": "string"
+                },
+                "last_changed": {
+                    "type": "string"
+                },
+                "last_updated": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.AddDeviceRequest": {
+            "type": "object",
+            "required": [
+                "entity_id",
+                "name"
+            ],
+            "properties": {
+                "entity_id": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 1
+                },
+                "room_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.AssignUserRequest": {
             "type": "object",
             "properties": {
@@ -3379,17 +6323,354 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateBillRequest": {
-            "type": "object"
-        },
-        "models.CreateCategoryRequest": {
+        "models.Bill": {
             "type": "object",
             "properties": {
+                "bill_category": {
+                    "$ref": "#/definitions/models.BillCategory"
+                },
+                "bill_category_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "home": {
+                    "description": "relations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Home"
+                        }
+                    ]
+                },
+                "home_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_payed": {
+                    "type": "boolean"
+                },
+                "ocr_data": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "payment_date": {
+                    "type": "string"
+                },
+                "period_end": {
+                    "type": "string"
+                },
+                "period_start": {
+                    "type": "string"
+                },
+                "public": {
+                    "description": "separates home/private budget",
+                    "type": "boolean"
+                },
+                "receipt_image": {
+                    "type": "string"
+                },
+                "splits": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.BillSplit"
+                    }
+                },
+                "total_amount": {
+                    "type": "number"
+                },
+                "type": {
+                    "description": "Kept for backward compatibility or as fallback",
+                    "type": "string"
+                },
+                "uploaded_by": {
+                    "type": "integer"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                }
+            }
+        },
+        "models.BillCategory": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "description": "Hex color",
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "integer"
+                },
+                "creator": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "home": {
+                    "description": "relations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Home"
+                        }
+                    ]
+                },
+                "home_id": {
+                    "type": "integer"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "public": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.BillListResponse": {
+            "type": "object",
+            "properties": {
+                "bills": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Bill"
+                    }
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "models.BillSplit": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "bill": {
+                    "$ref": "#/definitions/models.Bill"
+                },
+                "bill_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "paid": {
+                    "type": "boolean"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ConnectHARequest": {
+            "type": "object",
+            "required": [
+                "token",
+                "url"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string",
+                    "minLength": 10
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ControlDeviceRequest": {
+            "type": "object",
+            "required": [
+                "service"
+            ],
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "service": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.CreateBillCategoryRequest": {
+            "type": "object",
+            "required": [
+                "home_id",
+                "name"
+            ],
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "home_id": {
+                    "type": "integer"
+                },
                 "icon": {
                     "type": "string"
                 },
                 "name": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 2
+                },
+                "public": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.CreateBillRequest": {
+            "type": "object",
+            "required": [
+                "ocr_data",
+                "period_end",
+                "period_start",
+                "total_amount"
+            ],
+            "properties": {
+                "bill_category_id": {
+                    "type": "integer"
+                },
+                "description": {
                     "type": "string"
+                },
+                "is_regular": {
+                    "type": "boolean"
+                },
+                "ocr_data": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "period_end": {
+                    "type": "string"
+                },
+                "period_start": {
+                    "type": "string"
+                },
+                "public": {
+                    "type": "boolean"
+                },
+                "receipt_image": {
+                    "type": "string"
+                },
+                "recurrence_day": {
+                    "type": "integer"
+                },
+                "recurrence_type": {
+                    "type": "string"
+                },
+                "splits": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.SplitInput"
+                    }
+                },
+                "total_amount": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "type": {
+                    "description": "Optional if CategoryID is provided",
+                    "type": "string"
+                }
+            }
+        },
+        "models.CreateCategoryRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 1
+                }
+            }
+        },
+        "models.CreateChatMessageRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "mentioned_bill_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_bill_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_note_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_shopping_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_shopping_item_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_task_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_user_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentions_all": {
+                    "type": "boolean"
+                },
+                "recipient_id": {
+                    "description": "RecipientID targets a direct conversation; omit it to post to the\nshared home chat.",
+                    "type": "integer"
                 }
             }
         },
@@ -3401,7 +6682,91 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
-                    "minLength": 8
+                    "minLength": 3
+                }
+            }
+        },
+        "models.CreateNoteCategoryRequest": {
+            "type": "object",
+            "required": [
+                "home_id",
+                "name"
+            ],
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "home_id": {
+                    "type": "integer"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 2
+                }
+            }
+        },
+        "models.CreateNoteRequest": {
+            "type": "object",
+            "required": [
+                "title"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "mentioned_bill_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_bill_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_note_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_shopping_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_shopping_item_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_task_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_user_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "note_category_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 256,
+                    "minLength": 1
                 }
             }
         },
@@ -3412,9 +6777,15 @@ const docTemplate = `{
                 "type"
             ],
             "properties": {
+                "allow_revote": {
+                    "type": "boolean"
+                },
+                "ends_at": {
+                    "type": "string"
+                },
                 "options": {
                     "type": "array",
-                    "minItems": 1,
+                    "minItems": 2,
                     "items": {
                         "$ref": "#/definitions/models.OptionRequest"
                     }
@@ -3425,8 +6796,8 @@ const docTemplate = `{
                 "type": {
                     "type": "string",
                     "enum": [
-                        "single",
-                        "multiple"
+                        "public",
+                        "anonymous"
                     ]
                 }
             }
@@ -3434,8 +6805,14 @@ const docTemplate = `{
         "models.CreateRoomRequest": {
             "type": "object",
             "properties": {
+                "color": {
+                    "type": "string"
+                },
                 "home_id": {
                     "type": "integer"
+                },
+                "icon": {
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
@@ -3460,14 +6837,23 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "minLength": 3
+                    "minLength": 1
                 }
             }
         },
         "models.CreateTaskRequest": {
             "type": "object",
             "properties": {
+                "assign_user_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "description": {
+                    "type": "string"
+                },
+                "due_date": {
                     "type": "string"
                 },
                 "home_id": {
@@ -3475,6 +6861,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "reminder_minutes": {
+                    "type": "integer"
                 },
                 "room_id": {
                     "type": "integer"
@@ -3484,10 +6873,58 @@ const docTemplate = `{
                 }
             }
         },
+        "models.CreateTaskScheduleRequest": {
+            "type": "object",
+            "properties": {
+                "home_id": {
+                    "type": "integer"
+                },
+                "recurrence_type": {
+                    "description": "daily, weekly, monthly",
+                    "type": "string"
+                },
+                "task_id": {
+                    "type": "integer"
+                },
+                "user_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "invalid home ID"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
+        "models.GoogleSignInInput": {
+            "type": "object",
+            "required": [
+                "access_token"
+            ],
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Home": {
             "type": "object",
             "properties": {
                 "created_at": {
+                    "type": "string"
+                },
+                "currency": {
                     "type": "string"
                 },
                 "id": {
@@ -3541,6 +6978,9 @@ const docTemplate = `{
                 "role": {
                     "type": "string"
                 },
+                "status": {
+                    "type": "string"
+                },
                 "user": {
                     "description": "relations",
                     "allOf": [
@@ -3565,17 +7005,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.LeaveRequest": {
-            "type": "object",
-            "required": [
-                "home_id"
-            ],
-            "properties": {
-                "home_id": {
-                    "type": "string"
-                }
-            }
-        },
         "models.LoginInput": {
             "type": "object",
             "required": [
@@ -3589,6 +7018,67 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "minLength": 8
+                }
+            }
+        },
+        "models.MarkChatReadRequest": {
+            "type": "object",
+            "required": [
+                "last_message_id"
+            ],
+            "properties": {
+                "last_message_id": {
+                    "type": "integer"
+                },
+                "recipient_id": {
+                    "description": "RecipientID scopes the read receipt to one direct conversation; omit\nit to mark the shared home chat as read.",
+                    "type": "integer"
+                }
+            }
+        },
+        "models.OCRItem": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "quantity": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.OCRResult": {
+            "type": "object",
+            "properties": {
+                "confidence": {
+                    "description": "Recognition confidence (0-1)",
+                    "type": "number"
+                },
+                "date": {
+                    "description": "Receipt date",
+                    "type": "string"
+                },
+                "items": {
+                    "description": "List of items",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.OCRItem"
+                    }
+                },
+                "raw_text": {
+                    "description": "Raw text for debugging",
+                    "type": "string"
+                },
+                "total": {
+                    "description": "Total amount",
+                    "type": "number"
+                },
+                "vendor": {
+                    "description": "Store/company name",
+                    "type": "string"
                 }
             }
         },
@@ -3619,7 +7109,8 @@ const docTemplate = `{
             "required": [
                 "email",
                 "name",
-                "password"
+                "password",
+                "username"
             ],
             "properties": {
                 "email": {
@@ -3632,29 +7123,28 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "minLength": 8
-                }
-            }
-        },
-        "models.RemoveMemberRequest": {
-            "type": "object",
-            "required": [
-                "home_id",
-                "user_id"
-            ],
-            "properties": {
-                "home_id": {
-                    "type": "string"
                 },
-                "user_id": {
-                    "type": "string"
+                "username": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "minLength": 3
                 }
             }
         },
         "models.Room": {
             "type": "object",
             "properties": {
+                "color": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
+                },
+                "created_by": {
+                    "type": "integer"
+                },
+                "creator": {
+                    "$ref": "#/definitions/models.User"
                 },
                 "home": {
                     "description": "relations",
@@ -3666,6 +7156,9 @@ const docTemplate = `{
                 },
                 "home_id": {
                     "type": "integer"
+                },
+                "icon": {
+                    "type": "string"
                 },
                 "id": {
                     "type": "integer"
@@ -3681,6 +7174,52 @@ const docTemplate = `{
                 }
             }
         },
+        "models.SmartDevice": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "string"
+                },
+                "home": {
+                    "$ref": "#/definitions/models.Home"
+                },
+                "home_id": {
+                    "type": "integer"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "room": {
+                    "$ref": "#/definitions/models.Room"
+                },
+                "room_id": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.SplitInput": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Task": {
             "type": "object",
             "properties": {
@@ -3693,7 +7232,16 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "created_by": {
+                    "type": "integer"
+                },
+                "creator": {
+                    "$ref": "#/definitions/models.User"
+                },
                 "description": {
+                    "type": "string"
+                },
+                "due_date": {
                     "type": "string"
                 },
                 "home": {
@@ -3713,11 +7261,17 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "reminder_minutes": {
+                    "type": "integer"
+                },
                 "room": {
                     "$ref": "#/definitions/models.Room"
                 },
                 "room_id": {
                     "type": "integer"
+                },
+                "schedule": {
+                    "$ref": "#/definitions/models.TaskSchedule"
                 },
                 "schedule_type": {
                     "type": "string"
@@ -3738,6 +7292,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "reminder_sent_at": {
+                    "type": "string"
                 },
                 "status": {
                     "type": "string"
@@ -3761,9 +7318,237 @@ const docTemplate = `{
                 }
             }
         },
+        "models.TaskSchedule": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "current_rotation_index": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "next_run_date": {
+                    "type": "string"
+                },
+                "recurrence_type": {
+                    "description": "daily, weekly, monthly",
+                    "type": "string"
+                },
+                "rotation_user_ids": {
+                    "description": "JSON array of user IDs in order",
+                    "type": "string"
+                },
+                "task": {
+                    "description": "relations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Task"
+                        }
+                    ]
+                },
+                "task_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.UpdateChatMessageRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "mentioned_bill_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_bill_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_note_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_shopping_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_shopping_item_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_task_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_user_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentions_all": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.UpdateDeviceRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "icon": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 1
+                },
+                "room_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.UpdateHomeRequest": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string",
+                    "enum": [
+                        "USD",
+                        "EUR",
+                        "GBP",
+                        "PLN",
+                        "UAH",
+                        "BYN"
+                    ]
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 3
+                }
+            }
+        },
+        "models.UpdateNoteCategoryRequest": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 2
+                }
+            }
+        },
+        "models.UpdateNoteRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "mentioned_bill_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_bill_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_note_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_shopping_category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_shopping_item_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_task_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "mentioned_user_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "note_category_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 256,
+                    "minLength": 1
+                }
+            }
+        },
+        "models.UpdateRoleRequest": {
+            "type": "object",
+            "required": [
+                "role"
+            ],
+            "properties": {
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "admin",
+                        "member"
+                    ]
+                }
+            }
+        },
         "models.UpdateShoppingCategoryRequest": {
             "type": "object",
             "properties": {
+                "color": {
+                    "type": "string"
+                },
                 "icon": {
                     "type": "string"
                 },
@@ -3789,7 +7574,7 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "minLength": 3
+                    "minLength": 1
                 }
             }
         },
@@ -3805,7 +7590,7 @@ const docTemplate = `{
                 "email": {
                     "type": "string"
                 },
-                "emailVerified": {
+                "email_verified": {
                     "type": "boolean"
                 },
                 "id": {
@@ -3821,11 +7606,8 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "resetExpiresAt": {
-                    "type": "string"
-                },
-                "resetToken": {
-                    "type": "string"
+                "profile_public": {
+                    "type": "boolean"
                 },
                 "task_assignments": {
                     "type": "array",
@@ -3833,10 +7615,7 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.TaskAssignment"
                     }
                 },
-                "verifyExpiresAt": {
-                    "type": "string"
-                },
-                "verifyToken": {
+                "username": {
                     "type": "string"
                 }
             }

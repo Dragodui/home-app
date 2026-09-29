@@ -1,0 +1,53 @@
+package notification
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/Dragodui/diploma-server/internal/http/middleware"
+	"github.com/Dragodui/diploma-server/internal/models"
+	"github.com/Dragodui/diploma-server/internal/utils"
+)
+
+type PushHandler struct {
+	svc *PushService
+}
+
+func NewPushHandler(svc *PushService) *PushHandler {
+	return &PushHandler{svc: svc}
+}
+
+func (h *PushHandler) Subscribe(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var input models.PushSubscriptionInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		utils.JSONError(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	if err := utils.Validate.Struct(input); err != nil {
+		utils.JSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.SaveSubscription(r.Context(), userID, input); err != nil {
+		utils.JSONError(w, "Failed to save subscription", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]string{"message": "Subscribed successfully"})
+}
+
+func (h *PushHandler) GetPublicKey(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	pub := h.svc.PublicVAPIDKey()
+	utils.JSON(w, http.StatusOK, map[string]string{"publicKey": pub})
+}

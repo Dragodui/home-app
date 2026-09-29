@@ -1,0 +1,155 @@
+package image_test
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/Dragodui/diploma-server/internal/modules/image"
+	"github.com/Dragodui/diploma-server/tests/testutil"
+	"github.com/stretchr/testify/require"
+)
+
+// Mock image service
+type mockImageService struct {
+	UploadFunc          func(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error)
+	GetPresignedURLFunc func(ctx context.Context, key string, expiration time.Duration) (string, error)
+	DeleteFunc          func(ctx context.Context, imageURL string) error
+}
+
+func (m *mockImageService) Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error) {
+	if m.UploadFunc != nil {
+		return m.UploadFunc(ctx, file, header)
+	}
+	return "", nil
+}
+
+func (m *mockImageService) GetPresignedURL(ctx context.Context, key string, expiration time.Duration) (string, error) {
+	if m.GetPresignedURLFunc != nil {
+		return m.GetPresignedURLFunc(ctx, key, expiration)
+	}
+	return "", nil
+}
+
+func (m *mockImageService) Delete(ctx context.Context, imageURL string) error {
+	if m.DeleteFunc != nil {
+		return m.DeleteFunc(ctx, imageURL)
+	}
+	return nil
+}
+
+func setupImageHandler(svc *mockImageService) *image.Handler {
+	return image.NewHandler(svc)
+}
+
+func createImageUploadRequest(fieldName, fileName, content string) (*http.Request, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	if fileName != "" {
+		part, err := writer.CreateFormFile(fieldName, fileName)
+		if err != nil {
+			return nil, err
+		}
+		_, err = io.WriteString(part, content)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err := writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/upload", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	return req, nil
+}
+
+func TestImageHandler_UploadImage(t *testing.T) {
+	tests := []struct {
+		name           string
+		hasFile        bool
+		fieldName      string
+		fileName       string
+		uploadFunc     func(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error)
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:      "Success",
+			hasFile:   true,
+			fieldName: "image",
+			fileName:  "test.jpg",
+			uploadFunc: func(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error) {
+				require.Equal(t, "test.jpg", header.Filename)
+				return "https://s3.amazonaws.com/bucket/test.jpg", nil
+			},
+			expectedStatus: http.StatusCreated,
+			expectedBody:   "File uploaded successfully",
+		},
+		{
+			name:           "Missing File",
+			hasFile:        false,
+			fieldName:      "image",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "File required",
+		},
+		{
+			name:           "Wrong Field Name",
+			hasFile:        true,
+			fieldName:      "wrong_field",
+			fileName:       "test.jpg",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "File required",
+		},
+		{
+			name:      "Upload Service Error",
+			hasFile:   true,
+			fieldName: "image",
+			fileName:  "test.jpg",
+			uploadFunc: func(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error) {
+				return "", errors.New("S3 upload failed")
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   "Failed to upload image",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &mockImageService{
+				UploadFunc: tt.uploadFunc,
+			}
+
+			h := setupImageHandler(svc)
+
+			var req *http.Request
+			var err error
+
+			if tt.hasFile {
+				req, err = createImageUploadRequest(tt.fieldName, tt.fileName, "fake image content")
+			} else {
+				// Create empty multipart request
+				body := &bytes.Buffer{}
+				writer := multipart.NewWriter(body)
+				writer.Close()
+				req = httptest.NewRequest(http.MethodPost, "/upload", body)
+				req.Header.Set("Content-Type", writer.FormDataContentType())
+			}
+			require.NoError(t, err)
+
+			rr := httptest.NewRecorder()
+			h.UploadImage(rr, req)
+
+			testutil.AssertJSONResponse(t, rr, tt.expectedStatus, tt.expectedBody)
+		})
+	}
+}

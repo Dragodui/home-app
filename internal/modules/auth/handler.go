@@ -1,0 +1,426 @@
+package auth
+
+import (
+	"encoding/json"
+	"errors"
+	"log"
+	"net/http"
+
+	"github.com/Dragodui/diploma-server/internal/modules/audit"
+
+	"github.com/Dragodui/diploma-server/internal/http/middleware"
+	"github.com/Dragodui/diploma-server/internal/models"
+	"github.com/Dragodui/diploma-server/internal/utils"
+	"github.com/go-chi/chi/v5"
+	"github.com/markbates/goth/gothic"
+)
+
+type Handler struct {
+	svc       IService
+	auditSvc  audit.IService
+	clientURL string
+	isSecure  bool
+}
+
+func NewHandler(svc IService, clientURL string, isSecure bool) *Handler {
+	return &Handler{svc: svc, clientURL: clientURL, isSecure: isSecure}
+}
+
+func (h *Handler) SetAuditService(auditSvc audit.IService) {
+	h.auditSvc = auditSvc
+}
+
+// RegenerateVerify godoc
+// @Summary      Regenerate verification email
+// @Description  Resends the verification email to the user using token (preferred) or email
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        token query string false "Old Verification Token"
+// @Param        email query string false "User Email"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /auth/verify/regenerate [get]
+func (h *Handler) RegenerateVerify(w http.ResponseWriter, r *http.Request) {
+	oldToken := r.URL.Query().Get("token")
+	email := r.URL.Query().Get("email")
+
+	// Prefer token-based regeneration (more secure - prevents spam)
+	if oldToken != "" {
+		user, err := h.svc.GetUserByVerifyToken(r.Context(), oldToken)
+		if err != nil {
+			utils.SafeError(w, err, "Invalid or expired token", http.StatusBadRequest)
+			return
+		}
+		email = user.Email
+	} else if email == "" {
+		utils.JSONError(w, "Email or token required", http.StatusBadRequest)
+		return
+	} else {
+		// Email path: verify the email belongs to an unverified user
+		user, err := h.svc.GetUserByEmail(r.Context(), email)
+		if err != nil || user.EmailVerified {
+			// Return success to prevent user enumeration
+			utils.JSON(w, http.StatusOK, map[string]interface{}{
+				"status":  true,
+				"message": "Verification email sent",
+			})
+			return
+		}
+	}
+
+	if err := h.svc.SendVerificationEmail(r.Context(), email); err != nil {
+		utils.SafeError(w, err, "Failed to send verification email", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{
+		"status":  true,
+		"message": "Verification email sent",
+	})
+}
+
+// Register godoc
+// @Summary      Register a new user
+// @Description  Register a new user with email, password and name
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body models.RegisterInput true "Register Input"
+// @Success      201  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /auth/register [post]
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+	var input models.RegisterInput
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := utils.Validate.Struct(input); err != nil {
+		utils.JSONValidationErrors(w, err)
+		return
+	}
+	err := h.svc.Register(r.Context(), input.Email, input.Password, input.Name, input.Username)
+	if err != nil {
+		utils.SafeError(w, err, "Registration failed", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.SendVerificationEmail(r.Context(), input.Email); err != nil {
+		log.Printf("ERROR: SendVerificationEmail for %s: %v", input.Email, err)
+		utils.JSONError(w, "Failed to send verification email", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSON(w, http.StatusCreated, map[string]interface{}{
+		"status":  true,
+		"message": "Registered successfully. Please check your email to verify your account.",
+	})
+}
+
+// Login godoc
+// @Summary      Login user
+// @Description  Login with email and password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body models.LoginInput true "Login Input"
+// @Success      202  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Router       /auth/login [post]
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	var input models.LoginInput
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := utils.Validate.Struct(input); err != nil {
+		utils.JSONValidationErrors(w, err)
+		return
+	}
+
+	token, user, err := h.svc.Login(r.Context(), input.Email, input.Password)
+	if err != nil {
+		if errors.Is(err, ErrEmailNotVerified) {
+			utils.JSONError(w, "Email is not verified", http.StatusUnauthorized)
+			return
+		}
+		utils.JSONError(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	utils.SetAuthCookie(w, token, h.isSecure)
+	h.recordAudit(r, audit.EventLogin, user.ID, map[string]any{"email": user.Email})
+
+	// Response to client
+	utils.JSON(w, http.StatusAccepted, map[string]interface{}{"status": true,
+		"token": token,
+		"user":  user,
+	})
+}
+
+// SignInWithProvider godoc
+// @Summary      Sign in with provider
+// @Description  Initiate OAuth2 login with a provider (google, etc.)
+// @Tags         auth
+// @Param        provider path string true "Provider"
+// @Router       /auth/{provider} [get]
+func (h *Handler) SignInWithProvider(w http.ResponseWriter, r *http.Request) {
+	provider := chi.URLParam(r, "provider")
+	q := r.URL.Query()
+	q.Add("provider", provider)
+
+	r.URL.RawQuery = q.Encode()
+
+	gothic.BeginAuthHandler(w, r)
+}
+
+// CallbackHandler godoc
+// @Summary      OAuth2 Callback
+// @Description  Handle OAuth2 callback
+// @Tags         auth
+// @Param        provider path string true "Provider"
+// @Success      307
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /auth/{provider}/callback [get]
+func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
+	provider := chi.URLParam(r, "provider")
+	q := r.URL.Query()
+	q.Add("provider", provider)
+
+	r.URL.RawQuery = q.Encode()
+	user, err := gothic.CompleteUserAuth(w, r)
+	if err != nil {
+		utils.SafeError(w, err, "OAuth authentication failed", http.StatusInternalServerError)
+		return
+	}
+
+	// SECURITY FIX: Get token and redirect URL separately
+	// Token is no longer exposed in URL to prevent:
+	// - Browser history leakage
+	// - Server log exposure
+	// - Referrer header leakage
+	token, redirectURL, err := h.svc.HandleCallback(r.Context(), user)
+	if err != nil {
+		utils.SafeError(w, err, "Failed to complete authentication", http.StatusInternalServerError)
+		return
+	}
+
+	// Set token in HTTP-only secure cookie instead of URL parameter
+	utils.SetAuthCookie(w, token, h.isSecure)
+
+	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
+}
+
+// VerifyEmail godoc
+// @Summary      Verify email
+// @Description  Verify user email with token
+// @Tags         auth
+// @Param        token query string true "Verification Token"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Router       /auth/verify [get]
+func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	err := h.svc.VerifyEmail(r.Context(), token)
+
+	// Redirect to frontend with verification result
+	if err != nil {
+		http.Redirect(w, r, h.clientURL+"/verify?status=error", http.StatusTemporaryRedirect)
+		return
+	}
+
+	http.Redirect(w, r, h.clientURL+"/verify?status=success", http.StatusTemporaryRedirect)
+}
+
+// ForgotPassword godoc
+// @Summary      Forgot password
+// @Description  Send reset password link to email
+// @Tags         auth
+// @Accept       x-www-form-urlencoded
+// @Produce      json
+// @Param        email formData string true "User Email"
+// @Success      200  {object}  map[string]interface{}
+// @Router       /auth/forgot [post]
+func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	email := r.FormValue("email")
+	if email == "" || !utils.IsValidEmail(email) {
+		// Return same response to prevent email enumeration
+		utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Reset link was sent to your email"})
+		return
+	}
+	h.svc.SendResetPassword(r.Context(), email)
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Reset link was sent to your email"})
+}
+
+// ResetPassword godoc
+// @Summary      Reset password
+// @Description  Reset password with token
+// @Tags         auth
+// @Accept       x-www-form-urlencoded
+// @Produce      json
+// @Param        token formData string true "Reset Token"
+// @Param        password formData string true "New Password"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Router       /auth/reset [post]
+func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	// ?token=...&password=...
+	token := r.FormValue("token")
+	pass := r.FormValue("password")
+	if len(pass) < 8 {
+		utils.JSONError(w, "Password must be at least 8 characters", http.StatusBadRequest)
+		return
+	}
+	if err := h.svc.ResetPassword(r.Context(), token, pass); err != nil {
+		utils.JSONError(w, "Incorrect or expired token", http.StatusBadRequest)
+		return
+	}
+	utils.JSON(w, http.StatusOK, map[string]interface{}{"status": true, "message": "Password changed successfully"})
+}
+
+// ChangePassword godoc
+// @Summary      Change password
+// @Description  Change password for authenticated user (requires current password)
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        input body object true "Change Password Input" example({"current_password":"old","new_password":"new"})
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Router       /auth/change-password [post]
+func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	if userID == 0 {
+		utils.JSONError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var input struct {
+		CurrentPassword string `json:"current_password" validate:"required"`
+		NewPassword     string `json:"new_password" validate:"required,min=8"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := utils.Validate.Struct(input); err != nil {
+		utils.JSONValidationErrors(w, err)
+		return
+	}
+
+	if err := h.svc.ChangePassword(r.Context(), userID, input.CurrentPassword, input.NewPassword); err != nil {
+		if errors.Is(err, ErrInvalidCredentials) {
+			utils.JSONError(w, "Current password is incorrect", http.StatusBadRequest)
+			return
+		}
+		utils.SafeError(w, err, "Failed to change password", http.StatusBadRequest)
+		return
+	}
+
+	h.recordAudit(r, audit.EventPasswordChanged, userID, nil)
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{
+		"status":  true,
+		"message": "Password changed successfully",
+	})
+}
+
+// Logout godoc
+// @Summary      Logout user
+// @Description  Invalidate the current JWT token
+// @Tags         auth
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Router       /auth/logout [post]
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	tokenStr, ok := middleware.TokenFromRequest(r)
+	if !ok {
+		utils.JSONError(w, "missing token", http.StatusUnauthorized)
+		return
+	}
+
+	if err := h.svc.Logout(r.Context(), tokenStr); err != nil {
+		utils.SafeError(w, err, "Logout failed", http.StatusBadRequest)
+		return
+	}
+
+	userID := middleware.GetUserID(r)
+	if userID != 0 {
+		h.recordAudit(r, audit.EventLogout, userID, nil)
+	}
+
+	utils.ClearAuthCookie(w, h.isSecure)
+	utils.JSON(w, http.StatusOK, map[string]interface{}{
+		"status":  true,
+		"message": "Logged out successfully",
+	})
+}
+
+// GoogleSignIn godoc
+// @Summary      Sign in with Google (mobile)
+// @Description  Sign in or register with Google credentials from mobile app
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input body models.GoogleSignInInput true "Google Sign-In Input"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /auth/google/mobile [post]
+func (h *Handler) GoogleSignIn(w http.ResponseWriter, r *http.Request) {
+	var input models.GoogleSignInInput
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		utils.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := utils.Validate.Struct(input); err != nil {
+		utils.JSONValidationErrors(w, err)
+		return
+	}
+
+	token, user, err := h.svc.GoogleSignIn(r.Context(), input.AccessToken)
+	if err != nil {
+		utils.SafeError(w, err, "Google sign-in failed", http.StatusInternalServerError)
+		return
+	}
+
+	utils.SetAuthCookie(w, token, h.isSecure)
+	h.recordAudit(r, audit.EventOAuthLogin, user.ID, map[string]any{"provider": "google", "email": user.Email})
+
+	utils.JSON(w, http.StatusOK, map[string]interface{}{
+		"status": true,
+		"token":  token,
+		"user":   user,
+	})
+}
+
+func (h *Handler) recordAudit(r *http.Request, eventType string, actorUserID int, metadata map[string]any) {
+	if h.auditSvc == nil || actorUserID == 0 {
+		return
+	}
+	h.auditSvc.RecordBestEffort(r.Context(), audit.Record{
+		ActorUserID: &actorUserID,
+		EventType:   eventType,
+		EntityType:  "user",
+		EntityID:    &actorUserID,
+		Metadata:    metadata,
+		IP:          audit.RequestIP(r),
+		UserAgent:   audit.UserAgent(r),
+	})
+}

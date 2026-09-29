@@ -5,12 +5,14 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/Dragodui/diploma-server/internal/modules/billing"
+	"github.com/Dragodui/diploma-server/internal/modules/task"
+
 	"github.com/Dragodui/diploma-server/internal/logger"
 	"github.com/Dragodui/diploma-server/internal/metrics"
-	"github.com/Dragodui/diploma-server/internal/services"
 )
 
-func runTaskScheduler(svc *services.TaskScheduleService) {
+func runTaskScheduler(svc *task.ScheduleService) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	for range ticker.C {
@@ -21,7 +23,7 @@ func runTaskScheduler(svc *services.TaskScheduleService) {
 	}
 }
 
-func runTaskReminderScheduler(svc *services.TaskService) {
+func runTaskReminderScheduler(svc *task.Service) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	for range ticker.C {
@@ -32,7 +34,7 @@ func runTaskReminderScheduler(svc *services.TaskService) {
 	}
 }
 
-func runBillScheduler(svc *services.BillService) {
+func runBillScheduler(svc *billing.Service) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	for range ticker.C {

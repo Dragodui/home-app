@@ -2,17 +2,23 @@ package middleware
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
 
-	"github.com/Dragodui/diploma-server/internal/repository"
 	"github.com/Dragodui/diploma-server/internal/utils"
 	"github.com/go-chi/chi/v5"
 )
 
-func RequireAdmin(homeRepo repository.HomeRepository) func(http.Handler) http.Handler {
+// HomeRoleChecker is the subset of the home repository needed to authorize home routes.
+type HomeRoleChecker interface {
+	IsAdmin(ctx context.Context, id int, userID int) (bool, error)
+	IsMember(ctx context.Context, id int, userID int) (bool, error)
+}
+
+func RequireAdmin(homeRepo HomeRoleChecker) func(http.Handler) http.Handler {
 	type bodyWithHomeID struct {
 		HomeID int `json:"home_id"`
 	}
@@ -62,7 +68,7 @@ func RequireAdmin(homeRepo repository.HomeRepository) func(http.Handler) http.Ha
 	}
 }
 
-func RequireMember(homeRepo repository.HomeRepository) func(http.Handler) http.Handler {
+func RequireMember(homeRepo HomeRoleChecker) func(http.Handler) http.Handler {
 	type bodyWithHomeID struct {
 		HomeID int `json:"home_id"`
 	}

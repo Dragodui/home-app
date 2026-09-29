@@ -9,9 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Dragodui/diploma-server/internal/modules/home"
+
 	"github.com/Dragodui/diploma-server/internal/config"
 	"github.com/Dragodui/diploma-server/internal/event"
-	"github.com/Dragodui/diploma-server/internal/repository"
 	"github.com/Dragodui/diploma-server/internal/utils"
 	"github.com/Dragodui/diploma-server/pkg/security"
 	"github.com/gorilla/websocket"
@@ -36,10 +37,10 @@ type WSHandler struct {
 	Clients   map[*websocket.Conn]*clientInfo
 	Mu        sync.Mutex
 	jwtSecret []byte
-	homeRepo  repository.HomeRepository
+	homeRepo  home.Repository
 }
 
-func NewWSHandler(cfg *config.Config, homeRepo repository.HomeRepository) *WSHandler {
+func NewWSHandler(cfg *config.Config, homeRepo home.Repository) *WSHandler {
 	return &WSHandler{
 		Upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
