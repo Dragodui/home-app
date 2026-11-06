@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { ArrowRight, BarChart2, Bell, Home as HomeIcon, Zap } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { TouchableOpacity, View } from "react-native";
+import { View } from "react-native";
 import { HomeSkeleton } from "@/components/skeletons";
 import {
   Button,

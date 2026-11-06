@@ -364,7 +364,12 @@ export default function ShoppingScreen() {
           <Fab icon={Plus} tone="cyan" aboveTabBar onPress={openItemModal} accessibilityLabel={t.shopping.addItem} />
         }
       >
-        <ScreenHeader title={activeCategory.name} onBack={() => setActiveCategory(null)} />
+        {/* The floating profile menu covers the top right corner of tabs. */}
+        <ScreenHeader
+          title={activeCategory.name}
+          onBack={() => setActiveCategory(null)}
+          right={<View className="w-28" />}
+        />
 
         {categoryItems.length === 0 ? (
           <EmptyState
