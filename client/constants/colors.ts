@@ -28,6 +28,10 @@ export const darkTheme = {
   navIconActive: "#FFFFFF",
   navIconInactive: "#8E8E93",
   tabIconActiveBackground: "#FFFFFF",
+
+  // Foreground on solid accent / danger fills
+  onAccent: "#1C1C1E",
+  onDanger: "#FFFFFF",
 };
 
 // Light Theme (White theme - inverted)
@@ -58,6 +62,10 @@ export const lightTheme = {
   navIconActive: "#1C1C1E",
   navIconInactive: "#8E8E93",
   tabIconActiveBackground: "#D8D4FC",
+
+  // Foreground on solid accent / danger fills
+  onAccent: "#1C1C1E",
+  onDanger: "#FFFFFF",
 };
 
 // Accent colors (same for both themes - from PDF)

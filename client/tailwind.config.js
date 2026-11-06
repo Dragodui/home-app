@@ -42,7 +42,7 @@ module.exports = {
           "mint-dark": "#88C6AF",
           cyan: "#7DD3E8",
           danger: "#8B3A3A",
-          "danger-light": "rgba(139, 58, 58, 0.8)",
+          "danger-light": "rgba(199, 58, 58, 0.9)",
         },
         // Gray scale
         gray: {

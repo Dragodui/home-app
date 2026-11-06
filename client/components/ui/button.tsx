@@ -3,6 +3,7 @@ import { ActivityIndicator, Text, type TextStyle, TouchableOpacity, type ViewSty
 import { useTheme } from "@/stores/themeStore";
 
 type ButtonVariant = "primary" | "secondary" | "yellow" | "purple" | "pink" | "outline" | "danger";
+type ButtonSize = "lg" | "md" | "sm";
 
 interface ButtonProps {
   title: string;
@@ -10,11 +11,18 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   variant?: ButtonVariant;
+  size?: ButtonSize;
   style?: ViewStyle;
   textStyle?: TextStyle;
   icon?: React.ReactNode;
   className?: string;
 }
+
+const SIZE_CLASSES: Record<ButtonSize, { container: string; text: string }> = {
+  lg: { container: "h-16 rounded-20 px-6", text: "text-base" },
+  md: { container: "h-12 rounded-14 px-4", text: "text-sm" },
+  sm: { container: "h-9 rounded-xl px-3", text: "text-xs" },
+};
 
 const Button: FC<ButtonProps> = ({
   title,
@@ -22,6 +30,7 @@ const Button: FC<ButtonProps> = ({
   loading = false,
   disabled = false,
   variant = "primary",
+  size = "lg",
   style,
   textStyle,
   icon,
@@ -70,15 +79,22 @@ const Button: FC<ButtonProps> = ({
       case "yellow":
       case "purple":
       case "pink":
-        return "#1C1C1E";
+        return theme.onAccent;
+      case "outline":
+        return theme.textSecondary;
+      case "secondary":
+        return theme.text;
+      case "danger":
+        return theme.onDanger;
       default:
-        return theme.isDark ? "#1C1C1E" : "#FFFFFF";
+        return theme.background;
     }
   };
 
   return (
     <TouchableOpacity
-      className={`h-16 rounded-20 justify-center items-center flex-row gap-2 px-6 ${getVariantClasses()} ${
+      accessibilityRole="button"
+      className={`justify-center items-center flex-row gap-2 ${SIZE_CLASSES[size].container} ${getVariantClasses()} ${
         disabled ? "opacity-50" : ""
       } ${className || ""}`}
       style={style}
@@ -91,7 +107,7 @@ const Button: FC<ButtonProps> = ({
       ) : (
         <>
           {icon}
-          <Text className={`text-base font-manrope-bold ${getTextColorClass()}`} style={textStyle}>
+          <Text className={`${SIZE_CLASSES[size].text} font-manrope-bold ${getTextColorClass()}`} style={textStyle}>
             {title}
           </Text>
         </>

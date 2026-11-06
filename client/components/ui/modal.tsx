@@ -5,14 +5,14 @@ import {
   Platform,
   Modal as RNModal,
   ScrollView,
-  Text,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useTheme } from "@/stores/themeStore";
+import IconButton from "./icon-button";
+import Text from "./text";
 
 interface ModalProps {
   visible: boolean;
@@ -48,7 +48,7 @@ const Modal: FC<ModalProps> = ({ visible, onClose, title, children, height = "fu
   };
 
   return (
-    <RNModal visible={visible} animationType="slide" transparent statusBarTranslucent>
+    <RNModal visible={visible} animationType="slide" transparent statusBarTranslucent onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View
           className="absolute inset-0"
@@ -76,24 +76,14 @@ const Modal: FC<ModalProps> = ({ visible, onClose, title, children, height = "fu
             },
           ]}
         >
-          <View className="flex-row justify-between items-center mb-6">
-            {title && (
-              <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
-                {title}
-              </Text>
-            )}
-            <TouchableOpacity
-              className="w-12 h-12 rounded-24 justify-center items-center"
-              style={{ backgroundColor: theme.background }}
-              onPress={onClose}
-              activeOpacity={0.7}
-            >
-              <X size={24} color={theme.text} />
-            </TouchableOpacity>
+          <View className="flex-row items-center gap-3 mb-6">
+            <View className="flex-1">{title && <Text variant="title">{title}</Text>}</View>
+            <IconButton icon={X} onPress={onClose} style={{ backgroundColor: theme.background }} />
           </View>
 
           <ScrollView
-            className="flex-1"
+            // A flex-1 child collapses to zero height inside a parent that only has maxHeight.
+            style={height === "auto" ? { flexGrow: 0, flexShrink: 1 } : { flex: 1 }}
             contentContainerStyle={{ paddingBottom: 16 }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"

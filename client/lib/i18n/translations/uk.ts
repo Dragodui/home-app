@@ -1,6 +1,7 @@
 export default {
   // Common
   common: {
+    back: "Назад",
     or: "або",
     cancel: "Скасувати",
     delete: "Видалити",

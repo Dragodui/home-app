@@ -3,10 +3,12 @@ import { TouchableOpacity, View, type ViewStyle } from "react-native";
 import { useTheme } from "@/stores/themeStore";
 
 type CardVariant = "default" | "surface" | "yellow" | "purple" | "pink" | "mint" | "white";
+type CardSize = "sm" | "md" | "lg";
 
 interface CardProps {
   children: ReactNode;
   variant?: CardVariant;
+  size?: CardSize;
   style?: ViewStyle;
   onPress?: () => void;
   padding?: number;
@@ -14,13 +16,20 @@ interface CardProps {
   className?: string;
 }
 
+const SIZES: Record<CardSize, { padding: number; borderRadius: number }> = {
+  sm: { padding: 16, borderRadius: 20 },
+  md: { padding: 20, borderRadius: 20 },
+  lg: { padding: 24, borderRadius: 32 },
+};
+
 const Card: FC<CardProps> = ({
   children,
   variant = "default",
+  size = "lg",
   style,
   onPress,
-  padding = 24,
-  borderRadius = 32,
+  padding = SIZES[size].padding,
+  borderRadius = SIZES[size].borderRadius,
   className,
 }) => {
   const { theme } = useTheme();
