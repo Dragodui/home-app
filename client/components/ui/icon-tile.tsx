@@ -9,6 +9,8 @@ type IconTileSize = "md" | "lg";
 interface IconTileProps {
   icon: LucideIcon;
   tone?: Tone;
+  /** Any fill color, for example one chosen by a user. Takes priority over tone. */
+  color?: string;
   size?: IconTileSize;
   className?: string;
 }
@@ -18,16 +20,16 @@ const SIZES: Record<IconTileSize, { container: string; icon: number }> = {
   lg: { container: "w-20 h-20 rounded-3xl", icon: 40 },
 };
 
-const IconTile: FC<IconTileProps> = ({ icon: Icon, tone = "purple", size = "md", className }) => {
+const IconTile: FC<IconTileProps> = ({ icon: Icon, tone = "purple", color, size = "md", className }) => {
   const { theme } = useTheme();
   const colors = getToneColors(theme, tone);
 
   return (
     <View
       className={`justify-center items-center ${SIZES[size].container} ${className || ""}`}
-      style={{ backgroundColor: colors.solid }}
+      style={{ backgroundColor: color ?? colors.solid }}
     >
-      <Icon size={SIZES[size].icon} color={colors.onSolid} />
+      <Icon size={SIZES[size].icon} color={color ? theme.onAccent : colors.onSolid} />
     </View>
   );
 };

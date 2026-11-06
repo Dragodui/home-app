@@ -20,6 +20,15 @@ const ACCENT_KEYS = {
   green: "green",
 } as const;
 
+/** Tinted fill and readable foreground for an arbitrary color, such as one chosen by a user. */
+export function getSoftColors(theme: Theme, color: string): { soft: string; onSoft: string } {
+  // Pastel accents have no contrast on a light background, so light mode tints harder and uses body text.
+  return {
+    soft: `${color}${theme.isDark ? "20" : "66"}`,
+    onSoft: theme.isDark ? color : theme.text,
+  };
+}
+
 export function getToneColors(theme: Theme, tone: Tone): ToneColors {
   if (tone === "neutral") {
     return { solid: theme.surface, onSolid: theme.text, soft: theme.surface, onSoft: theme.text };
@@ -38,8 +47,6 @@ export function getToneColors(theme: Theme, tone: Tone): ToneColors {
   return {
     solid: color,
     onSolid: theme.onAccent,
-    // Pastel accents have no contrast on a light background, so light mode tints harder and uses body text.
-    soft: `${color}${theme.isDark ? "20" : "66"}`,
-    onSoft: theme.isDark ? color : theme.text,
+    ...getSoftColors(theme, color),
   };
 }

@@ -3,6 +3,8 @@ import { Text as RNText, type TextProps as RNTextProps } from "react-native";
 import { useTheme } from "@/stores/themeStore";
 
 export type TextVariant =
+  | "hero"
+  | "largeTitle"
   | "display"
   | "title"
   | "heading"
@@ -17,6 +19,8 @@ export type TextVariant =
 export type TextColor = "primary" | "secondary" | "muted" | "onAccent" | "onDanger" | "danger";
 
 const VARIANT_CLASSES: Record<TextVariant, string> = {
+  hero: "text-5xl font-manrope-extrabold",
+  largeTitle: "text-4xl font-manrope-bold",
   display: "text-3xl font-manrope-bold",
   title: "text-2xl font-manrope-bold",
   heading: "text-lg font-manrope-bold",

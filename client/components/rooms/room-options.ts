@@ -16,24 +16,9 @@ import {
   Wifi,
   Wrench,
 } from "lucide-react-native";
+import { PICKER_COLORS } from "@/constants/colors";
 
-export const ROOM_COLOR_OPTIONS = [
-  "#FF7476",
-  "#FF9F7A",
-  "#FBEB9E",
-  "#A8E6CF",
-  "#7DD3E8",
-  "#D8D4FC",
-  "#F5A3D3",
-  "#22C55E",
-  "#F472B6",
-  "#C4B5FD",
-  "#94A3B8",
-  "#FDE68A",
-  "#6EE7B7",
-] as const;
-
-export const DEFAULT_ROOM_COLOR: string = ROOM_COLOR_OPTIONS[2];
+export const DEFAULT_ROOM_COLOR: string = PICKER_COLORS[2];
 
 export const ROOM_ICON_OPTIONS = [
   { value: "home", icon: HomeIcon },

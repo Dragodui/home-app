@@ -676,7 +676,7 @@ export default function ChatThreadScreen() {
       <ScreenHeader
         title={peerId === null ? `${home?.name || ""} ${t.chat.title}` : peerUser?.name || peerUser?.username || ""}
         onBack={goBack}
-        className="mb-4"
+        compact
       />
 
       <KeyboardAvoidingView

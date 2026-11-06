@@ -9,13 +9,13 @@ interface FabProps {
   icon: LucideIcon;
   onPress: () => void;
   tone?: Tone;
-  /** Distance above the safe area. Raise it on screens with a tab bar. */
-  bottomOffset?: number;
+  /** Lifts the button over the floating tab bar. */
+  aboveTabBar?: boolean;
   accessibilityLabel?: string;
 }
 
 /** Floating action button. Pass it to the `overlay` prop of Screen so it stays fixed while content scrolls. */
-const Fab: FC<FabProps> = ({ icon: Icon, onPress, tone = "yellow", bottomOffset = 24, accessibilityLabel }) => {
+const Fab: FC<FabProps> = ({ icon: Icon, onPress, tone = "yellow", aboveTabBar = false, accessibilityLabel }) => {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const colors = getToneColors(theme, tone);
@@ -25,7 +25,7 @@ const Fab: FC<FabProps> = ({ icon: Icon, onPress, tone = "yellow", bottomOffset 
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       className="absolute right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
-      style={{ bottom: insets.bottom + bottomOffset, backgroundColor: colors.solid }}
+      style={{ bottom: aboveTabBar ? 120 : insets.bottom + 24, backgroundColor: colors.solid }}
       onPress={onPress}
       activeOpacity={0.8}
     >

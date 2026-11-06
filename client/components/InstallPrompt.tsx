@@ -1,7 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Download, Share, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
+import { Button, Text } from "@/components/ui";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
@@ -134,16 +135,22 @@ export function InstallPrompt() {
       >
         <View className="flex-row items-center">
           <Share size={20} color={theme.accent.purple} />
-          <Text className="ml-3 flex-1 text-sm font-semibold" style={{ color: theme.text }}>
+          <Text variant="label" className="ml-3 flex-1">
             {t.install.iosPrompt}
           </Text>
           <Pressable onPress={handleIOSDismiss} className="p-1">
             <X size={18} color={theme.textSecondary} />
           </Pressable>
         </View>
-        <Text className="mt-2 text-xs" style={{ color: theme.textSecondary }}>
-          {t.install.iosInstructionsPrefix} <Text style={{ fontWeight: "600" }}>{t.install.iosShareButton}</Text>{" "}
-          {t.install.iosInstructionsMiddle} <Text style={{ fontWeight: "600" }}>{t.install.iosAddToHomeScreen}</Text>
+        <Text variant="caption" color="secondary" className="mt-2">
+          {t.install.iosInstructionsPrefix}{" "}
+          <Text variant="caption" color="secondary" className="font-manrope-semibold">
+            {t.install.iosShareButton}
+          </Text>{" "}
+          {t.install.iosInstructionsMiddle}{" "}
+          <Text variant="caption" color="secondary" className="font-manrope-semibold">
+            {t.install.iosAddToHomeScreen}
+          </Text>
         </Text>
       </View>
     );
@@ -157,16 +164,10 @@ export function InstallPrompt() {
       style={{ elevation: 8, backgroundColor: theme.surface }}
     >
       <Download size={20} color={theme.accent.purple} />
-      <Text className="ml-3 flex-1 text-sm font-semibold" style={{ color: theme.text }}>
+      <Text variant="label" className="ml-3 flex-1">
         {t.install.prompt}
       </Text>
-      <Pressable
-        onPress={handleInstall}
-        className="ml-2 rounded-xl px-4 py-2"
-        style={{ backgroundColor: theme.accent.purple }}
-      >
-        <Text className="text-sm font-bold text-white">{t.install.install}</Text>
-      </Pressable>
+      <Button title={t.install.install} size="sm" variant="purple" onPress={handleInstall} className="ml-2" />
       <Pressable onPress={handleDismiss} className="ml-2 p-1">
         <X size={18} color={theme.textSecondary} />
       </Pressable>

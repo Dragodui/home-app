@@ -1,45 +1,38 @@
 import { useRouter } from "expo-router";
-import {
-  Book,
-  Briefcase,
-  Calendar,
-  CheckCircle,
-  Coffee,
-  DollarSign,
-  Edit2,
-  FileText,
-  Heart,
-  Home,
-  Lightbulb,
-  Lock,
-  Notebook,
-  Plus,
-  ShoppingBag,
-  Smile,
-  Star,
-  Tag,
-  Trash2,
-  User as UserIcon,
-  Utensils,
-  Wrench,
-} from "lucide-react-native";
+import { Notebook, Tag } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View } from "react-native";
+import NoteCard from "@/components/notes/note-card";
+import {
+  type MentionChip,
+  type MentionKind,
+  type MentionSuggestion,
+  NoteMentionChips,
+  NoteMentionSuggestions,
+} from "@/components/notes/note-mentions";
+import { getNoteCategoryIcon, NOTE_CATEGORY_COLORS, NOTE_ICON_OPTIONS } from "@/components/notes/note-options";
 import { NotesSkeleton } from "@/components/skeletons";
-import { useAlert } from "@/components/ui/alert";
-import Button from "@/components/ui/button";
-import Card from "@/components/ui/card";
-import Input from "@/components/ui/input";
-import Modal from "@/components/ui/modal";
+import {
+  ActionSheet,
+  Button,
+  CategoryFormModal,
+  ChipSelect,
+  EmptyState,
+  FabMenu,
+  Input,
+  Modal,
+  Section,
+  type SheetAction,
+  TabHeader,
+  TabScreen,
+  useAlert,
+} from "@/components/ui";
 import { billApi, billCategoryApi, noteApi, shoppingApi, taskApi } from "@/lib/api";
 import type { Bill, BillCategory, Note, NoteCategory, ShoppingCategory, ShoppingItem, Task } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
-import { useTheme } from "@/stores/themeStore";
 
 type SuggestionStep =
   | "category"
@@ -53,14 +46,11 @@ type SuggestionStep =
   | null;
 
 export default function NotesScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
   const { home, isAdmin } = useHome();
-  const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
-  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   // Notes and Categories state
   const [notes, setNotes] = useState<Note[]>([]);
@@ -71,12 +61,10 @@ export default function NotesScreen() {
 
   // Active view note modal
   const [expandedNoteIds, setExpandedNoteIds] = useState<number[]>([]);
-  const [showNoteActionsModal, setShowNoteActionsModal] = useState(false);
   const [selectedNoteForActions, setSelectedNoteForActions] = useState<Note | null>(null);
 
   // Create / Edit Note Modal State
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [showAddMenu, setShowAddMenu] = useState(false);
   const [noteIdToEdit, setNoteIdToEdit] = useState<number | null>(null);
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
@@ -112,90 +100,6 @@ export default function NotesScreen() {
   const [categoryColor, setCategoryColor] = useState("#D2C4FF");
   const [categoryIcon, setCategoryIcon] = useState("tag");
   const [savingCategory, setSavingCategory] = useState(false);
-
-  // Preset Colors for Categories (matching the design system accents and pastels)
-  const PRESET_COLORS = [
-    "#D8D4FC", // Accent Purple (Lavender)
-    "#FBEB9E", // Accent Yellow (Cream)
-    "#FF7476", // Accent Pink (Coral)
-    "#A8E6CF", // Accent Mint
-    "#7DD3E8", // Accent Cyan
-    "#60A5FA", // Blue
-    "#22C55E", // Green
-    "#FB923C", // Orange
-    "#F472B6", // Pink
-    "#A78BFA", // Violet
-    "#38BDF8", // Sky Blue
-    "#818CF8", // Indigo
-    "#4ADE80", // Light Green
-    "#FDE047", // Pastel Yellow
-    "#FFC2D1", // Soft Rose
-    "#B2F5EA", // Soft Teal
-    "#C4F2FF", // Soft Sky
-    "#FFD2D2", // Soft Red
-  ];
-
-  // Helper to render category icon component
-  const getCategoryIcon = (iconName: string, size = 16, color = theme.text) => {
-    switch (iconName) {
-      case "notebook":
-        return <Notebook size={size} color={color} />;
-      case "tag":
-        return <Tag size={size} color={color} />;
-      case "edit":
-        return <Edit2 size={size} color={color} />;
-      case "home":
-        return <Home size={size} color={color} />;
-      case "shopping":
-        return <ShoppingBag size={size} color={color} />;
-      case "finance":
-        return <DollarSign size={size} color={color} />;
-      case "task":
-        return <CheckCircle size={size} color={color} />;
-      case "calendar":
-        return <Calendar size={size} color={color} />;
-      case "lock":
-        return <Lock size={size} color={color} />;
-      case "idea":
-        return <Lightbulb size={size} color={color} />;
-      case "heart":
-        return <Heart size={size} color={color} />;
-      case "food":
-        return <Utensils size={size} color={color} />;
-      case "book":
-        return <Book size={size} color={color} />;
-      case "work":
-        return <Briefcase size={size} color={color} />;
-      case "coffee":
-        return <Coffee size={size} color={color} />;
-      case "star":
-        return <Star size={size} color={color} />;
-      case "tool":
-        return <Wrench size={size} color={color} />;
-      case "user":
-        return <UserIcon size={size} color={color} />;
-      case "smile":
-        return <Smile size={size} color={color} />;
-      case "document":
-        return <FileText size={size} color={color} />;
-      default:
-        return <Tag size={size} color={color} />;
-    }
-  };
-
-  const getSuggestionAlignment = () => {
-    const lastAtIndex = noteContent.lastIndexOf("@");
-    if (lastAtIndex === -1) return { left: 16 };
-
-    const textBeforeAt = noteContent.substring(0, lastAtIndex);
-    const lines = textBeforeAt.split("\n");
-    const currentLineText = lines[lines.length - 1] || "";
-
-    if (currentLineText.length < 20) {
-      return { left: 16 };
-    }
-    return { right: 16 };
-  };
 
   const removeMentionFromText = (type: string, name: string) => {
     const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -660,971 +564,277 @@ export default function NotesScreen() {
     }
   };
 
-  const renderNoteContentWithMentions = (text: string, note: Note, numberOfLines?: number) => {
-    const regex = /@(user|task|bill|item|category):(?:"([^"]+)"|(\S+))|@(?:"([^"]+)"|([a-zA-Z0-9_-]+))/g;
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let key = 0;
+  const getMentionChips = (): MentionChip[] => {
+    const synced = syncMentionIdsBeforeSave(noteContent);
+    const toChips = (ids: number[], kind: MentionKind, prefix: string, labelOf: (id: number) => string | undefined) =>
+      ids.flatMap((id) => {
+        const label = labelOf(id);
+        return label ? [{ key: `${prefix}-${id}`, kind, label }] : [];
+      });
 
-    while (true) {
-      const match = regex.exec(text);
-      if (match === null) break;
-      const matchIndex = match.index;
-      if (matchIndex > lastIndex) {
-        parts.push(
-          <Text key={key++} className="font-manrope text-base" style={{ color: theme.text }}>
-            {text.substring(lastIndex, matchIndex)}
-          </Text>,
-        );
-      }
+    return [
+      ...toChips(synced.userIds, "user", "u", (id) => {
+        const found = users.find((x) => x.id === id);
+        return found?.username || found?.name;
+      }),
+      ...toChips(synced.taskIds, "task", "t", (id) => tasks.find((x) => x.id === id)?.name),
+      ...toChips(synced.billIds, "bill", "b", (id) => bills.find((x) => x.id === id)?.description),
+      ...toChips(synced.itemIds, "item", "i", (id) => shoppingItems.find((x) => x.id === id)?.name),
+      ...toChips(synced.noteCategoryIds, "category", "nc", (id) => categories.find((x) => x.id === id)?.name),
+      ...toChips(synced.billCategoryIds, "category", "bc", (id) => billCategories.find((x) => x.id === id)?.name),
+      ...toChips(
+        synced.shoppingCategoryIds,
+        "category",
+        "sc",
+        (id) => shoppingCategories.find((x) => x.id === id)?.name,
+      ),
+    ];
+  };
 
-      const fullMatch = match[0];
-      const prefixType = match[1];
-      const quotedName = match[2] || match[4];
-      const unquotedName = match[3] || match[5];
-      const name = quotedName || unquotedName;
+  const getSuggestionKind = (item: any): MentionKind => {
+    if (suggestionStep === "category") {
+      const kinds: Record<string, MentionKind> = {
+        users: "user",
+        tasks: "task",
+        bill_categories: "bill",
+        shopping_categories: "item",
+      };
+      return kinds[item.val] ?? "category";
+    }
+    if (item.type === "user" || suggestionStep === "users") return "user";
+    if (item.type === "task" || suggestionStep === "tasks") return "task";
+    if (
+      item.type === "bill" ||
+      item.type === "bill_category" ||
+      suggestionStep === "bill_items" ||
+      suggestionStep === "bill_categories"
+    ) {
+      return "bill";
+    }
+    if (
+      item.type === "item" ||
+      item.type === "shopping_category" ||
+      suggestionStep === "shopping_items" ||
+      suggestionStep === "shopping_categories"
+    ) {
+      return "item";
+    }
+    return "category";
+  };
 
-      let isMention = false;
-      let badgeBg = "";
-      let label = name;
+  const getSuggestions = (): MentionSuggestion[] =>
+    getFilteredItems().map((item: any) => {
+      const isSubCategoryStep = suggestionStep === "shopping_categories" || suggestionStep === "bill_categories";
+      const browseStep: SuggestionStep = suggestionStep === "shopping_categories" ? "shopping_items" : "bill_items";
 
-      let icon: React.ReactNode = null;
-
-      if (
-        prefixType === "user" ||
-        (!prefixType && note.mentionedUsers?.some((u) => u.username === name || u.name === name))
-      ) {
-        isMention = true;
-        badgeBg = "bg-accent-purple/20 text-accent-purple";
-        label = name;
-        icon = (
-          <UserIcon
-            size={12}
-            color={theme.accent.purple}
-            style={{ marginRight: 2, display: "inline-flex" as any, verticalAlign: "middle" as any }}
-          />
-        );
-      } else if (prefixType === "task" || (!prefixType && note.mentionedTasks?.some((t) => t.name === name))) {
-        isMention = true;
-        badgeBg = "bg-accent-mint/20 text-accent-mint";
-        label = name;
-        icon = (
-          <CheckCircle
-            size={12}
-            color={theme.accent.mint}
-            style={{ marginRight: 2, display: "inline-flex" as any, verticalAlign: "middle" as any }}
-          />
-        );
-      } else if (prefixType === "bill" || (!prefixType && note.mentionedBills?.some((b) => b.description === name))) {
-        isMention = true;
-        badgeBg = "bg-accent-yellow/20 text-accent-yellow";
-        label = name;
-        icon = (
-          <DollarSign
-            size={12}
-            color={theme.accent.yellow}
-            style={{ marginRight: 2, display: "inline-flex" as any, verticalAlign: "middle" as any }}
-          />
-        );
-      } else if (prefixType === "item" || (!prefixType && note.mentionedShoppingItems?.some((i) => i.name === name))) {
-        isMention = true;
-        badgeBg = "bg-accent-cyan/20 text-accent-cyan";
-        label = name;
-        icon = (
-          <ShoppingBag
-            size={12}
-            color={theme.accent.cyan}
-            style={{ marginRight: 2, display: "inline-flex" as any, verticalAlign: "middle" as any }}
-          />
-        );
-      } else if (
-        prefixType === "category" ||
-        (!prefixType &&
-          (note.mentionedNoteCategories?.some((c) => c.name === name) ||
-            note.mentionedBillCategories?.some((c) => c.name === name) ||
-            note.mentionedShoppingCategories?.some((c) => c.name === name)))
-      ) {
-        isMention = true;
-        badgeBg = "bg-accent-pink/20 text-accent-pink";
-        label = name;
-        icon = (
-          <Tag
-            size={12}
-            color={theme.accent.pink}
-            style={{ marginRight: 2, display: "inline-flex" as any, verticalAlign: "middle" as any }}
-          />
-        );
-      }
-
-      if (isMention) {
-        parts.push(
-          <Text
-            key={key++}
-            onPress={() =>
-              handleMentionPress(
-                prefixType ||
-                  (note.mentionedUsers?.some((u) => u.username === name || u.name === name)
-                    ? "user"
-                    : note.mentionedTasks?.some((t) => t.name === name)
-                      ? "task"
-                      : "note_category"),
-                name,
-              )
+      return {
+        key: suggestionStep === "category" ? item.val : `${item.type || suggestionStep}-${item.id}`,
+        kind: getSuggestionKind(item),
+        name: item.name,
+        hint: isSubCategoryStep ? t.notes.linkCategory : undefined,
+        onBrowse: isSubCategoryStep
+          ? () => {
+              setSelectedSubCategoryId(item.id);
+              setSuggestionStep(browseStep);
+              setSuggestionQuery("");
             }
-            className={`font-manrope-semibold text-sm px-2.5 py-0.5 rounded-full overflow-hidden mx-0.5 ${badgeBg}`}
-          >
-            {icon} {label}
-          </Text>,
-        );
-      } else {
-        parts.push(
-          <Text key={key++} className="font-manrope text-base" style={{ color: theme.text }}>
-            {fullMatch}
-          </Text>,
-        );
-      }
-      lastIndex = regex.lastIndex;
-    }
+          : undefined,
+        onPress: () => {
+          if (suggestionStep === "category") {
+            selectCategory(item.val);
+          } else if (suggestionStep === "shopping_categories") {
+            selectItem(item.id, item.name, "shopping_category");
+          } else if (suggestionStep === "bill_categories") {
+            selectItem(item.id, item.name, "bill_category");
+          } else {
+            selectItem(item.id, item.name, item.type || suggestionStep);
+          }
+        },
+      };
+    });
 
-    if (lastIndex < text.length) {
-      parts.push(
-        <Text key={key++} className="font-manrope text-base" style={{ color: theme.text }}>
-          {text.substring(lastIndex)}
-        </Text>,
-      );
+  const suggestionTitle =
+    suggestionStep === "category"
+      ? "Mention Category"
+      : suggestionStep === "shopping_categories"
+        ? "Select Shopping Category"
+        : suggestionStep === "bill_categories"
+          ? "Select Bill Category"
+          : suggestionStep === "shopping_items"
+            ? "Select Shopping Item"
+            : suggestionStep === "bill_items"
+              ? "Select Bill"
+              : `Select ${suggestionStep}`;
+
+  const goBackInSuggestions = () => {
+    if (suggestionStep === "shopping_items") {
+      setSuggestionStep("shopping_categories");
+    } else if (suggestionStep === "bill_items") {
+      setSuggestionStep("bill_categories");
+    } else {
+      setSuggestionStep("category");
     }
-    return (
-      <Text numberOfLines={numberOfLines} className="flex-row flex-wrap leading-6">
-        {parts}
-      </Text>
-    );
   };
 
-  const _renderFormattedNoteTextInEditor = (text: string) => {
-    const regex = /@(user|task|bill|item|category):(?:"([^"]+)"|(\S+))|@(?:"([^"]+)"|([a-zA-Z0-9_-]+))/g;
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let key = 0;
-
-    while (true) {
-      const match = regex.exec(text);
-      if (match === null) break;
-      const matchIndex = match.index;
-      if (matchIndex > lastIndex) {
-        parts.push(text.substring(lastIndex, matchIndex));
-      }
-
-      const fullMatch = match[0];
-      const prefixType = match[1];
-      const quotedName = match[2] || match[4];
-      const unquotedName = match[3] || match[5];
-      const name = quotedName || unquotedName;
-
-      let isMention = false;
-      let badgeBg = "";
-      let textColor = "";
-
-      if (prefixType === "user" || (!prefixType && users.some((u) => u.username === name || u.name === name))) {
-        isMention = true;
-        badgeBg = "bg-accent-purple/20";
-        textColor = theme.accent.purple;
-      } else if (prefixType === "task" || (!prefixType && tasks.some((t) => t.name === name))) {
-        isMention = true;
-        badgeBg = "bg-accent-mint/20";
-        textColor = theme.accent.mint;
-      } else if (prefixType === "bill" || (!prefixType && bills.some((b) => b.description === name))) {
-        isMention = true;
-        badgeBg = "bg-accent-yellow/20";
-        textColor = theme.accent.yellow;
-      } else if (prefixType === "item" || (!prefixType && shoppingItems.some((i) => i.name === name))) {
-        isMention = true;
-        badgeBg = "bg-accent-cyan/20";
-        textColor = theme.accent.cyan;
-      } else if (
-        prefixType === "category" ||
-        (!prefixType &&
-          (categories.some((c) => c.name === name) ||
-            billCategories.some((c) => c.name === name) ||
-            shoppingCategories.some((c) => c.name === name)))
-      ) {
-        isMention = true;
-        badgeBg = "bg-accent-pink/20";
-        textColor = theme.accent.pink;
-      }
-
-      if (isMention) {
-        parts.push(
-          <Text
-            key={key++}
-            className={`font-manrope-semibold text-sm px-2 py-0.5 rounded-full overflow-hidden mx-0.5 ${badgeBg}`}
-            style={{ color: textColor }}
-          >
-            {fullMatch}
-          </Text>,
-        );
-      } else {
-        parts.push(fullMatch);
-      }
-      lastIndex = regex.lastIndex;
-    }
-
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
-    }
-    return parts;
-  };
-
-  const _getSuggestionAlignment = () => {
-    const lastAtIndex = noteContent.lastIndexOf("@");
-    if (lastAtIndex === -1) return { left: 16 };
-
-    const textBeforeAt = noteContent.substring(0, lastAtIndex);
-    const lines = textBeforeAt.split("\n");
-    const currentLineText = lines[lines.length - 1] || "";
-
-    if (currentLineText.length < 20) {
-      return { left: 16 };
-    }
-    return { right: 16 };
-  };
+  const noteActions: SheetAction[] =
+    selectedNoteForActions && (isAdmin || selectedNoteForActions.createdBy === user?.id)
+      ? [
+          { label: t.notes.editNote, onPress: () => openEditNote(selectedNoteForActions) },
+          {
+            label: t.common.delete || "Delete",
+            destructive: true,
+            onPress: () => handleDeleteNote(selectedNoteForActions.id),
+          },
+        ]
+      : [];
 
   if (isLoading) {
     return <NotesSkeleton />;
   }
 
+  const suggestions = showNoteModal && showSuggestions ? getSuggestions() : [];
+
   return (
-    <View className="flex-1" style={{ backgroundColor: theme.background }}>
-      <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingTop: insets.top + (isDesktop ? 16 : 24),
-          paddingBottom: insets.bottom + 100,
-          maxWidth: contentMaxWidth,
-          alignSelf: "center",
-          width: "100%",
-        }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
-      >
-        {/* Header */}
-        <View className="flex-row justify-between items-center mb-6">
-          <View>
-            <Text className="text-3xl font-manrope-bold" style={{ color: theme.text }}>
-              {t.notes.title}
-            </Text>
-          </View>
-        </View>
+    <TabScreen
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      overlay={
+        <FabMenu
+          items={[
+            { icon: Tag, label: t.notes.category || "Category", onPress: () => setShowCategoryModal(true) },
+            { icon: Notebook, label: t.notes.createNote, onPress: openCreateNote },
+          ]}
+        />
+      }
+    >
+      <TabHeader title={t.notes.title} />
 
-        {/* Categories Bar */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, marginBottom: 20 }}
-        >
-          <TouchableOpacity
-            className={`px-5 py-2.5 rounded-full ${selectedCategoryId === null ? "" : "border"}`}
-            style={{
-              backgroundColor: selectedCategoryId === null ? theme.text : theme.surface,
-              borderColor: theme.border,
-            }}
-            onPress={() => setSelectedCategoryId(null)}
-            activeOpacity={0.8}
-          >
-            <Text
-              className="text-sm font-manrope-bold"
-              style={{ color: selectedCategoryId === null ? theme.background : theme.text }}
-            >
-              {t.common.all}
-            </Text>
-          </TouchableOpacity>
+      <ChipSelect<number | null>
+        value={selectedCategoryId}
+        onChange={setSelectedCategoryId}
+        className="mb-5"
+        options={[
+          { value: null, label: t.common.all },
+          ...categories.map((cat) => ({ value: cat.id, label: cat.name, icon: getNoteCategoryIcon(cat.icon) })),
+        ]}
+      />
 
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              className={`px-5 py-2.5 rounded-full flex-row items-center gap-1.5 ${
-                selectedCategoryId === cat.id ? "" : "border"
-              }`}
-              style={{
-                backgroundColor: selectedCategoryId === cat.id ? theme.text : theme.surface,
-                borderColor: theme.border,
-              }}
-              onPress={() => setSelectedCategoryId(cat.id)}
-              activeOpacity={0.8}
-            >
-              {getCategoryIcon(cat.icon || "tag", 14, selectedCategoryId === cat.id ? theme.background : theme.text)}
-              <Text
-                className="text-sm font-manrope-bold"
-                style={{ color: selectedCategoryId === cat.id ? theme.background : theme.text }}
-              >
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
+      {notes.length === 0 ? (
+        <EmptyState
+          icon={Notebook}
+          title={t.notes.noNotes}
+          description={t.notes.noNotesDescription}
+          action={<Button title={t.notes.createNote} onPress={openCreateNote} />}
+        />
+      ) : (
+        <View className="gap-4">
+          {notes.map((note) => (
+            <NoteCard
+              key={note.id}
+              note={note}
+              expanded={expandedNoteIds.includes(note.id)}
+              onPress={() => toggleExpandNote(note.id)}
+              onLongPress={() => setSelectedNoteForActions(note)}
+              onMentionPress={handleMentionPress}
+            />
           ))}
-        </ScrollView>
-
-        {/* Notes List */}
-        {notes.length === 0 ? (
-          <View className="items-center py-20 px-6">
-            <View
-              className="w-16 h-16 rounded-full justify-center items-center mb-4"
-              style={{ backgroundColor: theme.surface }}
-            >
-              <Notebook size={32} color={theme.textSecondary} />
-            </View>
-            <Text className="text-xl font-manrope-bold mb-2 text-center" style={{ color: theme.text }}>
-              {t.notes.noNotes}
-            </Text>
-            <Text className="text-sm font-manrope text-center leading-5 mb-6" style={{ color: theme.textSecondary }}>
-              {t.notes.noNotesDescription}
-            </Text>
-            <Button title={t.notes.createNote} onPress={openCreateNote} />
-          </View>
-        ) : (
-          <View className="gap-4">
-            {notes.map((note) => (
-              <TouchableOpacity
-                key={note.id}
-                onPress={() => toggleExpandNote(note.id)}
-                onLongPress={() => {
-                  setSelectedNoteForActions(note);
-                  setShowNoteActionsModal(true);
-                }}
-                activeOpacity={0.9}
-              >
-                <Card className="p-5">
-                  <View className="flex-row justify-between items-start mb-3">
-                    <Text
-                      className="text-lg font-manrope-bold flex-1 mr-4"
-                      numberOfLines={1}
-                      style={{ color: theme.text }}
-                    >
-                      {note.title}
-                    </Text>
-                    {note.noteCategory && (
-                      <View
-                        className="px-2.5 py-1 rounded-8 flex-row items-center gap-1"
-                        style={{ backgroundColor: `${note.noteCategory.color}20` }}
-                      >
-                        {getCategoryIcon(note.noteCategory.icon || "tag", 12, note.noteCategory.color)}
-                        <Text className="text-xs font-manrope-semibold" style={{ color: note.noteCategory.color }}>
-                          {note.noteCategory.name}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Render inline parsed content (collapsed at 3 lines, or full height) */}
-                  <View className="mb-4">
-                    {renderNoteContentWithMentions(
-                      note.content,
-                      note,
-                      expandedNoteIds.includes(note.id) ? undefined : 3,
-                    )}
-                  </View>
-
-                  <View
-                    className="flex-row justify-between items-center pt-3 border-t"
-                    style={{ borderColor: theme.border }}
-                  >
-                    <View className="flex-row items-center gap-1.5">
-                      <UserIcon size={12} color={theme.textSecondary} />
-                      <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
-                        {note.creator?.name}
-                      </Text>
-                    </View>
-                    <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
-                      {new Date(note.createdAt).toLocaleDateString()}
-                    </Text>
-                  </View>
-                </Card>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </ScrollView>
-
-      {showAddMenu && (
-        <View className="absolute bottom-[188px] right-6 z-40 gap-2.5 items-end">
-          <TouchableOpacity
-            className="flex-row items-center gap-3 px-4 h-12 rounded-2xl shadow-lg"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => {
-              setShowAddMenu(false);
-              setShowCategoryModal(true);
-            }}
-            activeOpacity={0.85}
-          >
-            <Tag size={18} color={theme.text} />
-            <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
-              {t.notes.category || "Category"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="flex-row items-center gap-3 px-4 h-12 rounded-2xl shadow-lg"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => {
-              setShowAddMenu(false);
-              openCreateNote();
-            }}
-            activeOpacity={0.85}
-          >
-            <Notebook size={18} color={theme.text} />
-            <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
-              {t.notes.createNote}
-            </Text>
-          </TouchableOpacity>
         </View>
       )}
 
-      {/* Floating Add Menu FAB */}
-      <TouchableOpacity
-        className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
-        style={{ backgroundColor: theme.accent.purple }}
-        onPress={() => setShowAddMenu((value) => !value)}
-        activeOpacity={0.8}
+      <ActionSheet
+        visible={!!selectedNoteForActions}
+        onClose={() => setSelectedNoteForActions(null)}
+        title={selectedNoteForActions?.title}
+        cancelLabel={t.common.cancel || "Cancel"}
+        actions={noteActions}
+      />
+
+      <Modal
+        visible={showNoteModal}
+        onClose={() => setShowNoteModal(false)}
+        title={noteIdToEdit ? t.notes.editNote : t.notes.createNote}
       >
-        <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
-      </TouchableOpacity>
+        <Input
+          label={t.notes.noteTitle}
+          placeholder={t.notes.noteTitlePlaceholder}
+          value={noteTitle}
+          onChangeText={setNoteTitle}
+        />
 
-      {/* Note Actions Modal (triggered on long press) */}
-      {showNoteActionsModal && selectedNoteForActions && (
-        <Modal
-          visible={true}
-          onClose={() => {
-            setShowNoteActionsModal(false);
-            setSelectedNoteForActions(null);
+        <Section compact title={t.notes.category}>
+          <ChipSelect<number | null>
+            value={noteCategoryId}
+            onChange={setNoteCategoryId}
+            options={[
+              { value: null, label: t.notes.noCategory },
+              ...categories.map((c) => ({ value: c.id, label: c.name, icon: getNoteCategoryIcon(c.icon) })),
+            ]}
+          />
+        </Section>
+
+        <Input
+          label={t.notes.noteContent}
+          placeholder={t.notes.noteContentPlaceholder}
+          value={noteContent}
+          onChangeText={handleContentChange}
+          multiline
+          style={{
+            height: 160,
+            paddingTop: 16,
+            paddingBottom: 16,
+            textAlignVertical: "top",
           }}
-          title={selectedNoteForActions.title}
-        >
-          <View className="gap-4">
-            {(isAdmin || selectedNoteForActions.createdBy === user?.id) && (
-              <>
-                <Button
-                  title={t.notes.editNote}
-                  variant="secondary"
-                  icon={<Edit2 size={16} color={theme.text} />}
-                  onPress={() => {
-                    const note = selectedNoteForActions;
-                    setShowNoteActionsModal(false);
-                    setSelectedNoteForActions(null);
-                    openEditNote(note);
-                  }}
-                />
-                <Button
-                  title={t.common.delete || "Delete"}
-                  variant="danger"
-                  icon={<Trash2 size={16} color="#FFFFFF" />}
-                  onPress={() => {
-                    const id = selectedNoteForActions.id;
-                    setShowNoteActionsModal(false);
-                    setSelectedNoteForActions(null);
-                    handleDeleteNote(id);
-                  }}
-                />
-              </>
-            )}
-            <Button
-              title={t.common.cancel || "Cancel"}
-              variant="secondary"
-              onPress={() => {
-                setShowNoteActionsModal(false);
-                setSelectedNoteForActions(null);
-              }}
-            />
-          </View>
-        </Modal>
-      )}
+        />
 
-      {/* Create / Edit Note Modal */}
-      {showNoteModal && (
-        <Modal
-          visible={true}
-          onClose={() => setShowNoteModal(false)}
-          title={noteIdToEdit ? t.notes.editNote : t.notes.createNote}
-        >
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
-            <View className="relative flex-1">
-              <ScrollView className="max-h-[60vh]" showsVerticalScrollIndicator={false}>
-                <View className="gap-4 mb-4">
-                  <Input
-                    label={t.notes.noteTitle}
-                    placeholder={t.notes.noteTitlePlaceholder}
-                    value={noteTitle}
-                    onChangeText={setNoteTitle}
-                  />
+        {suggestions.length > 0 && (
+          <NoteMentionSuggestions
+            title={suggestionTitle}
+            suggestions={suggestions}
+            onBack={suggestionStep !== "category" ? goBackInSuggestions : undefined}
+          />
+        )}
 
-                  {/* Category Selector */}
-                  <View>
-                    <Text className="text-xs font-manrope-semibold mb-2" style={{ color: theme.textSecondary }}>
-                      {t.notes.category.toUpperCase()}
-                    </Text>
-                    <View className="flex-row flex-wrap gap-2">
-                      <TouchableOpacity
-                        className={`px-4 py-2 rounded-xl border ${noteCategoryId === null ? "" : "opacity-60"}`}
-                        style={{
-                          backgroundColor: noteCategoryId === null ? theme.text : theme.surface,
-                          borderColor: theme.border,
-                        }}
-                        onPress={() => setNoteCategoryId(null)}
-                      >
-                        <Text
-                          className="text-xs font-manrope-bold"
-                          style={{ color: noteCategoryId === null ? theme.background : theme.text }}
-                        >
-                          {t.notes.noCategory}
-                        </Text>
-                      </TouchableOpacity>
-                      {categories.map((c) => (
-                        <TouchableOpacity
-                          key={c.id}
-                          className={`px-4 py-2 rounded-xl border flex-row items-center gap-1 ${
-                            noteCategoryId === c.id ? "" : "opacity-60"
-                          }`}
-                          style={{
-                            backgroundColor: noteCategoryId === c.id ? theme.text : theme.surface,
-                            borderColor: theme.border,
-                          }}
-                          onPress={() => setNoteCategoryId(c.id)}
-                        >
-                          {getCategoryIcon(
-                            c.icon || "tag",
-                            12,
-                            noteCategoryId === c.id ? theme.background : theme.text,
-                          )}
-                          <Text
-                            className="text-xs font-manrope-bold"
-                            style={{ color: noteCategoryId === c.id ? theme.background : theme.text }}
-                          >
-                            {c.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
+        {showNoteModal && (
+          <NoteMentionChips
+            chips={getMentionChips()}
+            onRemove={(chip) => removeMentionFromText(chip.kind, chip.label)}
+          />
+        )}
 
-                  {/* Premium multiline textarea for Note Content */}
-                  <Input
-                    label={t.notes.noteContent}
-                    placeholder={t.notes.noteContentPlaceholder}
-                    value={noteContent}
-                    onChangeText={handleContentChange}
-                    multiline
-                    style={{
-                      height: 160,
-                      paddingTop: 16,
-                      paddingBottom: 16,
-                      textAlignVertical: "top",
-                    }}
-                  />
+        <View className="flex-row gap-3 mt-2">
+          <Button
+            title={t.common.cancel}
+            variant="secondary"
+            onPress={() => setShowNoteModal(false)}
+            className="flex-1"
+          />
+          <Button
+            title={noteIdToEdit ? t.common.save : t.common.create || "Create"}
+            onPress={handleSaveNote}
+            loading={savingNote}
+            disabled={savingNote || !noteTitle.trim()}
+            className="flex-1"
+          />
+        </View>
+      </Modal>
 
-                  {/* Active Mentioned Blocks (Tap to remove) */}
-                  {(() => {
-                    const synced = syncMentionIdsBeforeSave(noteContent);
-                    const hasMentions =
-                      synced.userIds.length > 0 ||
-                      synced.taskIds.length > 0 ||
-                      synced.billIds.length > 0 ||
-                      synced.itemIds.length > 0 ||
-                      synced.noteCategoryIds.length > 0 ||
-                      synced.billCategoryIds.length > 0 ||
-                      synced.shoppingCategoryIds.length > 0;
-
-                    if (!hasMentions) return null;
-
-                    return (
-                      <View className="mt-2.5">
-                        <Text
-                          className="text-[10px] font-manrope-bold uppercase tracking-wider mb-2"
-                          style={{ color: theme.textSecondary }}
-                        >
-                          {t.notes.mentionedBlocks}
-                        </Text>
-                        <View className="flex-row flex-wrap gap-2">
-                          {synced.userIds.map((uid) => {
-                            const u = users.find((x) => x.id === uid);
-                            if (!u) return null;
-                            const uName = u.username || u.name;
-                            return (
-                              <TouchableOpacity
-                                key={`u-${uid}`}
-                                onPress={() => removeMentionFromText("user", uName)}
-                                className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-purple/20"
-                                activeOpacity={0.8}
-                              >
-                                <UserIcon size={12} color={theme.accent.purple} />
-                                <Text className="text-xs font-manrope-semibold text-accent-purple">{uName}</Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                          {synced.taskIds.map((tid) => {
-                            const t = tasks.find((x) => x.id === tid);
-                            if (!t) return null;
-                            return (
-                              <TouchableOpacity
-                                key={`t-${tid}`}
-                                onPress={() => removeMentionFromText("task", t.name)}
-                                className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-mint/20"
-                                activeOpacity={0.8}
-                              >
-                                <CheckCircle size={12} color={theme.accent.mint} />
-                                <Text className="text-xs font-manrope-semibold text-accent-mint">{t.name}</Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                          {synced.billIds.map((bid) => {
-                            const b = bills.find((x) => x.id === bid);
-                            if (!b) return null;
-                            return (
-                              <TouchableOpacity
-                                key={`b-${bid}`}
-                                onPress={() => removeMentionFromText("bill", b.description)}
-                                className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-yellow/20"
-                                activeOpacity={0.8}
-                              >
-                                <DollarSign size={12} color={theme.accent.yellow} />
-                                <Text className="text-xs font-manrope-semibold text-accent-yellow">
-                                  {b.description}
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                          {synced.itemIds.map((iid) => {
-                            const i = shoppingItems.find((x) => x.id === iid);
-                            if (!i) return null;
-                            return (
-                              <TouchableOpacity
-                                key={`i-${iid}`}
-                                onPress={() => removeMentionFromText("item", i.name)}
-                                className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-cyan/20"
-                                activeOpacity={0.8}
-                              >
-                                <ShoppingBag size={12} color={theme.accent.cyan} />
-                                <Text className="text-xs font-manrope-semibold text-accent-cyan">{i.name}</Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                          {synced.noteCategoryIds.map((cid) => {
-                            const c = categories.find((x) => x.id === cid);
-                            if (!c) return null;
-                            return (
-                              <TouchableOpacity
-                                key={`nc-${cid}`}
-                                onPress={() => removeMentionFromText("category", c.name)}
-                                className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-pink/20"
-                                activeOpacity={0.8}
-                              >
-                                <Tag size={12} color={theme.accent.pink} />
-                                <Text className="text-xs font-manrope-semibold text-accent-pink">{c.name}</Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                          {synced.billCategoryIds.map((cid) => {
-                            const c = billCategories.find((x) => x.id === cid);
-                            if (!c) return null;
-                            return (
-                              <TouchableOpacity
-                                key={`bc-${cid}`}
-                                onPress={() => removeMentionFromText("category", c.name)}
-                                className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-pink/20"
-                                activeOpacity={0.8}
-                              >
-                                <Tag size={12} color={theme.accent.pink} />
-                                <Text className="text-xs font-manrope-semibold text-accent-pink">{c.name}</Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                          {synced.shoppingCategoryIds.map((cid) => {
-                            const c = shoppingCategories.find((x) => x.id === cid);
-                            if (!c) return null;
-                            return (
-                              <TouchableOpacity
-                                key={`sc-${cid}`}
-                                onPress={() => removeMentionFromText("category", c.name)}
-                                className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-pink/20"
-                                activeOpacity={0.8}
-                              >
-                                <Tag size={12} color={theme.accent.pink} />
-                                <Text className="text-xs font-manrope-semibold text-accent-pink">{c.name}</Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </View>
-                      </View>
-                    );
-                  })()}
-                </View>
-              </ScrollView>
-
-              {/* Autocomplete Suggestions Panel (Rendered outside ScrollView to prevent clipping, absolute positioned) */}
-              {showSuggestions && getFilteredItems().length > 0 && (
-                <View
-                  className="absolute rounded-2xl border p-2.5 z-50 shadow-lg"
-                  style={[
-                    {
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      maxHeight: 220,
-                      width: 280,
-                      bottom: 10,
-                    },
-                    getSuggestionAlignment(),
-                  ]}
-                >
-                  {/* Back button if in sub-step */}
-                  {suggestionStep !== "category" && (
-                    <TouchableOpacity
-                      className="flex-row items-center gap-1 py-1 mb-1"
-                      onPress={() => {
-                        if (suggestionStep === "shopping_items") {
-                          setSuggestionStep("shopping_categories");
-                        } else if (suggestionStep === "bill_items") {
-                          setSuggestionStep("bill_categories");
-                        } else {
-                          setSuggestionStep("category");
-                        }
-                      }}
-                    >
-                      <Text className="text-xs font-manrope-bold" style={{ color: theme.accent.purple }}>
-                        {"← Back"}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
-                  <Text
-                    className="text-xs font-manrope-bold uppercase tracking-wider px-3 py-1 mb-1"
-                    style={{ color: theme.textSecondary }}
-                  >
-                    {suggestionStep === "category"
-                      ? "Mention Category"
-                      : suggestionStep === "shopping_categories"
-                        ? "Select Shopping Category"
-                        : suggestionStep === "bill_categories"
-                          ? "Select Bill Category"
-                          : suggestionStep === "shopping_items"
-                            ? "Select Shopping Item"
-                            : suggestionStep === "bill_items"
-                              ? "Select Bill"
-                              : `Select ${suggestionStep}`}
-                  </Text>
-
-                  <ScrollView nestedScrollEnabled style={{ maxHeight: 120 }}>
-                    {getFilteredItems().map((item: any) => (
-                      <View
-                        key={suggestionStep === "category" ? item.val : `${item.type || suggestionStep}-${item.id}`}
-                        className="flex-row justify-between items-center border-b"
-                        style={{ borderBottomColor: theme.border }}
-                      >
-                        <TouchableOpacity
-                          className="flex-1 flex-row items-center gap-2.5 py-2.5 px-3"
-                          onPress={() => {
-                            if (suggestionStep === "category") {
-                              selectCategory(item.val);
-                            } else if (suggestionStep === "shopping_categories") {
-                              selectItem(item.id, item.name, "shopping_category");
-                            } else if (suggestionStep === "bill_categories") {
-                              selectItem(item.id, item.name, "bill_category");
-                            } else {
-                              selectItem(item.id, item.name, item.type || suggestionStep);
-                            }
-                          }}
-                        >
-                          {/* Icon rendering */}
-                          {suggestionStep === "category" ? (
-                            item.val === "users" ? (
-                              <UserIcon size={16} color={theme.accent.purple} />
-                            ) : item.val === "tasks" ? (
-                              <CheckCircle size={16} color={theme.accent.mint} />
-                            ) : item.val === "bill_categories" ? (
-                              <DollarSign size={16} color={theme.accent.yellow} />
-                            ) : item.val === "shopping_categories" ? (
-                              <ShoppingBag size={16} color={theme.accent.cyan} />
-                            ) : (
-                              <Tag size={16} color={theme.accent.pink} />
-                            )
-                          ) : item.type === "user" || suggestionStep === "users" ? (
-                            <UserIcon size={16} color={theme.accent.purple} />
-                          ) : item.type === "task" || suggestionStep === "tasks" ? (
-                            <CheckCircle size={16} color={theme.accent.mint} />
-                          ) : item.type === "bill" ||
-                            suggestionStep === "bill_items" ||
-                            item.type === "bill_category" ||
-                            suggestionStep === "bill_categories" ? (
-                            <DollarSign size={16} color={theme.accent.yellow} />
-                          ) : item.type === "item" ||
-                            suggestionStep === "shopping_items" ||
-                            item.type === "shopping_category" ||
-                            suggestionStep === "shopping_categories" ? (
-                            <ShoppingBag size={16} color={theme.accent.cyan} />
-                          ) : (
-                            <Tag size={16} color={theme.accent.pink} />
-                          )}
-
-                          <View className="flex-1 ml-1">
-                            <Text
-                              className="text-sm font-manrope-semibold"
-                              style={{ color: theme.text }}
-                              numberOfLines={1}
-                            >
-                              {item.name}
-                            </Text>
-                            {(suggestionStep === "shopping_categories" || suggestionStep === "bill_categories") && (
-                              <Text className="text-[10px] font-manrope text-accent-purple">
-                                {t.notes.linkCategory}
-                              </Text>
-                            )}
-                          </View>
-                        </TouchableOpacity>
-
-                        {/* Drilldown button if shopping category */}
-                        {suggestionStep === "shopping_categories" && (
-                          <TouchableOpacity
-                            className="px-3.5 py-2.5 border-l"
-                            style={{ borderLeftColor: theme.border }}
-                            onPress={() => {
-                              setSelectedSubCategoryId(item.id);
-                              setSuggestionStep("shopping_items");
-                              setSuggestionQuery("");
-                            }}
-                          >
-                            <Text className="text-xs font-manrope-bold" style={{ color: theme.textSecondary }}>
-                              {t.notes.browse}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-
-                        {/* Drilldown button if bill category */}
-                        {suggestionStep === "bill_categories" && (
-                          <TouchableOpacity
-                            className="px-3.5 py-2.5 border-l"
-                            style={{ borderLeftColor: theme.border }}
-                            onPress={() => {
-                              setSelectedSubCategoryId(item.id);
-                              setSuggestionStep("bill_items");
-                              setSuggestionQuery("");
-                            }}
-                          >
-                            <Text className="text-xs font-manrope-bold" style={{ color: theme.textSecondary }}>
-                              {t.notes.browse}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-
-            {/* Standard rounded buttons footer */}
-            <View className="pt-4 border-t flex-row gap-3" style={{ borderTopColor: theme.border }}>
-              <Button
-                title={t.common.cancel}
-                variant="secondary"
-                onPress={() => setShowNoteModal(false)}
-                className="flex-1"
-              />
-              <Button
-                title={noteIdToEdit ? t.common.save : t.common.create || "Create"}
-                onPress={handleSaveNote}
-                loading={savingNote}
-                disabled={savingNote || !noteTitle.trim()}
-                className="flex-1"
-              />
-            </View>
-          </KeyboardAvoidingView>
-        </Modal>
-      )}
-
-      {/* Create Category Modal */}
-      {showCategoryModal && (
-        <Modal visible={true} onClose={() => setShowCategoryModal(false)} title={t.notes.createCategory}>
-          <View className="gap-4">
-            <Input
-              label={t.notes.categoryName}
-              placeholder={t.notes.categoryNamePlaceholder}
-              value={categoryName}
-              onChangeText={setCategoryName}
-            />
-
-            <View>
-              <Text className="text-xs font-manrope-semibold mb-2" style={{ color: theme.textSecondary }}>
-                {t.notes.icon}
-              </Text>
-              <View className="flex-row flex-wrap gap-2">
-                {[
-                  { name: "notebook" },
-                  { name: "tag" },
-                  { name: "edit" },
-                  { name: "home" },
-                  { name: "shopping" },
-                  { name: "finance" },
-                  { name: "task" },
-                  { name: "calendar" },
-                  { name: "lock" },
-                  { name: "idea" },
-                  { name: "heart" },
-                  { name: "food" },
-                  { name: "book" },
-                  { name: "work" },
-                  { name: "coffee" },
-                  { name: "star" },
-                  { name: "tool" },
-                  { name: "user" },
-                  { name: "smile" },
-                  { name: "document" },
-                ].map((item) => (
-                  <TouchableOpacity
-                    key={item.name}
-                    className={`w-11 h-11 rounded-xl justify-center items-center border ${categoryIcon === item.name ? "border-2" : ""}`}
-                    style={{
-                      borderColor: categoryIcon === item.name ? theme.text : theme.border,
-                      backgroundColor: theme.surface,
-                    }}
-                    onPress={() => setCategoryIcon(item.name)}
-                  >
-                    {getCategoryIcon(item.name, 18, categoryIcon === item.name ? theme.text : theme.textSecondary)}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View>
-              <Text className="text-xs font-manrope-semibold mb-2" style={{ color: theme.textSecondary }}>
-                {t.notes.color}
-              </Text>
-              <View className="flex-row flex-wrap gap-2">
-                {PRESET_COLORS.map((color) => (
-                  <TouchableOpacity
-                    key={color}
-                    className={`w-8 h-8 rounded-full border ${categoryColor === color ? "border-2" : ""}`}
-                    style={{
-                      backgroundColor: color,
-                      borderColor: categoryColor === color ? theme.text : theme.border,
-                    }}
-                    onPress={() => setCategoryColor(color)}
-                  />
-                ))}
-              </View>
-            </View>
-
-            <View className="flex-row gap-3 mt-4">
-              <Button
-                title={t.common.cancel}
-                variant="secondary"
-                onPress={() => setShowCategoryModal(false)}
-                className="flex-1"
-              />
-              <Button
-                title={t.common.create}
-                onPress={handleCreateCategory}
-                loading={savingCategory}
-                disabled={savingCategory}
-                className="flex-1"
-              />
-            </View>
-          </View>
-        </Modal>
-      )}
-    </View>
+      <CategoryFormModal
+        visible={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
+        title={t.notes.createCategory}
+        namePlaceholder={t.notes.categoryNamePlaceholder}
+        name={categoryName}
+        onNameChange={setCategoryName}
+        colors={NOTE_CATEGORY_COLORS}
+        color={categoryColor}
+        onColorChange={setCategoryColor}
+        iconOptions={NOTE_ICON_OPTIONS}
+        icon={categoryIcon}
+        onIconChange={setCategoryIcon}
+        submitLabel={t.common.create}
+        submitting={savingCategory}
+        onSubmit={handleCreateCategory}
+      />
+    </TabScreen>
   );
 }

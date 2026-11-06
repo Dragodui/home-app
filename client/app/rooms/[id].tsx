@@ -4,14 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 import AddDeviceModal from "@/components/smarthome/add-device-modal";
 import DeviceRow from "@/components/smarthome/device-row";
+import TaskFormModal, { type TaskFormValues } from "@/components/tasks/task-form-modal";
 import {
   Badge,
   Button,
   Card,
-  DateTimeField,
   IconButton,
-  Input,
-  Modal,
   ResponsiveGrid,
   Screen,
   ScreenHeader,
@@ -26,6 +24,15 @@ import type { HAState, SmartDevice, Task } from "@/lib/types";
 import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
+
+const EMPTY_TASK_FORM: TaskFormValues = {
+  name: "",
+  description: "",
+  date: null,
+  reminderMinutes: "30",
+  roomId: null,
+  userIds: [],
+};
 
 export default function RoomDetailScreen() {
   const router = useRouter();
@@ -49,10 +56,7 @@ export default function RoomDetailScreen() {
   const [deviceName, setDeviceName] = useState("");
   const [addingDevice, setAddingDevice] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [newTaskName, setNewTaskName] = useState("");
-  const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [reminderMinutesInput, setReminderMinutesInput] = useState("30");
+  const [taskForm, setTaskForm] = useState<TaskFormValues>(EMPTY_TASK_FORM);
   const [creatingTask, setCreatingTask] = useState(false);
 
   const roomId = parseInt(id, 10);
@@ -160,24 +164,21 @@ export default function RoomDetailScreen() {
   };
 
   const handleCreateTask = async () => {
-    if (!home || !newTaskName.trim()) return;
+    if (!home || !taskForm.name.trim()) return;
 
     setCreatingTask(true);
     try {
       await taskApi.create(home.id, {
-        name: newTaskName.trim(),
-        description: newTaskDescription.trim(),
+        name: taskForm.name.trim(),
+        description: taskForm.description.trim(),
         scheduleType: "once",
-        dueDate: selectedDate ? selectedDate.toISOString() : undefined,
-        reminderMinutes: parseReminderMinutes(reminderMinutesInput),
+        dueDate: taskForm.date ? taskForm.date.toISOString() : undefined,
+        reminderMinutes: parseReminderMinutes(taskForm.reminderMinutes),
         homeId: home.id,
         roomId: roomId,
       });
       setShowTaskModal(false);
-      setNewTaskName("");
-      setNewTaskDescription("");
-      setSelectedDate(null);
-      setReminderMinutesInput("30");
+      setTaskForm(EMPTY_TASK_FORM);
       await fetchDashboardData();
     } catch (_error) {
       alert(t.common.error, t.tasks.couldNotCreate);
@@ -333,44 +334,17 @@ export default function RoomDetailScreen() {
         </>
       )}
 
-      <Modal visible={showTaskModal} onClose={() => setShowTaskModal(false)} title={t.tasks.newTask}>
-        <Input
-          label={t.tasks.taskName}
-          placeholder={t.tasks.taskNamePlaceholder}
-          value={newTaskName}
-          onChangeText={setNewTaskName}
-        />
-        <Input
-          label={t.tasks.description}
-          placeholder={t.tasks.descriptionPlaceholder}
-          value={newTaskDescription}
-          onChangeText={setNewTaskDescription}
-          multiline
-          numberOfLines={3}
-        />
-        <DateTimeField
-          label={t.tasks.dueDate}
-          placeholder={t.tasks.selectDateTime}
-          value={selectedDate}
-          onChange={setSelectedDate}
-          minimumDate={new Date()}
-        />
-        <Input
-          label={t.tasks.reminderBefore}
-          placeholder="30"
-          value={reminderMinutesInput}
-          onChangeText={(value) => setReminderMinutesInput(value.replace(/[^0-9]/g, ""))}
-          keyboardType="number-pad"
-        />
-        <Button
-          title={t.tasks.createTask}
-          onPress={handleCreateTask}
-          loading={creatingTask}
-          disabled={!newTaskName.trim() || creatingTask}
-          variant="yellow"
-          className="mt-4"
-        />
-      </Modal>
+      <TaskFormModal
+        visible={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+        title={t.tasks.newTask}
+        submitLabel={t.tasks.createTask}
+        submitting={creatingTask}
+        onSubmit={handleCreateTask}
+        values={taskForm}
+        onChange={(changes) => setTaskForm((form) => ({ ...form, ...changes }))}
+        minimumDate={new Date()}
+      />
 
       <AddDeviceModal
         visible={showAddModal}

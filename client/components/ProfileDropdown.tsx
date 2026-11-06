@@ -13,8 +13,8 @@ import {
   Wifi,
 } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Colors from "@/constants/colors";
+import { Animated, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Avatar, CountBadge, Text } from "@/components/ui";
 import { chatApi, notificationApi } from "@/lib/api";
 import type { ChatConversation } from "@/lib/types";
 import { useAuth } from "@/stores/authStore";
@@ -129,12 +129,6 @@ export default function ProfileDropdown() {
     outputRange: [20, 0, 0],
   });
 
-  const getInitials = () => {
-    if (!user) return "?";
-    const name = user.name || user.username || "";
-    return name.slice(0, 2).toUpperCase();
-  };
-
   const menuItems = [
     { icon: User, label: t.tabs.profile || "Profile", path: "/(tabs)/profile" },
     { icon: MessageCircle, label: t.chat.title, path: "/chat", badge: chatUnreadCount },
@@ -172,28 +166,16 @@ export default function ProfileDropdown() {
           >
             <Bell size={22} color={theme.text} />
             {unreadCount > 0 && (
-              <View
-                className="absolute -top-[-3] -right-[-4] min-w-5 min-h-5 rounded-full justify-center items-center px-1"
-                style={{ backgroundColor: theme.accent.pink }}
-              >
-                <Text className="text-[11px] font-manrope-bold text-white">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </Text>
+              <View className="absolute top-[3px] right-[4px]">
+                <CountBadge count={unreadCount} />
               </View>
             )}
           </TouchableOpacity>
-          <View
-            className="w-12 h-12 rounded-full justify-center items-center overflow-hidden border-[2px]"
-            style={{ borderColor: Colors.accentPurple }}
-          >
-            {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} className="w-full h-full" />
-            ) : (
-              <Text className="text-sm font-manrope-bold" style={{ color: theme.text }}>
-                {getInitials()}
-              </Text>
-            )}
-          </View>
+          <Avatar
+            uri={user?.avatar}
+            name={user?.name || user?.username || "?"}
+            style={{ borderWidth: 2, borderColor: theme.accent.purple, backgroundColor: "transparent" }}
+          />
         </TouchableOpacity>
       </Animated.View>
 
@@ -255,17 +237,10 @@ function MenuContent({
           className={`flex-row items-center gap-3 p-2.5 rounded-2xl${i > 0 ? " mt-0.5" : ""}`}
         >
           <Icon size={18} color={theme.text} />
-          <Text className="flex-1 text-sm font-manrope-semibold" style={{ color: theme.text }}>
+          <Text variant="label" className="flex-1">
             {label}
           </Text>
-          {badge != null && badge > 0 && (
-            <View
-              className="min-w-5 h-5 rounded-full justify-center items-center px-1.5"
-              style={{ backgroundColor: theme.accent.pink }}
-            >
-              <Text className="text-[10px] font-manrope-bold text-white">{badge > 99 ? "99+" : badge}</Text>
-            </View>
-          )}
+          <CountBadge count={badge ?? 0} />
         </TouchableOpacity>
       ))}
     </>

@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import {
   Bell,
   Check,
-  ChevronRight,
   Copy,
   DoorOpen,
   Home as HomeIcon,
@@ -17,22 +16,31 @@ import {
   Zap,
 } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { ActivityIndicator, Image, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAlert } from "@/components/ui/alert";
-import Button from "@/components/ui/button";
-import Input from "@/components/ui/input";
-import Modal from "@/components/ui/modal";
-import { useToast } from "@/components/ui/toast";
+import { Platform, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  Input,
+  ListItem,
+  Modal,
+  ResponsiveGrid,
+  Section,
+  Spinner,
+  TabScreen,
+  Text,
+  type Tone,
+  useAlert,
+  useToast,
+} from "@/components/ui";
 import { imageApi } from "@/lib/api";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout, updateUser } = useAuth();
   const { home, homes, isAdmin, createHome, joinHome, leaveHome, switchHome } = useHome();
@@ -40,7 +48,6 @@ export default function ProfileScreen() {
   const { t } = useI18n();
   const { alert } = useAlert();
   const { show } = useToast();
-  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -188,25 +195,25 @@ export default function ProfileScreen() {
     {
       icon: HomeIcon,
       label: t.profile.homeSettings,
-      color: theme.accent.yellow,
+      tone: "yellow" as Tone,
       onPress: () => router.push("/home-settings"),
     },
     {
       icon: DoorOpen,
       label: t.rooms.title,
-      color: theme.accent.yellow,
+      tone: "yellow" as Tone,
       onPress: () => router.push("/rooms"),
     },
     {
       icon: Users,
       label: t.members.title,
-      color: theme.accent.mint,
+      tone: "mint" as Tone,
       onPress: () => router.push("/members"),
     },
     {
       icon: User,
       label: t.profile.myStats,
-      color: theme.accent.purple,
+      tone: "purple" as Tone,
       onPress: () =>
         user &&
         router.push({
@@ -217,316 +224,234 @@ export default function ProfileScreen() {
     {
       icon: Zap,
       label: t.profile.smartHome,
-      color: theme.accent.cyan,
+      tone: "cyan" as Tone,
       onPress: () => router.push("/smarthome"),
     },
     {
       icon: Settings,
       label: t.profile.settings,
-      color: theme.accent.purple,
+      tone: "purple" as Tone,
       onPress: () => router.push("/settings"),
     },
     {
       icon: Bell,
       label: t.profile.notifications,
-      color: theme.accent.cyan,
+      tone: "cyan" as Tone,
       onPress: () => router.push("/notifications"),
     },
     {
       icon: Shield,
       label: t.profile.security,
-      color: theme.accent.pink,
+      tone: "pink" as Tone,
       onPress: () => router.push("/security"),
     },
   ];
 
   return (
-    <View className="flex-1" style={{ backgroundColor: theme.background }}>
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingBottom: isDesktop ? 48 : 120,
-          paddingTop: insets.top + 40,
-          width: "100%",
-          maxWidth: contentMaxWidth,
-          alignSelf: "center",
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 24, alignItems: "stretch" }}>
-          {/* Profile Avatar */}
-          <View className="items-center mb-10" style={{ flex: isDesktop ? 0.9 : undefined }}>
-            <TouchableOpacity
-              className="w-[140px] h-[140px] rounded-full border-[3px] overflow-hidden mb-5"
-              style={{ borderColor: theme.accent.purple }}
-              onPress={pickImage}
-              activeOpacity={0.8}
-              disabled={isUploading}
-            >
-              {user?.avatar ? (
-                <Image
-                  source={{ uri: user.avatar }}
-                  className="w-full h-full"
-                  style={isUploading ? { opacity: 0.5 } : undefined}
+    <TabScreen>
+      <ResponsiveGrid>
+        <View className="items-center mt-16 mb-10">
+          <TouchableOpacity className="mb-5" onPress={pickImage} activeOpacity={0.8} disabled={isUploading}>
+            <Avatar
+              uri={user?.avatar}
+              size={140}
+              style={{
+                borderWidth: 3,
+                borderColor: theme.accent.purple,
+                backgroundColor: theme.surface,
+                opacity: isUploading ? 0.5 : 1,
+              }}
+            />
+            {isUploading && (
+              <View className="absolute inset-0 justify-center items-center">
+                <Spinner size="small" color={theme.accent.purple} />
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <Text variant="title" className="mb-1 text-center">
+            {user?.name || "User"}
+          </Text>
+          {isEditingUsername ? (
+            <View className="mb-4 items-center">
+              <View className="flex-row items-center gap-2">
+                <Text variant="body" color="secondary">
+                  @
+                </Text>
+                <TextInput
+                  ref={usernameInputRef}
+                  className="text-base font-manrope px-3 py-1.5 rounded-xl min-w-[150px]"
+                  style={{ color: theme.text, backgroundColor: theme.surface }}
+                  value={usernameInput}
+                  onChangeText={(text) => {
+                    setUsernameInput(text.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+                    setUsernameError("");
+                  }}
+                  onSubmitEditing={saveUsername}
+                  onBlur={saveUsername}
+                  autoFocus
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={32}
+                  editable={!isSavingUsername}
                 />
-              ) : (
-                <View className="w-full h-full justify-center items-center" style={{ backgroundColor: theme.surface }}>
-                  <User size={64} color={theme.textSecondary} />
-                </View>
-              )}
-              {isUploading && (
-                <View className="absolute inset-0 justify-center items-center">
-                  <ActivityIndicator size="small" color={theme.accent.purple} />
-                </View>
-              )}
-            </TouchableOpacity>
-
-            <Text className="text-[28px] font-manrope-bold mb-1" style={{ color: theme.text }}>
-              {user?.name || "User"}
-            </Text>
-            {isEditingUsername ? (
-              <View className="mb-4 items-center">
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-[16px] font-manrope" style={{ color: theme.textSecondary }}>
-                    @
-                  </Text>
-                  <TextInput
-                    ref={usernameInputRef}
-                    className="text-[16px] font-manrope px-3 py-1.5 rounded-xl min-w-[150px]"
-                    style={{ color: theme.text, backgroundColor: theme.surface }}
-                    value={usernameInput}
-                    onChangeText={(text) => {
-                      setUsernameInput(text.toLowerCase().replace(/[^a-z0-9_]/g, ""));
-                      setUsernameError("");
-                    }}
-                    onSubmitEditing={saveUsername}
-                    onBlur={saveUsername}
-                    autoFocus
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    maxLength={32}
-                    editable={!isSavingUsername}
-                  />
-                  {isSavingUsername && <ActivityIndicator size="small" color={theme.accent.purple} />}
-                </View>
-                {usernameError ? (
-                  <Text className="text-[12px] font-manrope mt-1" style={{ color: theme.accent.pink }}>
-                    {usernameError}
-                  </Text>
-                ) : null}
+                {isSavingUsername && <Spinner size="small" color={theme.accent.purple} />}
               </View>
-            ) : (
-              <TouchableOpacity
-                onPress={() => {
-                  setUsernameInput(user?.username || "");
-                  setUsernameError("");
-                  setIsEditingUsername(true);
-                }}
-                className="mb-4"
-              >
-                <Text className="text-[16px] font-manrope" style={{ color: theme.textSecondary }}>
-                  {displayUsername}
+              {usernameError ? (
+                <Text variant="caption" className="mt-1" style={{ color: theme.accent.pink }}>
+                  {usernameError}
                 </Text>
-              </TouchableOpacity>
-            )}
-
-            {home && (
-              <View className="px-4 py-2 rounded-xl" style={{ backgroundColor: theme.surface }}>
-                <Text className="text-[13px] font-manrope-semibold" style={{ color: theme.textSecondary }}>
-                  {isAdmin ? t.profile.homeAdmin : t.profile.member}
-                </Text>
-              </View>
-            )}
-
-            {home?.inviteCode && (
-              <TouchableOpacity
-                className="mt-4 px-5 py-3.5 rounded-2xl items-center"
-                style={{ backgroundColor: theme.surface }}
-                onPress={async () => {
-                  await Clipboard.setStringAsync(home.inviteCode);
-                  alert(t.common.copied, t.profile.inviteCodeCopied);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text
-                  className="text-[11px] font-manrope-semibold tracking-wide mb-1"
-                  style={{ color: theme.textSecondary }}
-                >
-                  {t.profile.homeCode}
-                </Text>
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-[18px] font-manrope-bold tracking-widest" style={{ color: theme.text }}>
-                    {home.inviteCode}
-                  </Text>
-                  <Copy size={16} color={theme.textSecondary} />
-                </View>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={{ flex: isDesktop ? 1.1 : undefined }}>
-            {/* Menu Items */}
-            <View className="gap-3 mb-8">
-              {MENU_ITEMS.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    className="flex-row items-center p-4 rounded-[20px] gap-3.5"
-                    style={{ backgroundColor: theme.surface }}
-                    onPress={item.onPress}
-                    activeOpacity={0.8}
-                  >
-                    <View
-                      className="w-11 h-11 rounded-[14px] justify-center items-center"
-                      style={{ backgroundColor: item.color }}
-                    >
-                      <Icon size={22} color="#1C1C1E" />
-                    </View>
-                    <Text className="flex-1 text-[16px] font-manrope-semibold" style={{ color: theme.text }}>
-                      {item.label}
-                    </Text>
-                    <ChevronRight size={20} color={theme.textSecondary} />
-                  </TouchableOpacity>
-                );
-              })}
+              ) : null}
             </View>
-
-            {/* My Homes */}
-            <View className="mb-8">
-              <Text
-                className="text-[12px] font-manrope-bold tracking-widest mb-3 ml-1"
-                style={{ color: theme.textSecondary }}
-              >
-                {t.profile.myHomes || "MY HOMES"}
+          ) : (
+            <TouchableOpacity
+              onPress={() => {
+                setUsernameInput(user?.username || "");
+                setUsernameError("");
+                setIsEditingUsername(true);
+              }}
+              className="mb-4"
+            >
+              <Text variant="body" color="secondary">
+                {displayUsername}
               </Text>
+            </TouchableOpacity>
+          )}
 
-              {homes.length > 0 && (
-                <View className="gap-2.5 mb-4">
-                  {homes.map((h) => {
-                    const isCurrent = h.id === home?.id;
-                    return (
-                      <TouchableOpacity
-                        key={h.id}
-                        className="flex-row items-center p-4 rounded-[20px] gap-3.5"
-                        style={{
-                          backgroundColor: isCurrent ? theme.accent.purple : theme.surface,
-                        }}
-                        onPress={() => switchHome(h.id)}
-                        activeOpacity={0.8}
-                      >
-                        <View
-                          className="w-11 h-11 rounded-[14px] justify-center items-center"
-                          style={{
-                            backgroundColor: isCurrent ? "rgba(0,0,0,0.15)" : theme.accent.yellow,
-                          }}
-                        >
-                          <HomeIcon size={22} color={isCurrent ? "#FFFFFF" : "#1C1C1E"} />
-                        </View>
-                        <Text
-                          className="flex-1 text-[16px] font-manrope-semibold"
-                          style={{ color: isCurrent ? "#1C1C1E" : theme.text }}
-                        >
-                          {h.name}
-                        </Text>
-                        {isCurrent && <Check size={20} color="#1C1C1E" />}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
+          {home && <Badge label={isAdmin ? t.profile.homeAdmin : t.profile.member} />}
 
-              <View className="flex-row gap-3">
-                <Button
-                  title={t.profile.createHome}
-                  onPress={() => setShowCreateModal(true)}
-                  variant="yellow"
-                  style={{ flex: 1 }}
-                  icon={<Plus size={18} color="#1C1C1E" />}
-                />
-                <Button
-                  title={t.profile.joinHome}
-                  onPress={() => setShowJoinModal(true)}
-                  variant="purple"
-                  style={{ flex: 1 }}
-                  icon={<Plus size={18} color="#1C1C1E" />}
-                />
+          {home?.inviteCode && (
+            <Card
+              size="sm"
+              className="mt-4 items-center"
+              onPress={async () => {
+                await Clipboard.setStringAsync(home.inviteCode);
+                alert(t.common.copied, t.profile.inviteCodeCopied);
+              }}
+            >
+              <Text variant="micro" color="secondary" className="font-manrope-semibold tracking-wide mb-1">
+                {t.profile.homeCode}
+              </Text>
+              <View className="flex-row items-center gap-2">
+                <Text variant="heading" className="tracking-widest">
+                  {home.inviteCode}
+                </Text>
+                <Copy size={16} color={theme.textSecondary} />
               </View>
-            </View>
+            </Card>
+          )}
+        </View>
 
-            {/* Leave Home Button */}
-            {home && (
-              <TouchableOpacity
-                className="flex-row items-center justify-center gap-2.5 mb-3 py-[18px] rounded-[20px]"
-                style={{ backgroundColor: theme.accent.dangerLight }}
-                onPress={leaveHome}
-                activeOpacity={0.8}
-              >
-                <Text className="text-[16px] font-manrope-bold text-white">{t.auth.leaveHome}</Text>
-                <LogOut size={20} color="#FFFFFF" />
-              </TouchableOpacity>
+        <View>
+          <View className="gap-3 mb-8">
+            {MENU_ITEMS.map((item) => (
+              <ListItem
+                key={item.label}
+                icon={item.icon}
+                iconTone={item.tone}
+                title={item.label}
+                onPress={item.onPress}
+              />
+            ))}
+          </View>
+
+          <Section title={t.profile.myHomes || "MY HOMES"}>
+            {homes.length > 0 && (
+              <View className="gap-2.5 mb-4">
+                {homes.map((h) => {
+                  const isCurrent = h.id === home?.id;
+                  return (
+                    <ListItem
+                      key={h.id}
+                      icon={HomeIcon}
+                      iconTone="yellow"
+                      title={h.name}
+                      selected={isCurrent}
+                      right={isCurrent ? <Check size={20} color={theme.onAccent} /> : undefined}
+                      showChevron={false}
+                      onPress={() => switchHome(h.id)}
+                    />
+                  );
+                })}
+              </View>
             )}
 
-            {/* Logout Button */}
-            <TouchableOpacity
-              className="flex-row items-center justify-center gap-2.5 py-[18px] rounded-[20px]"
-              style={{ backgroundColor: theme.accent.dangerLight }}
-              onPress={handleLogout}
-              activeOpacity={0.8}
-            >
-              <Text className="text-[16px] font-manrope-bold text-white">{t.auth.logOut}</Text>
-              <LogOut size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
+            <View className="flex-row gap-3">
+              <Button
+                title={t.profile.createHome}
+                onPress={() => setShowCreateModal(true)}
+                variant="yellow"
+                className="flex-1"
+                icon={<Plus size={18} color={theme.onAccent} />}
+              />
+              <Button
+                title={t.profile.joinHome}
+                onPress={() => setShowJoinModal(true)}
+                variant="purple"
+                className="flex-1"
+                icon={<Plus size={18} color={theme.onAccent} />}
+              />
+            </View>
+          </Section>
 
-      {/* Create Home Modal */}
+          {home && (
+            <Button
+              title={t.auth.leaveHome}
+              onPress={leaveHome}
+              variant="danger"
+              icon={<LogOut size={20} color={theme.onDanger} />}
+              className="mb-3"
+            />
+          )}
+
+          <Button
+            title={t.auth.logOut}
+            onPress={handleLogout}
+            variant="danger"
+            icon={<LogOut size={20} color={theme.onDanger} />}
+          />
+        </View>
+      </ResponsiveGrid>
+
       <Modal
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         title={t.profile.createHome}
-        height="full"
+        height="auto"
       >
-        <View className="flex-1">
-          <Input
-            label={t.profile.homeName}
-            placeholder={t.profile.homeNamePlaceholder}
-            value={homeName}
-            onChangeText={setHomeName}
-          />
-          <Button
-            title={t.profile.createHome}
-            onPress={handleCreateHome}
-            loading={isLoading}
-            disabled={!homeName.trim() || isLoading}
-            variant="yellow"
-            style={{ marginTop: "auto" }}
-          />
-        </View>
+        <Input
+          label={t.profile.homeName}
+          placeholder={t.profile.homeNamePlaceholder}
+          value={homeName}
+          onChangeText={setHomeName}
+        />
+        <Button
+          title={t.profile.createHome}
+          onPress={handleCreateHome}
+          loading={isLoading}
+          disabled={!homeName.trim() || isLoading}
+          variant="yellow"
+          className="mt-4"
+        />
       </Modal>
 
-      {/* Join Home Modal */}
-      <Modal height="full" visible={showJoinModal} onClose={() => setShowJoinModal(false)} title={t.profile.joinHome}>
-        <View className="flex-1">
-          <Input
-            label={t.profile.inviteCode}
-            placeholder={t.profile.inviteCodePlaceholder}
-            value={inviteCode}
-            onChangeText={setInviteCode}
-            autoCapitalize="characters"
-          />
-          <Button
-            title={t.profile.joinHome}
-            onPress={handleJoinHome}
-            loading={isLoading}
-            disabled={!inviteCode.trim() || isLoading}
-            variant="purple"
-            style={{ marginTop: "auto" }}
-          />
-        </View>
+      <Modal height="auto" visible={showJoinModal} onClose={() => setShowJoinModal(false)} title={t.profile.joinHome}>
+        <Input
+          label={t.profile.inviteCode}
+          placeholder={t.profile.inviteCodePlaceholder}
+          value={inviteCode}
+          onChangeText={setInviteCode}
+          autoCapitalize="characters"
+        />
+        <Button
+          title={t.profile.joinHome}
+          onPress={handleJoinHome}
+          loading={isLoading}
+          disabled={!inviteCode.trim() || isLoading}
+          variant="purple"
+          className="mt-4"
+        />
       </Modal>
-    </View>
+    </TabScreen>
   );
 }

@@ -3,7 +3,16 @@ import { ActivityIndicator, Text, type TextStyle, TouchableOpacity, type ViewSty
 import { useTheme } from "@/stores/themeStore";
 import { useControlSurface } from "./surface";
 
-type ButtonVariant = "primary" | "secondary" | "yellow" | "purple" | "pink" | "outline" | "bordered" | "danger";
+type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "yellow"
+  | "purple"
+  | "pink"
+  | "outline"
+  | "bordered"
+  | "onAccent"
+  | "danger";
 type ButtonSize = "lg" | "md" | "sm";
 
 interface ButtonProps {
@@ -52,6 +61,8 @@ const Button: FC<ButtonProps> = ({
         return `bg-transparent border-2 border-dashed ${theme.isDark ? "border-gray-700" : "border-gray-100"}`;
       case "bordered":
         return `bg-transparent border ${theme.isDark ? "border-gray-700" : "border-gray-100"}`;
+      case "onAccent":
+        return "bg-white/60";
       case "danger":
         return "bg-accent-danger-light";
       default:
@@ -64,6 +75,7 @@ const Button: FC<ButtonProps> = ({
       case "yellow":
       case "purple":
       case "pink":
+      case "onAccent":
         return "text-primary";
       case "outline":
         return "text-muted";
@@ -82,6 +94,7 @@ const Button: FC<ButtonProps> = ({
       case "yellow":
       case "purple":
       case "pink":
+      case "onAccent":
         return theme.onAccent;
       case "outline":
         return theme.textSecondary;
