@@ -2,7 +2,7 @@ import type { FC } from "react";
 import { ActivityIndicator, Text, type TextStyle, TouchableOpacity, type ViewStyle } from "react-native";
 import { useTheme } from "@/stores/themeStore";
 
-type ButtonVariant = "primary" | "secondary" | "yellow" | "purple" | "pink" | "outline" | "danger";
+type ButtonVariant = "primary" | "secondary" | "yellow" | "purple" | "pink" | "outline" | "bordered" | "danger";
 type ButtonSize = "lg" | "md" | "sm";
 
 interface ButtonProps {
@@ -50,6 +50,8 @@ const Button: FC<ButtonProps> = ({
         return theme.isDark ? "bg-surface-dark" : "bg-surface";
       case "outline":
         return `bg-transparent border-2 border-dashed ${theme.isDark ? "border-gray-700" : "border-gray-100"}`;
+      case "bordered":
+        return `bg-transparent border ${theme.isDark ? "border-gray-700" : "border-gray-100"}`;
       case "danger":
         return "bg-accent-danger-light";
       default:
@@ -66,6 +68,7 @@ const Button: FC<ButtonProps> = ({
       case "outline":
         return "text-muted";
       case "secondary":
+      case "bordered":
         return theme.isDark ? "text-white" : "text-primary";
       case "danger":
         return "text-white";
@@ -83,6 +86,7 @@ const Button: FC<ButtonProps> = ({
       case "outline":
         return theme.textSecondary;
       case "secondary":
+      case "bordered":
         return theme.text;
       case "danger":
         return theme.onDanger;

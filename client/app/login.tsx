@@ -1,25 +1,16 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Button from "@/components/ui/button";
-import Input from "@/components/ui/input";
-import { useToast } from "@/components/ui/toast";
+import GoogleSignInButton from "@/components/auth/google-sign-in-button";
+import { AuthScreen, Button, Input, TextLink, useToast } from "@/components/ui";
 import { useGoogleAuth } from "@/lib/useGoogleAuth";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useI18n } from "@/stores/i18nStore";
-import { useTheme } from "@/stores/themeStore";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { login, googleSignIn } = useAuth();
-  const { theme } = useTheme();
   const { t } = useI18n();
   const { show } = useToast();
-  const { horizontalPadding } = useResponsiveLayout();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -85,108 +76,61 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      style={{ backgroundColor: theme.background }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <AuthScreen
+      hero="brand"
+      title={t.auth.brand}
+      description={t.auth.tagline}
+      footerPrompt={t.auth.newHere}
+      footerActionTitle={t.auth.createAccount}
+      onFooterAction={() => router.push("/register")}
     >
-      <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingHorizontal: horizontalPadding,
-          paddingTop: insets.top + 60,
-          width: "100%",
-          maxWidth: 640,
-          alignSelf: "center",
+      <Input
+        label={t.auth.email}
+        placeholder={t.auth.emailPlaceholder}
+        value={email}
+        onChangeText={(text) => {
+          setEmail(text);
+          setError("");
         }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Brand Header - matches PDF exactly */}
-        <View className="mb-12">
-          <Text className="text-[64px] font-manrope-extrabold mb-2 tracking-tighter" style={{ color: theme.text }}>
-            {t.auth.brand}
-          </Text>
-          <Text className="text-xl font-manrope" style={{ color: theme.textSecondary }}>
-            {t.auth.tagline}
-          </Text>
-        </View>
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoComplete="email"
+      />
 
-        {/* Form */}
-        <View className="flex-1 justify-center gap-2">
-          <Input
-            label={t.auth.email}
-            placeholder={t.auth.emailPlaceholder}
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              setError("");
-            }}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-          />
+      <Input
+        label={t.auth.password}
+        placeholder={t.auth.passwordPlaceholder}
+        value={password}
+        onChangeText={(text) => {
+          setPassword(text);
+          setError("");
+        }}
+        secureTextEntry
+        autoComplete="password"
+        error={error || undefined}
+      />
 
-          <Input
-            label={t.auth.password}
-            placeholder={t.auth.passwordPlaceholder}
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              setError("");
-            }}
-            secureTextEntry
-            autoComplete="password"
-            error={error || undefined}
-          />
+      <TextLink
+        subtle
+        title={t.auth.forgotPassword || "Forgot Password?"}
+        onPress={() => router.push("/forgot-password")}
+        className="self-center mt-1"
+      />
 
-          <TouchableOpacity onPress={() => router.push("/forgot-password")} className="self-center mt-1">
-            <Text className="text-sm font-manrope-semibold" style={{ color: theme.textSecondary }}>
-              {t.auth.forgotPassword || "Forgot Password?"}
-            </Text>
-          </TouchableOpacity>
+      <Button
+        title={t.auth.getStarted}
+        onPress={handleLogin}
+        loading={isLoading}
+        disabled={isLoading || isGoogleLoading}
+        variant="purple"
+        className="mt-6"
+      />
 
-          <Button
-            title={t.auth.getStarted}
-            onPress={handleLogin}
-            loading={isLoading}
-            disabled={isLoading || isGoogleLoading}
-            variant="purple"
-            className="mt-6"
-          />
-          <View className="flex-row items-center my-5">
-            <View className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
-            <Text className="mx-4 text-sm font-manrope" style={{ color: theme.textSecondary }}>
-              {t.common.or}
-            </Text>
-            <View className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
-          </View>
-
-          <TouchableOpacity
-            className="flex-row items-center justify-center py-3.5 px-6 rounded-xl border gap-3"
-            style={{ borderColor: theme.border }}
-            onPress={handleGoogleSignIn}
-            disabled={isLoading || isGoogleLoading || !isReady}
-          >
-            <Ionicons name="logo-google" size={20} color={theme.text} />
-            <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
-              {isGoogleLoading ? t.auth.signingIn : t.auth.continueWithGoogle}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View className="flex-row justify-center items-center pt-8" style={{ paddingBottom: insets.bottom + 24 }}>
-          <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-            {t.auth.newHere}{" "}
-          </Text>
-          <TouchableOpacity onPress={() => router.push("/register")}>
-            <Text className="text-sm font-manrope-bold underline" style={{ color: theme.text }}>
-              {t.auth.createAccount}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <GoogleSignInButton
+        onPress={handleGoogleSignIn}
+        isSigningIn={isGoogleLoading}
+        disabled={isLoading || isGoogleLoading || !isReady}
+      />
+    </AuthScreen>
   );
 }

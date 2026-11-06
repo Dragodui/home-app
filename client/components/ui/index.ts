@@ -7,6 +7,7 @@ export { default as Button } from "./button";
 export { default as Card } from "./card";
 export { default as ConfirmModal } from "./confirm-modal";
 export { default as DatePicker } from "./date-picker";
+export { default as Divider } from "./divider";
 export { default as EmptyState } from "./empty-state";
 export { default as IconButton } from "./icon-button";
 export { default as IconTile } from "./icon-tile";
