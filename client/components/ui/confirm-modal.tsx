@@ -1,6 +1,5 @@
 import type { FC } from "react";
 import { View } from "react-native";
-import { useTheme } from "@/stores/themeStore";
 import Button from "./button";
 import Modal from "./modal";
 import Text from "./text";
@@ -27,32 +26,22 @@ const ConfirmModal: FC<ConfirmModalProps> = ({
   cancelLabel,
   destructive = false,
   loading = false,
-}) => {
-  const { theme } = useTheme();
-
-  return (
-    <Modal visible={visible} onClose={onClose} title={title} height="auto">
-      <Text variant="body" color="secondary" className="mb-6">
-        {message}
-      </Text>
-      <View className="flex-row gap-3">
-        <Button
-          title={cancelLabel}
-          onPress={onClose}
-          variant="secondary"
-          className="flex-1"
-          style={{ backgroundColor: theme.background }}
-        />
-        <Button
-          title={confirmLabel}
-          onPress={onConfirm}
-          variant={destructive ? "danger" : "primary"}
-          loading={loading}
-          className="flex-1"
-        />
-      </View>
-    </Modal>
-  );
-};
+}) => (
+  <Modal visible={visible} onClose={onClose} title={title} height="auto">
+    <Text variant="body" color="secondary" className="mb-6">
+      {message}
+    </Text>
+    <View className="flex-row gap-3">
+      <Button title={cancelLabel} onPress={onClose} variant="secondary" className="flex-1" />
+      <Button
+        title={confirmLabel}
+        onPress={onConfirm}
+        variant={destructive ? "danger" : "primary"}
+        loading={loading}
+        className="flex-1"
+      />
+    </View>
+  </Modal>
+);
 
 export default ConfirmModal;

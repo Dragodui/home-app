@@ -1,7 +1,8 @@
 import type { LucideIcon } from "lucide-react-native";
 import type { FC } from "react";
-import { TouchableOpacity, type ViewStyle } from "react-native";
+import { ActivityIndicator, TouchableOpacity, type ViewStyle } from "react-native";
 import { useTheme } from "@/stores/themeStore";
+import { useControlSurface } from "./surface";
 import { getToneColors, type Tone } from "./tone";
 
 type IconButtonSize = "sm" | "md";
@@ -11,7 +12,10 @@ interface IconButtonProps {
   onPress: () => void;
   size?: IconButtonSize;
   tone?: Tone;
+  /** Saturated accent fill instead of the soft tint, for the primary action of a screen. */
+  solid?: boolean;
   disabled?: boolean;
+  loading?: boolean;
   accessibilityLabel?: string;
   className?: string;
   style?: ViewStyle;
@@ -27,25 +31,30 @@ const IconButton: FC<IconButtonProps> = ({
   onPress,
   size = "md",
   tone = "neutral",
+  solid = false,
   disabled = false,
+  loading = false,
   accessibilityLabel,
   className,
   style,
 }) => {
   const { theme } = useTheme();
   const colors = getToneColors(theme, tone);
+  const surface = useControlSurface();
+  const backgroundColor = tone === "neutral" ? surface : solid ? colors.solid : colors.soft;
+  const foreground = solid ? colors.onSolid : colors.onSoft;
 
   return (
     <TouchableOpacity
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       className={`justify-center items-center ${SIZES[size].container} ${disabled ? "opacity-50" : ""} ${className || ""}`}
-      style={[{ backgroundColor: colors.soft }, style]}
+      style={[{ backgroundColor }, style]}
       onPress={onPress}
-      disabled={disabled}
+      disabled={disabled || loading}
       activeOpacity={0.7}
     >
-      <Icon size={SIZES[size].icon} color={colors.onSoft} />
+      {loading ? <ActivityIndicator color={foreground} /> : <Icon size={SIZES[size].icon} color={foreground} />}
     </TouchableOpacity>
   );
 };

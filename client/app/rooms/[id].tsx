@@ -1,29 +1,39 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Calendar, Fan, Lightbulb, Plus, Power, Trash2, Tv } from "lucide-react-native";
+import { Calendar, Plus } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAlert } from "@/components/ui/alert";
-import Button from "@/components/ui/button";
-import DatePicker from "@/components/ui/date-picker";
-import Input from "@/components/ui/input";
-import Modal from "@/components/ui/modal";
+import { View } from "react-native";
+import AddDeviceModal from "@/components/smarthome/add-device-modal";
+import DeviceRow from "@/components/smarthome/device-row";
+import {
+  Badge,
+  Button,
+  Card,
+  DateTimeField,
+  IconButton,
+  Input,
+  Modal,
+  ResponsiveGrid,
+  Screen,
+  ScreenHeader,
+  Section,
+  Spinner,
+  StatCard,
+  Text,
+  useAlert,
+} from "@/components/ui";
 import { smarthomeApi, taskApi } from "@/lib/api";
 import type { HAState, SmartDevice, Task } from "@/lib/types";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
 export default function RoomDetailScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id, name } = useLocalSearchParams<{ id: string; name: string }>();
   const { home, isAdmin } = useHome();
   const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
-  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [devices, setDevices] = useState<SmartDevice[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -42,7 +52,6 @@ export default function RoomDetailScreen() {
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [reminderMinutesInput, setReminderMinutesInput] = useState("30");
   const [creatingTask, setCreatingTask] = useState(false);
 
@@ -142,14 +151,6 @@ export default function RoomDetailScreen() {
     }
   };
 
-  const showDatePicker = () => setDatePickerVisibility(true);
-  const hideDatePicker = () => setDatePickerVisibility(false);
-
-  const handleConfirmDate = (date: Date) => {
-    setSelectedDate(date);
-    hideDatePicker();
-  };
-
   const parseReminderMinutes = (value: string) => {
     const trimmed = value.trim();
     if (!trimmed) return 30;
@@ -210,380 +211,184 @@ export default function RoomDetailScreen() {
     { pending: 0, completed: 0 },
   );
 
-  const getIcon = (type: string, size = 24, color = "black") => {
-    switch (type) {
-      case "light":
-        return <Lightbulb size={size} color={color} />;
-      case "switch":
-        return <Power size={size} color={color} />;
-      case "fan":
-        return <Fan size={size} color={color} />;
-      case "media_player":
-        return <Tv size={size} color={color} />;
-      default:
-        return <Power size={size} color={color} />;
-    }
-  };
-
-  const renderDevice = ({ item }: { item: SmartDevice }) => {
-    const state = deviceStates[item.entityId];
-    const isOn = state?.state === "on";
-    const isOffline = state?.state === "unavailable" || state?.state === "unknown";
+  const renderTask = (task: Task) => {
+    const completed = isTaskCompleted(task);
 
     return (
-      <View className="flex-row items-center p-4 rounded-20 mb-3" style={{ backgroundColor: theme.surface }}>
-        <View className="w-10 h-10 justify-center items-center bg-black/5 rounded-12 mr-4">
-          {getIcon(item.type, 24, isOn ? theme.accent.yellow : theme.text)}
+      <Card
+        key={task.id}
+        size="sm"
+        onPress={() => router.push({ pathname: "/tasks/[id]", params: { id: String(task.id) } })}
+      >
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="flex-1">
+            <Text variant="subtitle" className={completed ? "line-through opacity-60" : undefined}>
+              {task.name}
+            </Text>
+            {task.description ? (
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                className={`mt-1 ${completed ? "line-through opacity-50" : ""}`}
+                numberOfLines={2}
+              >
+                {task.description}
+              </Text>
+            ) : null}
+            <View className="flex-row items-center gap-1 mt-2">
+              <Calendar size={12} color={theme.textSecondary} />
+              <Text variant="caption" color="secondary" className="font-manrope-semibold">
+                {formatTaskDueText(task)}
+              </Text>
+            </View>
+          </View>
+          {completed ? (
+            <Badge label={t.common.done} tone="green" />
+          ) : (
+            <Badge label={t.tasks.schedule.active} tone="danger" />
+          )}
         </View>
-        <View className="flex-1">
-          <Text className="text-base font-manrope-bold" style={{ color: theme.text }}>
-            {item.name}
-          </Text>
-          <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
-            {state?.state || t.smartHome.unknownState}
-          </Text>
-        </View>
-
-        <Switch
-          value={isOn}
-          onValueChange={(val) => handleControl(item, val)}
-          disabled={isOffline}
-          trackColor={{ false: theme.border, true: theme.accent.cyan }}
-        />
-
-        {isAdmin && (
-          <TouchableOpacity className="ml-3 p-2" onPress={() => handleDeleteDevice(item.id, item.name)}>
-            <Trash2 size={16} color={theme.accent.danger} />
-          </TouchableOpacity>
-        )}
-      </View>
+      </Card>
     );
   };
 
   return (
-    <View className="flex-1" style={{ backgroundColor: theme.background }}>
-      {/* Header */}
-      <View
-        className="flex-row items-center justify-between mb-6"
-        style={{
-          paddingTop: insets.top + 16,
-          paddingHorizontal: horizontalPadding,
-          width: "100%",
-          maxWidth: contentMaxWidth,
-          alignSelf: "center",
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-12 h-12 rounded-16 justify-center items-center"
-          style={{ backgroundColor: theme.surface }}
-        >
-          <ArrowLeft size={24} color={theme.text} />
-        </TouchableOpacity>
-        <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
-          {name}
-        </Text>
-        {isAdmin ? (
-          <TouchableOpacity
-            onPress={() => {
-              setShowAddModal(true);
-              handleDiscover();
-            }}
-            className="w-12 h-12 rounded-16 justify-center items-center"
-            style={{ backgroundColor: theme.accent.yellow }}
-          >
-            <Plus size={24} color="#1C1C1E" />
-          </TouchableOpacity>
-        ) : (
-          <View className="w-12" />
-        )}
-      </View>
-
-      {/* Content */}
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingBottom: 40,
-          width: "100%",
-          maxWidth: contentMaxWidth,
-          alignSelf: "center",
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        {loading || loadingTasks ? (
-          <ActivityIndicator size="large" color={theme.accent.cyan} />
-        ) : (
-          <>
-            <View className="flex-row gap-3 mb-5">
-              <View className="flex-1 rounded-20 p-4" style={{ backgroundColor: theme.surface }}>
-                <Text className="text-xs font-manrope-bold uppercase" style={{ color: theme.textSecondary }}>
-                  {t.tasks.title}
-                </Text>
-                <Text className="text-2xl font-manrope-bold mt-1" style={{ color: theme.text }}>
-                  {tasks.length}
-                </Text>
-              </View>
-              <View className="flex-1 rounded-20 p-4" style={{ backgroundColor: theme.surface }}>
-                <Text className="text-xs font-manrope-bold uppercase" style={{ color: theme.textSecondary }}>
-                  {t.common.pending}
-                </Text>
-                <Text className="text-2xl font-manrope-bold mt-1" style={{ color: theme.accent.pink }}>
-                  {taskStats.pending}
-                </Text>
-              </View>
-              <View className="flex-1 rounded-20 p-4" style={{ backgroundColor: theme.surface }}>
-                <Text className="text-xs font-manrope-bold uppercase" style={{ color: theme.textSecondary }}>
-                  {t.smartHome.allDevices}
-                </Text>
-                <Text className="text-2xl font-manrope-bold mt-1" style={{ color: theme.accent.cyan }}>
-                  {devices.length}
-                </Text>
-              </View>
-            </View>
-
-            <View style={{ flexDirection: isDesktop ? "row" : "column", gap: 24, alignItems: "flex-start" }}>
-              <View className="mb-6" style={{ flex: isDesktop ? 1 : undefined, width: "100%" }}>
-                <View className="flex-row items-center justify-between mb-3">
-                  <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
-                    {t.rooms.roomTasks}
-                  </Text>
-                  <View className="flex-row items-center gap-2">
-                    <TouchableOpacity
-                      className="px-3 py-2"
-                      style={{ backgroundColor: theme.surface, borderRadius: "12px" }}
-                      onPress={() => router.push("/(tabs)/tasks")}
-                    >
-                      <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
-                        {t.tasks.title}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className="px-3 py-2"
-                      style={{ backgroundColor: theme.accent.yellow, borderRadius: "12px" }}
-                      onPress={() => setShowTaskModal(true)}
-                    >
-                      <Text className="text-xs font-manrope-bold" style={{ color: "#1C1C1E" }}>
-                        {t.tasks.newTask}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {tasks.length === 0 ? (
-                  <View className="rounded-20 p-4" style={{ backgroundColor: theme.surface }}>
-                    <Text style={{ color: theme.textSecondary }}>{t.tasks.noTasks}</Text>
-                  </View>
-                ) : (
-                  <View className="gap-3">
-                    {tasks.map((task) => {
-                      const completed = isTaskCompleted(task);
-                      return (
-                        <TouchableOpacity
-                          key={task.id}
-                          className="rounded-20 p-4"
-                          style={{ backgroundColor: theme.surface }}
-                          onPress={() => router.push({ pathname: "/tasks/[id]", params: { id: String(task.id) } })}
-                          activeOpacity={0.8}
-                        >
-                          <View className="flex-row items-start justify-between gap-3">
-                            <View className="flex-1">
-                              <Text
-                                className={`text-base font-manrope-bold ${completed ? "line-through opacity-60" : ""}`}
-                                style={{ color: theme.text }}
-                              >
-                                {task.name}
-                              </Text>
-                              {task.description ? (
-                                <Text
-                                  className={`text-sm mt-1 ${completed ? "line-through opacity-50" : ""}`}
-                                  style={{ color: theme.textSecondary }}
-                                  numberOfLines={2}
-                                >
-                                  {task.description}
-                                </Text>
-                              ) : null}
-                              <View className="flex-row items-center gap-1 mt-2">
-                                <Calendar size={12} color={theme.textSecondary} />
-                                <Text className="text-xs font-manrope-semibold" style={{ color: theme.textSecondary }}>
-                                  {formatTaskDueText(task)}
-                                </Text>
-                              </View>
-                            </View>
-                            {completed ? (
-                              <View
-                                className="px-2 py-1 rounded-full"
-                                style={{ backgroundColor: `${theme.status.success}20` }}
-                              >
-                                <Text className="text-xs font-manrope-bold" style={{ color: theme.status.success }}>
-                                  {t.common.done}
-                                </Text>
-                              </View>
-                            ) : (
-                              <View
-                                className="px-2 py-1 rounded-full"
-                                style={{ backgroundColor: theme.accent.pinkLight }}
-                              >
-                                <Text className="text-xs font-manrope-bold" style={{ color: theme.accent.pink }}>
-                                  {t.tasks.schedule.active}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-
-              <View className="mb-4" style={{ flex: isDesktop ? 1 : undefined, width: "100%" }}>
-                <Text className="text-lg font-manrope-bold mb-3" style={{ color: theme.text }}>
-                  {t.smartHome.allDevices}
-                </Text>
-                {devices.length === 0 ? (
-                  <View className="rounded-20 p-4" style={{ backgroundColor: theme.surface }}>
-                    <Text style={{ color: theme.textSecondary }}>{t.smartHome.noDevicesInRoom}</Text>
-                  </View>
-                ) : (
-                  devices.map((device) => <View key={device.id}>{renderDevice({ item: device })}</View>)
-                )}
-              </View>
-            </View>
-          </>
-        )}
-      </ScrollView>
-
-      {/* Create Task Modal */}
-      <Modal visible={showTaskModal} onClose={() => setShowTaskModal(false)} title={t.tasks.newTask} height="full">
-        <View className="flex-1">
-          <Input
-            label={t.tasks.taskName}
-            placeholder={t.tasks.taskNamePlaceholder}
-            value={newTaskName}
-            onChangeText={setNewTaskName}
-          />
-          <Input
-            label={t.tasks.description}
-            placeholder={t.tasks.descriptionPlaceholder}
-            value={newTaskDescription}
-            onChangeText={setNewTaskDescription}
-            multiline
-            numberOfLines={3}
-          />
-          <View className="mb-6">
-            <Text
-              className="text-xs font-manrope-bold uppercase tracking-wide mb-3 ml-1"
-              style={{ color: theme.textSecondary }}
-            >
-              {t.tasks.dueDate}
-            </Text>
-            <TouchableOpacity
-              onPress={showDatePicker}
-              className="rounded-[12px] p-4 h-14 justify-center"
-              style={{ backgroundColor: theme.surface }}
-            >
-              <Text
-                className="text-base font-manrope-semibold"
-                style={{ color: selectedDate ? theme.text : theme.textSecondary }}
-              >
-                {selectedDate
-                  ? selectedDate.toLocaleString([], {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : t.tasks.selectDateTime}
-              </Text>
-            </TouchableOpacity>
-            <DatePicker
-              visible={isDatePickerVisible}
-              onClose={hideDatePicker}
-              onConfirm={handleConfirmDate}
-              value={selectedDate ?? undefined}
-              mode="datetime"
-              minimumDate={new Date()}
-              title={t.tasks.selectDateTime}
+    <Screen>
+      <ScreenHeader
+        title={name}
+        right={
+          isAdmin ? (
+            <IconButton
+              icon={Plus}
+              tone="yellow"
+              solid
+              onPress={() => {
+                setShowAddModal(true);
+                handleDiscover();
+              }}
             />
+          ) : undefined
+        }
+      />
+
+      {loading || loadingTasks ? (
+        <Spinner fill color={theme.accent.cyan} />
+      ) : (
+        <>
+          <View className="flex-row gap-3 mb-5">
+            <StatCard label={t.tasks.title} value={tasks.length} />
+            <StatCard label={t.common.pending} value={taskStats.pending} valueColor={theme.accent.pink} />
+            <StatCard label={t.smartHome.allDevices} value={devices.length} valueColor={theme.accent.cyan} />
           </View>
-          <Input
-            label={t.tasks.reminderBefore}
-            placeholder="30"
-            value={reminderMinutesInput}
-            onChangeText={(value) => setReminderMinutesInput(value.replace(/[^0-9]/g, ""))}
-            keyboardType="number-pad"
-          />
-          <Button
-            title={t.tasks.createTask}
-            onPress={handleCreateTask}
-            loading={creatingTask}
-            disabled={!newTaskName.trim() || creatingTask}
-            variant="yellow"
-            style={{ marginTop: "auto" }}
-          />
-        </View>
+
+          <ResponsiveGrid>
+            <Section
+              title={t.rooms.roomTasks}
+              titleVariant="heading"
+              action={
+                <View className="flex-row items-center gap-2">
+                  <Button
+                    title={t.tasks.title}
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => router.push("/(tabs)/tasks")}
+                  />
+                  <Button title={t.tasks.newTask} size="sm" variant="yellow" onPress={() => setShowTaskModal(true)} />
+                </View>
+              }
+            >
+              {tasks.length === 0 ? (
+                <Card size="sm">
+                  <Text variant="bodySmall" color="secondary">
+                    {t.tasks.noTasks}
+                  </Text>
+                </Card>
+              ) : (
+                <View className="gap-3">{tasks.map(renderTask)}</View>
+              )}
+            </Section>
+
+            <Section title={t.smartHome.allDevices} titleVariant="heading">
+              {devices.length === 0 ? (
+                <Card size="sm">
+                  <Text variant="bodySmall" color="secondary">
+                    {t.smartHome.noDevicesInRoom}
+                  </Text>
+                </Card>
+              ) : (
+                <View className="gap-3">
+                  {devices.map((device) => (
+                    <DeviceRow
+                      key={device.id}
+                      device={device}
+                      state={deviceStates[device.entityId]}
+                      onToggle={(value) => handleControl(device, value)}
+                      onDelete={isAdmin ? () => handleDeleteDevice(device.id, device.name) : undefined}
+                    />
+                  ))}
+                </View>
+              )}
+            </Section>
+          </ResponsiveGrid>
+        </>
+      )}
+
+      <Modal visible={showTaskModal} onClose={() => setShowTaskModal(false)} title={t.tasks.newTask}>
+        <Input
+          label={t.tasks.taskName}
+          placeholder={t.tasks.taskNamePlaceholder}
+          value={newTaskName}
+          onChangeText={setNewTaskName}
+        />
+        <Input
+          label={t.tasks.description}
+          placeholder={t.tasks.descriptionPlaceholder}
+          value={newTaskDescription}
+          onChangeText={setNewTaskDescription}
+          multiline
+          numberOfLines={3}
+        />
+        <DateTimeField
+          label={t.tasks.dueDate}
+          placeholder={t.tasks.selectDateTime}
+          value={selectedDate}
+          onChange={setSelectedDate}
+          minimumDate={new Date()}
+        />
+        <Input
+          label={t.tasks.reminderBefore}
+          placeholder="30"
+          value={reminderMinutesInput}
+          onChangeText={(value) => setReminderMinutesInput(value.replace(/[^0-9]/g, ""))}
+          keyboardType="number-pad"
+        />
+        <Button
+          title={t.tasks.createTask}
+          onPress={handleCreateTask}
+          loading={creatingTask}
+          disabled={!newTaskName.trim() || creatingTask}
+          variant="yellow"
+          className="mt-4"
+        />
       </Modal>
 
-      {/* Add Device Modal */}
-      <Modal visible={showAddModal} onClose={() => setShowAddModal(false)} title={t.smartHome.addDevice} height="full">
-        <View className="flex-1">
-          {selectedEntity ? (
-            <View>
-              <TouchableOpacity onPress={() => setSelectedEntity(null)} className="mb-4">
-                <Text style={{ color: theme.accent.cyan }}>{t.smartHome.backToList}</Text>
-              </TouchableOpacity>
-              <Input
-                label={t.smartHome.deviceNameLabel}
-                value={deviceName}
-                onChangeText={setDeviceName}
-                placeholder={t.smartHome.roomDeviceNamePlaceholder}
-              />
-              <Text className="mb-2" style={{ color: theme.textSecondary }}>
-                Entity: {selectedEntity}
-              </Text>
-              <Button
-                title={t.common.add || "Add"}
-                onPress={handleAddDevice}
-                loading={addingDevice}
-                variant="primary"
-              />
-            </View>
-          ) : (
-            <>
-              <Text className="mb-4" style={{ color: theme.textSecondary }}>
-                Select a device to add to {name}
-              </Text>
-              {discovering ? (
-                <ActivityIndicator color={theme.accent.cyan} />
-              ) : (
-                <FlatList
-                  data={discoveredDevices}
-                  keyExtractor={(item) => item.entityId}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      className="py-3 border-b"
-                      style={{ borderBottomColor: theme.border }}
-                      onPress={() => {
-                        setSelectedEntity(item.entityId);
-                        setDeviceName(item.attributes.friendlyName || item.entityId);
-                      }}
-                    >
-                      <Text className="font-bold" style={{ color: theme.text }}>
-                        {item.attributes.friendlyName || item.entityId}
-                      </Text>
-                      <Text className="text-xs" style={{ color: theme.textSecondary }}>
-                        {item.entityId}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                />
-              )}
-            </>
-          )}
-        </View>
-      </Modal>
-    </View>
+      <AddDeviceModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        description={`Select a device to add to ${name}`}
+        discovering={discovering}
+        discoveredDevices={discoveredDevices}
+        selectedEntity={selectedEntity}
+        onSelectEntity={(entityId, suggestedName) => {
+          setSelectedEntity(entityId);
+          setDeviceName(suggestedName);
+        }}
+        deviceName={deviceName}
+        onDeviceNameChange={setDeviceName}
+        namePlaceholder={t.smartHome.roomDeviceNamePlaceholder}
+        adding={addingDevice}
+        onAdd={handleAddDevice}
+      />
+    </Screen>
   );
 }

@@ -186,7 +186,7 @@ export default function SettingsScreen() {
               key={lang}
               title={languageNames[lang]}
               selected={language === lang}
-              right={<View />}
+              showChevron={false}
               onPress={() => {
                 setLanguage(lang);
                 setShowLanguageModal(false);

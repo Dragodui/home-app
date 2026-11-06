@@ -1,6 +1,7 @@
 import type { FC } from "react";
 import { ActivityIndicator, Text, type TextStyle, TouchableOpacity, type ViewStyle } from "react-native";
 import { useTheme } from "@/stores/themeStore";
+import { useControlSurface } from "./surface";
 
 type ButtonVariant = "primary" | "secondary" | "yellow" | "purple" | "pink" | "outline" | "bordered" | "danger";
 type ButtonSize = "lg" | "md" | "sm";
@@ -37,6 +38,7 @@ const Button: FC<ButtonProps> = ({
   className,
 }) => {
   const { theme } = useTheme();
+  const surface = useControlSurface();
 
   const getVariantClasses = () => {
     switch (variant) {
@@ -46,8 +48,6 @@ const Button: FC<ButtonProps> = ({
         return "bg-accent-purple";
       case "pink":
         return "bg-accent-pink";
-      case "secondary":
-        return theme.isDark ? "bg-surface-dark" : "bg-surface";
       case "outline":
         return `bg-transparent border-2 border-dashed ${theme.isDark ? "border-gray-700" : "border-gray-100"}`;
       case "bordered":
@@ -101,7 +101,7 @@ const Button: FC<ButtonProps> = ({
       className={`justify-center items-center flex-row gap-2 ${SIZE_CLASSES[size].container} ${getVariantClasses()} ${
         disabled ? "opacity-50" : ""
       } ${className || ""}`}
-      style={style}
+      style={[variant === "secondary" && { backgroundColor: surface }, style]}
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.8}

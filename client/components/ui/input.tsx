@@ -2,6 +2,7 @@ import { Eye, EyeOff } from "lucide-react-native";
 import { type FC, useState } from "react";
 import { Platform, Text, TextInput, type TextInputProps, type TextStyle, TouchableOpacity, View } from "react-native";
 import { useTheme } from "@/stores/themeStore";
+import { useInModal } from "./surface";
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -12,6 +13,7 @@ interface InputProps extends TextInputProps {
 
 const Input: FC<InputProps> = ({ label, error, style, secureTextEntry, className, ...rest }) => {
   const { theme } = useTheme();
+  const inModal = useInModal();
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const isPassword = secureTextEntry !== undefined;
@@ -49,7 +51,7 @@ const Input: FC<InputProps> = ({ label, error, style, secureTextEntry, className
           className={`h-16 rounded-20 px-6 text-base font-manrope-medium ${isPassword ? "pr-14" : ""}`}
           style={[
             {
-              backgroundColor: theme.inputBackground,
+              backgroundColor: inModal ? theme.background : theme.inputBackground,
               color: theme.inputText,
             },
             webInputResetStyle,

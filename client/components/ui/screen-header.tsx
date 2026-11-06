@@ -15,7 +15,7 @@ interface ScreenHeaderProps {
 const ScreenHeader: FC<ScreenHeaderProps> = ({ title, onBack, right, className }) => (
   <View className={`flex-row items-center gap-3 mb-8 ${className || ""}`}>
     <BackButton onPress={onBack} />
-    <Text variant="title" className="flex-1 text-center">
+    <Text variant="title" className="flex-1 text-center" numberOfLines={1}>
       {title}
     </Text>
     {right ?? <View className="w-12" />}

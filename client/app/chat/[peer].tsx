@@ -1,7 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  ArrowLeft,
   Check,
   CheckCheck,
   CheckCircle,
@@ -16,20 +15,20 @@ import {
   X,
 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, Image, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAlert } from "@/components/ui/alert";
-import Modal from "@/components/ui/modal";
+import {
+  Avatar,
+  Button,
+  EmptyState,
+  IconButton,
+  Modal,
+  Screen,
+  ScreenHeader,
+  Spinner,
+  Text,
+  useAlert,
+} from "@/components/ui";
 import { billApi, billCategoryApi, chatApi, homeApi, imageApi, noteApi, shoppingApi, taskApi } from "@/lib/api";
 import type {
   Bill,
@@ -42,7 +41,6 @@ import type {
   User,
 } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
@@ -60,7 +58,6 @@ const MENTION_SHADES = {
   item: "#E2DFFF",
   category: "#A9A3D6",
 };
-const MENTION_TEXT = "#1C1C1E";
 
 // Matches the same mention syntax notes use: @user:"Name", @task:Name, @Name, @all
 const MENTION_REGEX = /@(user|task|bill|item|category):(?:"([^"]+)"|(\S+))|@(?:"([^"]+)"|([a-zA-Z0-9_-]+))/g;
@@ -83,7 +80,6 @@ export default function ChatThreadScreen() {
   const { home } = useHome();
   const { user } = useAuth();
   const { alert } = useAlert();
-  const { horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -505,7 +501,7 @@ export default function ChatThreadScreen() {
     const regex = new RegExp(MENTION_REGEX.source, "g");
     const parts: React.ReactNode[] = [];
     const isOwn = message.createdBy === user?.id;
-    const baseColor = isOwn ? "#1C1C1E" : theme.text;
+    const baseColor = isOwn ? theme.onAccent : theme.text;
     let lastIndex = 0;
     let key = 0;
 
@@ -515,7 +511,7 @@ export default function ChatThreadScreen() {
       for (const word of text.split(/(\s+)/)) {
         if (word.trim() === "") continue;
         parts.push(
-          <Text key={key++} className="font-manrope text-base" style={{ color: baseColor }}>
+          <Text key={key++} variant="body" style={{ color: baseColor }}>
             {word}
           </Text>,
         );
@@ -536,7 +532,7 @@ export default function ChatThreadScreen() {
       let badgeColor = "";
       let icon: React.ReactNode = null;
       let matched = false;
-      const chipText = MENTION_TEXT;
+      const chipText = theme.onAccent;
 
       if (!prefixType && name.toLowerCase() === "all") {
         matched = true;
@@ -590,7 +586,7 @@ export default function ChatThreadScreen() {
             style={{ backgroundColor: badgeColor }}
           >
             {icon}
-            <Text className="font-manrope-semibold text-sm" style={{ color: chipText }}>
+            <Text variant="label" style={{ color: chipText }}>
               {name}
             </Text>
           </View>,
@@ -611,25 +607,18 @@ export default function ChatThreadScreen() {
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isOwn = item.createdBy === user?.id;
     const readCount = item.reads?.length || 0;
-
     const author = item.creator;
-    const initials = (author?.name || author?.username || "?").slice(0, 2).toUpperCase();
+    const mutedOnBubble = isOwn ? `${theme.onAccent}99` : theme.textSecondary;
 
     return (
       <View className={`mb-3 flex-row items-end gap-2 ${isOwn ? "justify-end" : "justify-start"}`}>
         {!isOwn && (
-          <View
-            className="w-9 h-9 rounded-full justify-center items-center overflow-hidden"
+          <Avatar
+            uri={author?.avatar}
+            name={author?.name || author?.username || "?"}
+            size={36}
             style={{ backgroundColor: theme.surface }}
-          >
-            {author?.avatar ? (
-              <Image source={{ uri: author.avatar }} className="w-full h-full" />
-            ) : (
-              <Text className="text-[10px] font-manrope-bold" style={{ color: theme.text }}>
-                {initials}
-              </Text>
-            )}
-          </View>
+          />
         )}
         <TouchableOpacity
           activeOpacity={0.9}
@@ -637,7 +626,7 @@ export default function ChatThreadScreen() {
           className="max-w-[75%]"
         >
           {!isOwn && (
-            <Text className="text-xs font-manrope-semibold mb-1 ml-1" style={{ color: theme.textSecondary }}>
+            <Text variant="caption" color="secondary" className="font-manrope-semibold mb-1 ml-1">
               {author?.name || author?.username || ""}
             </Text>
           )}
@@ -651,63 +640,44 @@ export default function ChatThreadScreen() {
             {item.content.trim().length > 0 && renderContent(item)}
             <View className="flex-row items-center justify-end gap-1.5 mt-1">
               {item.editedAt && (
-                <Text className="text-[10px] font-manrope" style={{ color: isOwn ? "#1C1C1E99" : theme.textSecondary }}>
+                <Text variant="micro" style={{ color: mutedOnBubble }}>
                   {t.chat.edited}
                 </Text>
               )}
-              <Text className="text-[10px] font-manrope" style={{ color: isOwn ? "#1C1C1E99" : theme.textSecondary }}>
+              <Text variant="micro" style={{ color: mutedOnBubble }}>
                 {formatTime(item.createdAt)}
               </Text>
               {/* One tick until somebody reads it, two once it's been read. */}
               {isOwn &&
-                (readCount > 0 ? <CheckCheck size={13} color="#1C1C1E" /> : <Check size={13} color="#1C1C1E99" />)}
+                (readCount > 0 ? (
+                  <CheckCheck size={13} color={theme.onAccent} />
+                ) : (
+                  <Check size={13} color={mutedOnBubble} />
+                ))}
             </View>
           </View>
         </TouchableOpacity>
         {isOwn && (
-          <View
-            className="w-9 h-9 rounded-full justify-center items-center overflow-hidden"
+          <Avatar
+            uri={user?.avatar}
+            name={user?.name || user?.username || "?"}
+            size={36}
             style={{ backgroundColor: theme.surface }}
-          >
-            {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} className="w-full h-full" />
-            ) : (
-              <Text className="text-[10px] font-manrope-bold" style={{ color: theme.text }}>
-                {(user?.name || user?.username || "?").slice(0, 2).toUpperCase()}
-              </Text>
-            )}
-          </View>
+          />
         )}
       </View>
     );
   };
 
+  const canSend = !!draft.trim() || !!attachedImage;
+
   return (
-    <View className="flex-1" style={{ backgroundColor: theme.background }}>
-      {/* Header */}
-      <View
-        className="flex-row items-center gap-3 pb-4"
-        style={{ paddingTop: insets.top + 16, paddingHorizontal: horizontalPadding }}
-      >
-        <TouchableOpacity
-          className="w-12 h-12 rounded-2xl justify-center items-center"
-          style={{ backgroundColor: theme.surface }}
-          onPress={goBack}
-        >
-          <ArrowLeft size={22} color={theme.text} />
-        </TouchableOpacity>
-        <View className="flex-1">
-          {peerId === null ? (
-            <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
-              {home?.name || ""} <Text className="font-manrope-light text-2xl">{t.chat.title}</Text>
-            </Text>
-          ) : (
-            <Text className="text-2xl font-manrope-bold" numberOfLines={1} style={{ color: theme.text }}>
-              {peerUser?.name || peerUser?.username || ""}
-            </Text>
-          )}
-        </View>
-      </View>
+    <Screen scroll={false}>
+      <ScreenHeader
+        title={peerId === null ? `${home?.name || ""} ${t.chat.title}` : peerUser?.name || peerUser?.username || ""}
+        onBack={goBack}
+        className="mb-4"
+      />
 
       <KeyboardAvoidingView
         className="flex-1"
@@ -715,41 +685,20 @@ export default function ChatThreadScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
       >
         {isLoading ? (
-          <View className="flex-1 justify-center items-center">
-            <ActivityIndicator color={theme.text} />
-          </View>
+          <Spinner fill />
         ) : messages.length === 0 ? (
-          <View className="flex-1 justify-center items-center px-10">
-            <View
-              className="w-16 h-16 rounded-full justify-center items-center mb-4"
-              style={{ backgroundColor: theme.surface }}
-            >
-              <MessageCircle size={32} color={theme.textSecondary} />
-            </View>
-            <Text className="text-xl font-manrope-bold mb-2 text-center" style={{ color: theme.text }}>
-              {t.chat.noMessages}
-            </Text>
-            <Text className="text-sm font-manrope text-center leading-5" style={{ color: theme.textSecondary }}>
-              {t.chat.noMessagesDescription}
-            </Text>
-          </View>
+          <EmptyState icon={MessageCircle} title={t.chat.noMessages} description={t.chat.noMessagesDescription} />
         ) : (
           <FlatList
             data={messages}
             renderItem={renderMessage}
             keyExtractor={(item) => String(item.id)}
             inverted
-            contentContainerStyle={{
-              paddingHorizontal: horizontalPadding,
-              paddingBottom: 8,
-              width: "100%",
-              maxWidth: contentMaxWidth,
-              alignSelf: "center",
-            }}
+            contentContainerStyle={{ paddingBottom: 8 }}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.4}
             ListFooterComponent={
-              loadingMore ? <ActivityIndicator color={theme.textSecondary} className="my-4" /> : null
+              loadingMore ? <Spinner size="small" color={theme.textSecondary} className="my-4" /> : null
             }
             showsVerticalScrollIndicator={false}
           />
@@ -757,16 +706,14 @@ export default function ChatThreadScreen() {
 
         {/* Mention suggestions */}
         {showSuggestions && suggestions.length > 0 && (
-          <View className="mx-4 mb-2 rounded-2xl overflow-hidden max-h-48" style={{ backgroundColor: theme.surface }}>
+          <View className="mb-2 rounded-2xl overflow-hidden max-h-48" style={{ backgroundColor: theme.surface }}>
             <FlatList
               data={suggestions}
               keyExtractor={(s) => s.key}
               keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
                 <TouchableOpacity className="px-4 py-3" onPress={() => applySuggestion(item)}>
-                  <Text className="font-manrope-semibold text-sm" style={{ color: theme.text }}>
-                    {item.name}
-                  </Text>
+                  <Text variant="label">{item.name}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -775,53 +722,33 @@ export default function ChatThreadScreen() {
 
         {/* Attached image preview */}
         {attachedImage && (
-          <View className="px-4 mb-2 flex-row">
+          <View className="mb-2 flex-row">
             <View className="relative">
               <Image source={{ uri: attachedImage }} className="w-20 h-20 rounded-xl" resizeMode="cover" />
               <TouchableOpacity
                 className="absolute -top-2 -right-2 w-6 h-6 rounded-full justify-center items-center"
                 style={{ backgroundColor: theme.accent.pink }}
+                hitSlop={8}
                 onPress={() => setAttachedImage(null)}
               >
-                <X size={14} color="#FFFFFF" />
+                <X size={14} color={theme.onAccent} />
               </TouchableOpacity>
             </View>
           </View>
         )}
 
         {/* Composer */}
-        <View
-          className="flex-row items-end gap-2 pt-2"
-          style={{
-            paddingHorizontal: horizontalPadding,
-            paddingBottom: insets.bottom + 12,
-            backgroundColor: theme.background,
-          }}
-        >
-          <TouchableOpacity
-            className="w-12 h-12 rounded-2xl justify-center items-center"
-            style={{ backgroundColor: theme.surface }}
-            onPress={pickImage}
-            disabled={uploadingImage}
-          >
-            {uploadingImage ? (
-              <ActivityIndicator color={theme.textSecondary} />
-            ) : (
-              <ImagePlus size={20} color={theme.textSecondary} />
-            )}
-          </TouchableOpacity>
+        <View className="flex-row items-end gap-2 pt-2" style={{ paddingBottom: insets.bottom + 12 }}>
+          <IconButton icon={ImagePlus} onPress={pickImage} loading={uploadingImage} />
           {editingId !== null && (
-            <TouchableOpacity
-              className="w-12 h-12 rounded-2xl justify-center items-center"
-              style={{ backgroundColor: theme.surface }}
+            <IconButton
+              icon={X}
               onPress={() => {
                 setEditingId(null);
                 setDraft("");
                 setAttachedImage(null);
               }}
-            >
-              <X size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
+            />
           )}
           <TextInput
             ref={inputRef}
@@ -833,18 +760,14 @@ export default function ChatThreadScreen() {
             onChangeText={handleDraftChange}
             multiline
           />
-          <TouchableOpacity
-            className="w-12 h-12 rounded-2xl justify-center items-center"
-            style={{ backgroundColor: draft.trim() || attachedImage ? theme.accent.cyan : theme.surface }}
+          <IconButton
+            icon={Send}
+            tone={canSend ? "cyan" : "neutral"}
+            solid={canSend}
+            loading={sending}
+            disabled={!canSend}
             onPress={handleSend}
-            disabled={(!draft.trim() && !attachedImage) || sending}
-          >
-            {sending ? (
-              <ActivityIndicator color="#1C1C1E" />
-            ) : (
-              <Send size={20} color={draft.trim() || attachedImage ? "#1C1C1E" : theme.textSecondary} />
-            )}
-          </TouchableOpacity>
+          />
         </View>
       </KeyboardAvoidingView>
 
@@ -859,58 +782,40 @@ export default function ChatThreadScreen() {
           {/* Read-by block only appears once somebody has actually read it. */}
           {actionsMessage?.reads && actionsMessage.reads.length > 0 && (
             <View className="gap-2">
-              <Text className="text-xs font-manrope-bold uppercase" style={{ color: theme.textSecondary }}>
-                {t.chat.readBy}
-              </Text>
+              <Text variant="overline">{t.chat.readBy}</Text>
               <View className="flex-row flex-wrap gap-3">
-                {actionsMessage.reads.map((read) => (
-                  <View key={read.id} className="items-center gap-1 w-14">
-                    <View
-                      className="w-11 h-11 rounded-full justify-center items-center overflow-hidden"
-                      style={{ backgroundColor: theme.surface }}
-                    >
-                      {read.user?.avatar ? (
-                        <Image source={{ uri: read.user.avatar }} className="w-full h-full" />
-                      ) : (
-                        <Text className="text-xs font-manrope-bold" style={{ color: theme.text }}>
-                          {(read.user?.name || read.user?.username || "?").slice(0, 2).toUpperCase()}
-                        </Text>
-                      )}
+                {actionsMessage.reads.map((read) => {
+                  const readerName = read.user?.name || read.user?.username;
+                  return (
+                    <View key={read.id} className="items-center gap-1 w-14">
+                      <Avatar uri={read.user?.avatar} name={readerName || "?"} size={44} />
+                      <Text variant="micro" className="font-manrope-semibold text-center" numberOfLines={1}>
+                        {readerName || `#${read.userId}`}
+                      </Text>
+                      <Text variant="micro" color="secondary" className="text-center">
+                        {formatDateTime(read.readAt)}
+                      </Text>
                     </View>
-                    <Text
-                      className="text-[10px] font-manrope-semibold text-center"
-                      numberOfLines={1}
-                      style={{ color: theme.text }}
-                    >
-                      {read.user?.name || read.user?.username || `#${read.userId}`}
-                    </Text>
-                    <Text className="text-[9px] font-manrope text-center" style={{ color: theme.textSecondary }}>
-                      {formatDateTime(read.readAt)}
-                    </Text>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             </View>
           )}
 
-          <TouchableOpacity
-            className="h-12 rounded-xl justify-center items-center"
-            style={{ backgroundColor: theme.surface }}
+          <Button
+            title={t.common.edit}
+            size="md"
+            variant="secondary"
             onPress={() => actionsMessage && startEditing(actionsMessage)}
-          >
-            <Text className="font-manrope-semibold" style={{ color: theme.text }}>
-              {t.common.edit}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="h-12 rounded-xl justify-center items-center"
-            style={{ backgroundColor: theme.accent.dangerLight }}
+          />
+          <Button
+            title={t.common.delete}
+            size="md"
+            variant="danger"
             onPress={() => actionsMessage && handleDelete(actionsMessage)}
-          >
-            <Text className="font-manrope-semibold text-white">{t.common.delete}</Text>
-          </TouchableOpacity>
+          />
         </View>
       </Modal>
-    </View>
+    </Screen>
   );
 }

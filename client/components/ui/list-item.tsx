@@ -3,6 +3,7 @@ import type { FC, ReactNode } from "react";
 import { TouchableOpacity, View } from "react-native";
 import { useTheme } from "@/stores/themeStore";
 import IconTile from "./icon-tile";
+import { useControlSurface } from "./surface";
 import Text from "./text";
 import { getToneColors, type Tone } from "./tone";
 
@@ -15,6 +16,11 @@ interface ListItemProps {
   left?: ReactNode;
   /** Replaces the chevron that pressable rows show by default. */
   right?: ReactNode;
+  /** Pressable rows show a chevron unless they are selected. */
+  showChevron?: boolean;
+  disabled?: boolean;
+  /** Truncates the title and subtitle to one line each. */
+  singleLine?: boolean;
   selected?: boolean;
   selectedTone?: Tone;
   onPress?: () => void;
@@ -28,21 +34,32 @@ const ListItem: FC<ListItemProps> = ({
   iconTone,
   left,
   right,
+  showChevron,
+  disabled = false,
+  singleLine = false,
   selected = false,
   selectedTone = "purple",
   onPress,
   className,
 }) => {
   const { theme } = useTheme();
+  const surface = useControlSurface();
   const selectedColors = getToneColors(theme, selectedTone);
   const containerClassName = `flex-row items-center p-4 rounded-20 gap-3.5 ${className || ""}`;
-  const containerStyle = { backgroundColor: selected ? selectedColors.solid : theme.surface };
+  const containerStyle = {
+    backgroundColor: selected ? selectedColors.solid : surface,
+    opacity: disabled ? 0.7 : 1,
+  };
 
   const content = (
     <>
       {left ?? (icon && <IconTile icon={icon} tone={iconTone} />)}
       <View className="flex-1">
-        <Text variant="subtitle" style={selected ? { color: selectedColors.onSolid } : undefined}>
+        <Text
+          variant="subtitle"
+          numberOfLines={singleLine ? 1 : undefined}
+          style={selected ? { color: selectedColors.onSolid } : undefined}
+        >
           {title}
         </Text>
         {subtitle && (
@@ -50,13 +67,14 @@ const ListItem: FC<ListItemProps> = ({
             variant="bodySmall"
             color="secondary"
             className="mt-0.5"
+            numberOfLines={singleLine ? 1 : undefined}
             style={selected ? { color: selectedColors.onSolid } : undefined}
           >
             {subtitle}
           </Text>
         )}
       </View>
-      {right ?? (onPress && !selected && <ChevronRight size={20} color={theme.textSecondary} />)}
+      {right ?? ((showChevron ?? (!!onPress && !selected)) && <ChevronRight size={20} color={theme.textSecondary} />)}
     </>
   );
 
@@ -75,6 +93,7 @@ const ListItem: FC<ListItemProps> = ({
       className={containerClassName}
       style={containerStyle}
       onPress={onPress}
+      disabled={disabled}
       activeOpacity={0.8}
     >
       {content}

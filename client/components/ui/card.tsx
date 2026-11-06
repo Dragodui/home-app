@@ -1,6 +1,6 @@
 import type { FC, ReactNode } from "react";
 import { TouchableOpacity, View, type ViewStyle } from "react-native";
-import { useTheme } from "@/stores/themeStore";
+import { useControlSurface } from "./surface";
 
 type CardVariant = "default" | "surface" | "yellow" | "purple" | "pink" | "mint" | "white";
 type CardSize = "sm" | "md" | "lg";
@@ -11,6 +11,7 @@ interface CardProps {
   size?: CardSize;
   style?: ViewStyle;
   onPress?: () => void;
+  onLongPress?: () => void;
   padding?: number;
   borderRadius?: number;
   className?: string;
@@ -28,16 +29,16 @@ const Card: FC<CardProps> = ({
   size = "lg",
   style,
   onPress,
+  onLongPress,
   padding = SIZES[size].padding,
   borderRadius = SIZES[size].borderRadius,
   className,
 }) => {
-  const { theme } = useTheme();
+  const surface = useControlSurface();
+  const surfaceStyle = variant === "default" || variant === "surface" ? { backgroundColor: surface } : undefined;
 
   const getVariantClasses = () => {
     switch (variant) {
-      case "surface":
-        return theme.isDark ? "bg-surface-dark" : "bg-surface";
       case "yellow":
         return "bg-accent-yellow";
       case "purple":
@@ -49,18 +50,19 @@ const Card: FC<CardProps> = ({
       case "white":
         return "bg-white";
       default:
-        return theme.isDark ? "bg-surface-dark" : "bg-surface";
+        return "";
     }
   };
 
   const combinedClassName = `overflow-hidden ${getVariantClasses()} ${className || ""}`;
 
-  if (onPress) {
+  if (onPress || onLongPress) {
     return (
       <TouchableOpacity
         className={combinedClassName}
-        style={[{ padding, borderRadius }, style]}
+        style={[surfaceStyle, { padding, borderRadius }, style]}
         onPress={onPress}
+        onLongPress={onLongPress}
         activeOpacity={0.95}
       >
         {children}
@@ -69,7 +71,7 @@ const Card: FC<CardProps> = ({
   }
 
   return (
-    <View className={combinedClassName} style={[{ padding, borderRadius }, style]}>
+    <View className={combinedClassName} style={[surfaceStyle, { padding, borderRadius }, style]}>
       {children}
     </View>
   );

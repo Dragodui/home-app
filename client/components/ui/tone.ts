@@ -1,6 +1,6 @@
 import type { Theme } from "@/stores/themeStore";
 
-export type Tone = "neutral" | "purple" | "yellow" | "pink" | "mint" | "cyan" | "green" | "danger";
+export type Tone = "neutral" | "purple" | "yellow" | "pink" | "mint" | "cyan" | "green" | "warning" | "danger";
 
 interface ToneColors {
   /** Saturated fill and the foreground that stays readable on it. */
@@ -34,7 +34,7 @@ export function getToneColors(theme: Theme, tone: Tone): ToneColors {
     };
   }
 
-  const color = theme.accent[ACCENT_KEYS[tone]];
+  const color = tone === "warning" ? theme.status.warning : theme.accent[ACCENT_KEYS[tone]];
   return {
     solid: color,
     onSolid: theme.onAccent,

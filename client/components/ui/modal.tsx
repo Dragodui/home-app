@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useTheme } from "@/stores/themeStore";
 import IconButton from "./icon-button";
+import { ModalSurfaceProvider } from "./surface";
 import Text from "./text";
 
 interface ModalProps {
@@ -88,7 +89,7 @@ const Modal: FC<ModalProps> = ({ visible, onClose, title, children, height = "fu
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {children}
+            <ModalSurfaceProvider value>{children}</ModalSurfaceProvider>
           </ScrollView>
         </View>
       </KeyboardAvoidingView>

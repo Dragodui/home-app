@@ -11,6 +11,7 @@ export type TextVariant =
   | "label"
   | "bodySmall"
   | "caption"
+  | "micro"
   | "overline";
 
 export type TextColor = "primary" | "secondary" | "muted" | "onAccent" | "onDanger" | "danger";
@@ -24,6 +25,7 @@ const VARIANT_CLASSES: Record<TextVariant, string> = {
   label: "text-sm font-manrope-semibold",
   bodySmall: "text-sm font-manrope",
   caption: "text-xs font-manrope",
+  micro: "text-[10px] font-manrope",
   overline: "text-xs font-manrope-bold uppercase tracking-widest",
 };
 
