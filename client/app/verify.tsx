@@ -1,18 +1,15 @@
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, CheckCircle, Mail, XCircle } from "lucide-react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { CheckCircle, Mail, XCircle } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Button from "@/components/ui/button";
+import { AppState, View } from "react-native";
+import { BackButton, Button, EmptyState, Screen, Spinner, Text } from "@/components/ui";
 import { userApi } from "@/lib/api";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const {
     token,
     email: paramEmail,
@@ -21,7 +18,6 @@ export default function VerifyEmailScreen() {
   const { verifyEmail, resendVerification } = useAuth();
   const { t } = useI18n();
   const { theme } = useTheme();
-  const { horizontalPadding } = useResponsiveLayout();
 
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(status === "success");
@@ -88,167 +84,68 @@ export default function VerifyEmailScreen() {
     }
   };
 
-  // Token-based verification result OR status from redirect
-  if (token || status) {
+  // Result of token-based verification, of a redirect, or of verifying in the browser
+  if (token || status || verified) {
     return (
-      <>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View
-          className="flex-1"
-          style={{
-            backgroundColor: theme.background,
-            paddingTop: insets.top + 40,
-            paddingHorizontal: horizontalPadding,
-            width: "100%",
-            maxWidth: 640,
-            alignSelf: "center",
-          }}
-        >
-          <View className="flex-1 justify-center items-center pb-20">
-            {loading ? (
-              <ActivityIndicator size="large" color={theme.accent.purple} />
-            ) : (
-              <>
-                <View
-                  className="w-24 h-24 rounded-full justify-center items-center mb-6"
-                  style={{ backgroundColor: verified ? theme.status.success : theme.status.error }}
-                >
-                  {verified ? <CheckCircle size={48} color="#FFFFFF" /> : <XCircle size={48} color="#FFFFFF" />}
-                </View>
-                <Text className="text-[28px] font-manrope-bold mb-3 text-center" style={{ color: theme.text }}>
-                  {verified ? t.verify.emailVerified : t.verify.verificationFailed}
-                </Text>
-                <Text
-                  className="text-base font-manrope text-center leading-6 mb-8 px-4"
-                  style={{ color: theme.textSecondary }}
-                >
-                  {verified ? t.verify.verifiedMessage : error || t.verify.linkExpired}
-                </Text>
-              </>
-            )}
-
-            <Button
-              title={verified ? t.verify.continueToLogin : t.verify.tryAgain}
-              onPress={() => router.replace("/login")}
-              variant={verified ? "purple" : "primary"}
-              className="w-full mt-3"
-            />
-          </View>
-        </View>
-      </>
-    );
-  }
-
-  // Email verified after returning from browser
-  if (verified) {
-    return (
-      <>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View
-          className="flex-1"
-          style={{
-            backgroundColor: theme.background,
-            paddingTop: insets.top + 40,
-            paddingHorizontal: horizontalPadding,
-            width: "100%",
-            maxWidth: 640,
-            alignSelf: "center",
-          }}
-        >
-          <View className="flex-1 justify-center items-center pb-20">
-            <View
-              className="w-24 h-24 rounded-full justify-center items-center mb-6"
-              style={{ backgroundColor: theme.status.success }}
-            >
-              <CheckCircle size={48} color="#FFFFFF" />
-            </View>
-            <Text className="text-[28px] font-manrope-bold mb-3 text-center" style={{ color: theme.text }}>
-              {t.verify.emailVerified}
-            </Text>
-            <Text
-              className="text-base font-manrope text-center leading-6 mb-8 px-4"
-              style={{ color: theme.textSecondary }}
-            >
-              {t.verify.verifiedMessage}
-            </Text>
-            <Button
-              title={t.verify.continueToLogin}
-              onPress={() => router.replace("/login")}
-              variant="purple"
-              className="w-full mt-3"
-            />
-          </View>
-        </View>
-      </>
+      <Screen width="sm">
+        {loading ? (
+          <Spinner fill color={theme.accent.purple} />
+        ) : (
+          <EmptyState
+            icon={verified ? CheckCircle : XCircle}
+            tone={verified ? "green" : "danger"}
+            size="lg"
+            title={verified ? t.verify.emailVerified : t.verify.verificationFailed}
+            description={
+              verified
+                ? t.verify.verifiedMessage
+                : error && error !== t.verify.verificationFailed
+                  ? error
+                  : t.verify.linkExpired
+            }
+            action={
+              <Button
+                title={verified ? t.verify.continueToLogin : t.verify.tryAgain}
+                onPress={() => router.replace("/login")}
+                variant={verified ? "purple" : "primary"}
+              />
+            }
+          />
+        )}
+      </Screen>
     );
   }
 
   // Email verification pending screen
   return (
-    <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View
-        className="flex-1"
-        style={{
-          backgroundColor: theme.background,
-          paddingTop: insets.top + 20,
-          paddingHorizontal: horizontalPadding,
-          width: "100%",
-          maxWidth: 640,
-          alignSelf: "center",
-        }}
-      >
-        <TouchableOpacity
-          className="w-12 h-12 rounded-3xl justify-center items-center"
-          style={{ backgroundColor: theme.surface }}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color={theme.text} />
-        </TouchableOpacity>
-
-        <View className="flex-1 justify-center items-center pb-20">
-          <View
-            className="w-24 h-24 rounded-full justify-center items-center mb-6"
-            style={{ backgroundColor: theme.accent.yellow }}
-          >
-            <Mail size={48} color="#1C1C1E" />
+    <Screen width="sm">
+      <BackButton />
+      <EmptyState
+        icon={Mail}
+        tone="yellow"
+        size="lg"
+        title={t.verify.title}
+        description={sent ? interpolate(t.verify.sentMessage, { email }) : interpolate(t.verify.checkInbox, { email })}
+        action={
+          <View className="gap-3">
+            {error ? (
+              <Text variant="label" color="danger" className="text-center">
+                {error}
+              </Text>
+            ) : null}
+            {!sent && (
+              <Button
+                title={t.verify.resendEmail}
+                onPress={handleResend}
+                loading={loading}
+                disabled={loading}
+                variant="outline"
+              />
+            )}
+            <Button title={t.verify.backToLogin} onPress={() => router.replace("/login")} />
           </View>
-
-          <Text className="text-[28px] font-manrope-bold mb-3 text-center" style={{ color: theme.text }}>
-            {t.verify.title}
-          </Text>
-          <Text
-            className="text-base font-manrope text-center leading-6 mb-8 px-4"
-            style={{ color: theme.textSecondary }}
-          >
-            {sent ? interpolate(t.verify.sentMessage, { email }) : interpolate(t.verify.checkInbox, { email })}
-          </Text>
-
-          {error ? (
-            <Text className="text-sm font-manrope-medium mb-4 text-center" style={{ color: theme.status.error }}>
-              {error}
-            </Text>
-          ) : null}
-
-          {!sent && (
-            <Button
-              title={t.verify.resendEmail}
-              onPress={handleResend}
-              loading={loading}
-              disabled={loading}
-              variant="outline"
-              className="w-full mt-3"
-            />
-          )}
-
-          <Button
-            title={t.verify.backToLogin}
-            onPress={() => router.replace("/login")}
-            variant="primary"
-            className="w-full mt-3"
-          />
-        </View>
-      </View>
-    </>
+        }
+      />
+    </Screen>
   );
 }

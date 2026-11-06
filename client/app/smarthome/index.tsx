@@ -1,39 +1,35 @@
 import { useRouter } from "expo-router";
-import {
-  ArrowLeft,
-  Edit2,
-  Fan,
-  Lightbulb,
-  Plus,
-  Power,
-  RefreshCw,
-  Settings,
-  Trash2,
-  Tv,
-  Wifi,
-  WifiOff,
-} from "lucide-react-native";
+import { Plus, RefreshCw, Settings, Wifi, WifiOff } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAlert } from "@/components/ui/alert";
-import Button from "@/components/ui/button";
-import Input from "@/components/ui/input";
-import Modal from "@/components/ui/modal";
+import { View } from "react-native";
+import AddDeviceModal from "@/components/smarthome/add-device-modal";
+import DeviceRow from "@/components/smarthome/device-row";
+import {
+  Banner,
+  Button,
+  ChipSelect,
+  EmptyState,
+  Fab,
+  IconButton,
+  Input,
+  Modal,
+  ResponsiveGrid,
+  Screen,
+  ScreenHeader,
+  Section,
+  Spinner,
+  Text,
+  useAlert,
+} from "@/components/ui";
 import { type HAState, type SmartDevice, smarthomeApi } from "@/lib/api";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
-import { useTheme } from "@/stores/themeStore";
 
 export default function SmartHomeDashboard() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { home, isAdmin, rooms } = useHome();
-  const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
-  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [devices, setDevices] = useState<SmartDevice[]>([]);
   const [deviceStates, setDeviceStates] = useState<Record<string, HAState>>({});
@@ -184,346 +180,124 @@ export default function SmartHomeDashboard() {
     }
   };
 
-  const getIcon = (type: string, size = 24, color = "black") => {
-    switch (type) {
-      case "light":
-        return <Lightbulb size={size} color={color} />;
-      case "switch":
-        return <Power size={size} color={color} />;
-      case "fan":
-        return <Fan size={size} color={color} />;
-      case "media_player":
-        return <Tv size={size} color={color} />;
-      default:
-        return <Power size={size} color={color} />;
-    }
+  const openAddDevice = () => {
+    setShowAddModal(true);
+    handleDiscover();
   };
 
-  const renderDevice = ({ item }: { item: SmartDevice }) => {
-    const state = deviceStates[item.entityId];
-    const isOn = state?.state === "on";
-    const isOffline = state?.state === "unavailable" || state?.state === "unknown";
-    const roomName = rooms.find((r) => r.id === item.roomId)?.name || t.smartHome.noRoomAssigned;
-
-    return (
-      <View
-        className="flex-row items-center p-4 rounded-20 mb-3"
-        style={{ backgroundColor: theme.surface, width: isDesktop ? "49%" : "100%" }}
-      >
-        <View className="w-10 h-10 justify-center items-center bg-black/5 rounded-12 mr-4">
-          {getIcon(item.type, 24, isOn ? theme.accent.yellow : theme.text)}
-        </View>
-        <View className="flex-1">
-          <Text className="text-base font-manrope-bold" style={{ color: theme.text }}>
-            {item.name}
-          </Text>
-          <View className="flex-row items-center">
-            <Text className="text-xs font-manrope mr-2" style={{ color: theme.textSecondary }}>
-              {state?.state || t.smartHome.unknownState}
-            </Text>
-            <Text
-              className="text-xs font-manrope-semibold px-1.5 py-0.5 rounded-md bg-black/5"
-              style={{ color: theme.textSecondary }}
-            >
-              {roomName}
-            </Text>
-          </View>
-        </View>
-
-        <Switch
-          value={isOn}
-          onValueChange={(val) => handleControl(item, val)}
-          disabled={isOffline}
-          trackColor={{ false: theme.border, true: theme.accent.cyan }}
-        />
-
-        {isAdmin && (
-          <View className="flex-row ml-2">
-            <TouchableOpacity
-              className="p-2"
-              onPress={() => {
-                setEditingDevice(item);
-                setEditName(item.name);
-                setEditRoomId(item.roomId);
-                setShowEditModal(true);
-              }}
-            >
-              <Edit2 size={18} color={theme.text} />
-            </TouchableOpacity>
-            <TouchableOpacity className="p-2" onPress={() => handleDeleteDevice(item.id, item.name)}>
-              <Trash2 size={18} color={theme.accent.danger} />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    );
-  };
+  const roomOptions = [
+    { value: undefined as number | undefined, label: t.common.none },
+    ...rooms.map((room) => ({ value: room.id as number | undefined, label: room.name })),
+  ];
 
   if (loading && !devices.length) {
     return (
-      <View className="flex-1 justify-center items-center" style={{ backgroundColor: theme.background }}>
-        <ActivityIndicator size="large" color={theme.text} />
-      </View>
+      <Screen>
+        <Spinner fill />
+      </Screen>
     );
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: theme.background }}>
-      {/* Header */}
-      <View
-        className="flex-row items-center justify-between mb-6"
-        style={{
-          paddingTop: insets.top + 16,
-          paddingHorizontal: horizontalPadding,
-          width: "100%",
-          maxWidth: contentMaxWidth,
-          alignSelf: "center",
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-12 h-12 rounded-16 justify-center items-center"
-          style={{ backgroundColor: theme.surface }}
-        >
-          <ArrowLeft size={24} color={theme.text} />
-        </TouchableOpacity>
-        <Text className="text-2xl font-manrope-bold" style={{ color: theme.text }}>
-          {t.smartHome.title}
-        </Text>
-        <View className="w-12" />
-      </View>
+    <Screen
+      bottomPadding={isAdmin ? 100 : undefined}
+      overlay={
+        isAdmin ? <Fab icon={Plus} onPress={openAddDevice} accessibilityLabel={t.smartHome.addDevice} /> : undefined
+      }
+    >
+      <ScreenHeader title={t.smartHome.title} />
 
-      {/* Status Banner */}
       {haStatus && (
-        <View
-          className="mb-6 p-4 rounded-20 flex-row items-center justify-between"
-          style={{
-            width: "100%",
-            maxWidth: contentMaxWidth,
-            alignSelf: "center",
-            backgroundColor: haStatus.connected ? `${theme.accent.cyan}20` : `${theme.accent.danger}20`,
-          }}
-        >
-          <View className="flex-row items-center gap-3">
-            {haStatus.connected ? (
-              <Wifi size={20} color={theme.accent.cyan} />
-            ) : (
-              <WifiOff size={20} color={theme.accent.danger} />
-            )}
-            <View>
-              <Text
-                className="font-manrope-bold"
-                style={{ color: haStatus.connected ? theme.accent.cyan : theme.accent.danger }}
-              >
-                {haStatus.connected ? t.smartHome.connectedStatus : t.smartHome.disconnectedStatus}
-              </Text>
-              {haStatus.url && (
-                <Text className="text-xs" style={{ color: theme.textSecondary }}>
-                  {haStatus.url}
-                </Text>
-              )}
-            </View>
-          </View>
-          {isAdmin && (
-            <TouchableOpacity onPress={() => router.push("/settings")}>
-              <Settings size={20} color={theme.text} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <Banner
+          icon={haStatus.connected ? Wifi : WifiOff}
+          tone={haStatus.connected ? "cyan" : "danger"}
+          title={haStatus.connected ? t.smartHome.connectedStatus : t.smartHome.disconnectedStatus}
+          description={haStatus.url}
+          action={
+            isAdmin ? <IconButton icon={Settings} size="sm" onPress={() => router.push("/settings")} /> : undefined
+          }
+          className="mb-6"
+        />
       )}
 
-      {/* Content */}
-      <View
-        className="flex-1"
-        style={{ width: "100%", maxWidth: contentMaxWidth, alignSelf: "center", paddingHorizontal: horizontalPadding }}
+      <Section
+        title={t.smartHome.allDevices}
+        titleVariant="heading"
+        action={<IconButton icon={RefreshCw} size="sm" loading={loading} onPress={fetchDevicesAndStatus} />}
       >
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-lg font-manrope-bold" style={{ color: theme.text }}>
-            {t.smartHome.allDevices}
-          </Text>
-          <TouchableOpacity onPress={fetchDevicesAndStatus} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator size="small" color={theme.text} />
-            ) : (
-              <RefreshCw size={20} color={theme.text} />
-            )}
-          </TouchableOpacity>
-        </View>
-
         {devices.length === 0 ? (
-          <View className="items-center mt-10">
-            <Text style={{ color: theme.textSecondary }}>{t.smartHome.noDevicesYet}</Text>
-            {isAdmin &&
-              (!haStatus?.connected ? (
-                <Button
-                  title={t.smartHome.connectHomeAssistant}
-                  onPress={() => router.push("/settings")}
-                  variant="primary"
-                  style={{ marginTop: 20 }}
-                />
-              ) : (
-                <Button
-                  title={t.smartHome.addDevice}
-                  onPress={() => {
-                    setShowAddModal(true);
-                    handleDiscover();
-                  }}
-                  variant="primary"
-                  style={{ marginTop: 20 }}
-                />
-              ))}
-          </View>
-        ) : (
-          <FlatList
-            data={devices}
-            renderItem={renderDevice}
-            keyExtractor={(item) => item.id.toString()}
-            key={isDesktop ? "desktop" : "mobile"}
-            numColumns={isDesktop ? 2 : 1}
-            columnWrapperStyle={isDesktop ? { justifyContent: "space-between", gap: 12 } : undefined}
-            contentContainerStyle={{ paddingBottom: 40 }}
+          <EmptyState
+            icon={WifiOff}
+            title={t.smartHome.noDevicesYet}
+            action={
+              isAdmin ? (
+                !haStatus?.connected ? (
+                  <Button title={t.smartHome.connectHomeAssistant} onPress={() => router.push("/settings")} />
+                ) : (
+                  <Button title={t.smartHome.addDevice} onPress={openAddDevice} />
+                )
+              ) : undefined
+            }
           />
+        ) : (
+          <ResponsiveGrid>
+            {devices.map((device) => (
+              <DeviceRow
+                key={device.id}
+                device={device}
+                state={deviceStates[device.entityId]}
+                roomName={rooms.find((room) => room.id === device.roomId)?.name || t.smartHome.noRoomAssigned}
+                onToggle={(value) => handleControl(device, value)}
+                onEdit={
+                  isAdmin
+                    ? () => {
+                        setEditingDevice(device);
+                        setEditName(device.name);
+                        setEditRoomId(device.roomId);
+                        setShowEditModal(true);
+                      }
+                    : undefined
+                }
+                onDelete={isAdmin ? () => handleDeleteDevice(device.id, device.name) : undefined}
+              />
+            ))}
+          </ResponsiveGrid>
         )}
-      </View>
+      </Section>
 
-      {/* Add Device Modal */}
-      <Modal visible={showAddModal} onClose={() => setShowAddModal(false)} title={t.smartHome.addDevice} height="full">
-        <View className="flex-1">
-          {selectedEntity ? (
-            <View>
-              <TouchableOpacity onPress={() => setSelectedEntity(null)} className="mb-4">
-                <Text style={{ color: theme.accent.cyan }}>{t.smartHome.backToList}</Text>
-              </TouchableOpacity>
+      <AddDeviceModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        description={t.smartHome.selectDeviceToAdd}
+        discovering={discovering}
+        discoveredDevices={discoveredDevices}
+        selectedEntity={selectedEntity}
+        onSelectEntity={(entityId, suggestedName) => {
+          setSelectedEntity(entityId);
+          setNewDeviceName(suggestedName);
+        }}
+        deviceName={newDeviceName}
+        onDeviceNameChange={setNewDeviceName}
+        namePlaceholder={t.smartHome.deviceNamePlaceholder}
+        adding={addingDevice}
+        onAdd={handleAddDevice}
+      >
+        <Text variant="overline" className="ml-1 mb-2">
+          {t.smartHome.assignRoomOptional}
+        </Text>
+        <ChipSelect options={roomOptions} value={selectedRoomId} onChange={setSelectedRoomId} className="mb-6" />
+      </AddDeviceModal>
 
-              <Input
-                label={t.smartHome.deviceNameLabel}
-                value={newDeviceName}
-                onChangeText={setNewDeviceName}
-                placeholder={t.smartHome.deviceNamePlaceholder}
-              />
-
-              <Text className="mb-2 font-manrope-medium" style={{ color: theme.text }}>
-                {t.smartHome.assignRoomOptional}
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
-                <TouchableOpacity
-                  className={`px-4 py-2 rounded-full mr-2 ${selectedRoomId === undefined ? "bg-black" : "bg-gray-200"}`}
-                  style={{ backgroundColor: selectedRoomId === undefined ? theme.text : theme.surface }}
-                  onPress={() => setSelectedRoomId(undefined)}
-                >
-                  <Text style={{ color: selectedRoomId === undefined ? theme.background : theme.text }}>
-                    {t.common.none}
-                  </Text>
-                </TouchableOpacity>
-                {rooms.map((room) => (
-                  <TouchableOpacity
-                    key={room.id}
-                    className={`px-4 py-2 rounded-full mr-2`}
-                    style={{ backgroundColor: selectedRoomId === room.id ? theme.text : theme.surface }}
-                    onPress={() => setSelectedRoomId(room.id)}
-                  >
-                    <Text style={{ color: selectedRoomId === room.id ? theme.background : theme.text }}>
-                      {room.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              <Text className="mb-2" style={{ color: theme.textSecondary }}>
-                Entity: {selectedEntity}
-              </Text>
-
-              <Button
-                title={t.common.add || "Add"}
-                onPress={handleAddDevice}
-                loading={addingDevice}
-                variant="primary"
-              />
-            </View>
-          ) : (
-            <>
-              <Text className="mb-4" style={{ color: theme.textSecondary }}>
-                {t.smartHome.selectDeviceToAdd}
-              </Text>
-              {discovering ? (
-                <ActivityIndicator color={theme.accent.cyan} />
-              ) : discoveredDevices.length === 0 ? (
-                <View className="items-center py-5">
-                  <Text style={{ color: theme.textSecondary }}>{t.smartHome.noNewDevicesFound}</Text>
-                </View>
-              ) : (
-                <FlatList
-                  data={discoveredDevices}
-                  keyExtractor={(item) => item.entityId}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      className="py-3 border-b"
-                      style={{ borderBottomColor: theme.border }}
-                      onPress={() => {
-                        setSelectedEntity(item.entityId);
-                        setNewDeviceName(item.attributes.friendlyName || item.entityId);
-                      }}
-                    >
-                      <Text className="font-bold" style={{ color: theme.text }}>
-                        {item.attributes.friendlyName || item.entityId}
-                      </Text>
-                      <Text className="text-xs" style={{ color: theme.textSecondary }}>
-                        {item.entityId}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                />
-              )}
-            </>
-          )}
-        </View>
-      </Modal>
-
-      {/* Edit Device Modal */}
       <Modal visible={showEditModal} onClose={() => setShowEditModal(false)} title={t.smartHome.editDevice}>
         <View>
           <Input label={t.smartHome.deviceNameLabel} value={editName} onChangeText={setEditName} />
-
-          <Text className="mb-2 font-manrope-medium" style={{ color: theme.text }}>
+          <Text variant="overline" className="ml-1 mb-2">
             {t.smartHome.roomLabel}
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
-            <TouchableOpacity
-              className={`px-4 py-2 rounded-full mr-2`}
-              style={{ backgroundColor: editRoomId === undefined ? theme.text : theme.surface }}
-              onPress={() => setEditRoomId(undefined)}
-            >
-              <Text style={{ color: editRoomId === undefined ? theme.background : theme.text }}>{t.common.none}</Text>
-            </TouchableOpacity>
-            {rooms.map((room) => (
-              <TouchableOpacity
-                key={room.id}
-                className={`px-4 py-2 rounded-full mr-2`}
-                style={{ backgroundColor: editRoomId === room.id ? theme.text : theme.surface }}
-                onPress={() => setEditRoomId(room.id)}
-              >
-                <Text style={{ color: editRoomId === room.id ? theme.background : theme.text }}>{room.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          <Button title={t.common.save || "Save"} onPress={handleUpdateDevice} loading={savingEdit} variant="primary" />
+          <ChipSelect options={roomOptions} value={editRoomId} onChange={setEditRoomId} className="mb-6" />
+          <Button title={t.common.save || "Save"} onPress={handleUpdateDevice} loading={savingEdit} />
         </View>
       </Modal>
-      {/* Floating Add Device FAB */}
-      {isAdmin && (
-        <TouchableOpacity
-          className="absolute bottom-6 right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
-          style={{ backgroundColor: theme.accent.yellow }}
-          onPress={() => {
-            setShowAddModal(true);
-            handleDiscover();
-          }}
-          activeOpacity={0.8}
-        >
-          <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
-        </TouchableOpacity>
-      )}
-    </View>
+    </Screen>
   );
 }

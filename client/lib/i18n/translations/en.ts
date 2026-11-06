@@ -1,6 +1,7 @@
 export default {
   // Common
   common: {
+    back: "Back",
     or: "or",
     cancel: "Cancel",
     delete: "Delete",

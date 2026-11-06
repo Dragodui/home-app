@@ -1,6 +1,7 @@
 export default {
   // Common
   common: {
+    back: "Indietro",
     or: "o",
     cancel: "Annulla",
     delete: "Elimina",

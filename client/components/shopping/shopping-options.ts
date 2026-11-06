@@ -1,0 +1,60 @@
+import {
+  Apple,
+  Baby,
+  Beef,
+  Book,
+  Cake,
+  Candy,
+  Car,
+  Carrot,
+  Coffee,
+  Cookie,
+  Dog,
+  Fish,
+  Gift,
+  Home,
+  Lightbulb,
+  type LucideIcon,
+  Milk,
+  Pill,
+  Scissors,
+  Shirt,
+  ShoppingCart,
+  Sparkles,
+  Utensils,
+  Wine,
+  Wrench,
+} from "lucide-react-native";
+
+export const DEFAULT_CATEGORY_COLOR = "#D8D4FC";
+
+export const SHOPPING_ICON_OPTIONS: readonly { value: string; icon: LucideIcon }[] = [
+  { value: "utensils", icon: Utensils },
+  { value: "shopping-cart", icon: ShoppingCart },
+  { value: "coffee", icon: Coffee },
+  { value: "wine", icon: Wine },
+  { value: "milk", icon: Milk },
+  { value: "beef", icon: Beef },
+  { value: "fish", icon: Fish },
+  { value: "carrot", icon: Carrot },
+  { value: "apple", icon: Apple },
+  { value: "candy", icon: Candy },
+  { value: "cake", icon: Cake },
+  { value: "cookie", icon: Cookie },
+  { value: "pill", icon: Pill },
+  { value: "baby", icon: Baby },
+  { value: "dog", icon: Dog },
+  { value: "shirt", icon: Shirt },
+  { value: "sparkles", icon: Sparkles },
+  { value: "scissors", icon: Scissors },
+  { value: "home", icon: Home },
+  { value: "lightbulb", icon: Lightbulb },
+  { value: "wrench", icon: Wrench },
+  { value: "car", icon: Car },
+  { value: "book", icon: Book },
+  { value: "gift", icon: Gift },
+];
+
+export function getShoppingIcon(iconId: string | undefined): LucideIcon {
+  return SHOPPING_ICON_OPTIONS.find((option) => option.value === iconId)?.icon ?? Utensils;
+}

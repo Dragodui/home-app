@@ -5,7 +5,7 @@ import { accentColors, categoryColors, darkTheme, lightTheme, statusColors, user
 
 type ThemeMode = "light" | "dark" | "system";
 
-interface Theme {
+export interface Theme {
   mode: ThemeMode;
   isDark: boolean;
   background: string;
@@ -25,6 +25,8 @@ interface Theme {
   navIconActive: string;
   navIconInactive: string;
   tabIconActiveBackground: string;
+  onAccent: string;
+  onDanger: string;
   accent: typeof accentColors;
   status: typeof statusColors;
   userColors: typeof userColors;

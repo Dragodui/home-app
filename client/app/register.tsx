@@ -1,23 +1,15 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Button from "@/components/ui/button";
-import Input from "@/components/ui/input";
+import GoogleSignInButton from "@/components/auth/google-sign-in-button";
+import { AuthScreen, Button, Input } from "@/components/ui";
 import { useGoogleAuth } from "@/lib/useGoogleAuth";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useI18n } from "@/stores/i18nStore";
-import { useTheme } from "@/stores/themeStore";
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { register, googleSignIn } = useAuth();
-  const { theme } = useTheme();
   const { t } = useI18n();
-  const { horizontalPadding } = useResponsiveLayout();
 
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -92,128 +84,79 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      style={{ backgroundColor: theme.background }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <AuthScreen
+      hero="page"
+      title={t.auth.joinHome}
+      description={t.auth.joinTagline}
+      footerPrompt={t.auth.alreadyMember}
+      footerActionTitle={t.auth.logIn}
+      onFooterAction={() => router.replace("/login")}
     >
-      <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingHorizontal: horizontalPadding,
-          paddingTop: insets.top + 60,
-          width: "100%",
-          maxWidth: 640,
-          alignSelf: "center",
+      <Input
+        label={t.auth.fullName}
+        placeholder={t.auth.fullNamePlaceholder}
+        value={name}
+        onChangeText={(text) => {
+          setName(text);
+          setError("");
         }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header - matches PDF */}
-        <View className="mb-12">
-          <Text className="text-5xl font-manrope-extrabold mb-2" style={{ color: theme.text }}>
-            {t.auth.joinHome}
-          </Text>
-          <Text className="text-xl font-manrope" style={{ color: theme.textSecondary }}>
-            {t.auth.joinTagline}
-          </Text>
-        </View>
+        autoCapitalize="words"
+        autoComplete="name"
+      />
 
-        {/* Form */}
-        <View className="flex-1 justify-center gap-2">
-          <Input
-            label={t.auth.fullName}
-            placeholder={t.auth.fullNamePlaceholder}
-            value={name}
-            onChangeText={(text) => {
-              setName(text);
-              setError("");
-            }}
-            autoCapitalize="words"
-            autoComplete="name"
-          />
+      <Input
+        label={t.auth.username || "Username"}
+        placeholder={t.auth.usernamePlaceholder || "your_username"}
+        value={username}
+        onChangeText={(text: string) => {
+          setUsername(text.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+          setError("");
+        }}
+        autoCapitalize="none"
+        autoCorrect={false}
+        maxLength={32}
+      />
 
-          <Input
-            label={t.auth.username || "Username"}
-            placeholder={t.auth.usernamePlaceholder || "your_username"}
-            value={username}
-            onChangeText={(text: string) => {
-              setUsername(text.toLowerCase().replace(/[^a-z0-9_]/g, ""));
-              setError("");
-            }}
-            autoCapitalize="none"
-            autoCorrect={false}
-            maxLength={32}
-          />
+      <Input
+        label={t.auth.email}
+        placeholder={t.auth.emailPlaceholder}
+        value={email}
+        onChangeText={(text) => {
+          setEmail(text);
+          setError("");
+        }}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoComplete="email"
+      />
 
-          <Input
-            label={t.auth.email}
-            placeholder={t.auth.emailPlaceholder}
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              setError("");
-            }}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-          />
+      <Input
+        label={t.auth.password}
+        placeholder={t.auth.createPassword}
+        value={password}
+        onChangeText={(text) => {
+          setPassword(text);
+          setError("");
+        }}
+        secureTextEntry
+        autoComplete="password-new"
+        error={error || undefined}
+      />
 
-          <Input
-            label={t.auth.password}
-            placeholder={t.auth.createPassword}
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              setError("");
-            }}
-            secureTextEntry
-            autoComplete="password-new"
-            error={error || undefined}
-          />
+      <Button
+        title={t.auth.createAccount}
+        onPress={handleRegister}
+        loading={isLoading}
+        disabled={isLoading || isGoogleLoading}
+        variant="yellow"
+        className="mt-6"
+      />
 
-          <Button
-            title={t.auth.createAccount}
-            onPress={handleRegister}
-            loading={isLoading}
-            disabled={isLoading || isGoogleLoading}
-            variant="yellow"
-            className="mt-6"
-          />
-
-          <View className="flex-row items-center my-5">
-            <View className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
-            <Text className="mx-4 text-sm font-manrope" style={{ color: theme.textSecondary }}>
-              {t.common.or}
-            </Text>
-            <View className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
-          </View>
-
-          <TouchableOpacity
-            className="flex-row items-center justify-center py-3.5 px-6 rounded-xl border gap-3"
-            style={{ borderColor: theme.border }}
-            onPress={handleGoogleSignIn}
-            disabled={isLoading || isGoogleLoading || !isReady}
-          >
-            <Ionicons name="logo-google" size={20} color={theme.text} />
-            <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
-              {isGoogleLoading ? t.auth.signingIn : t.auth.continueWithGoogle}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View className="flex-row justify-center items-center pt-8" style={{ paddingBottom: insets.bottom + 24 }}>
-          <Text className="text-sm font-manrope" style={{ color: theme.textSecondary }}>
-            {t.auth.alreadyMember}{" "}
-          </Text>
-          <TouchableOpacity onPress={() => router.replace("/login")}>
-            <Text className="text-sm font-manrope-bold underline" style={{ color: theme.text }}>
-              {t.auth.logIn}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <GoogleSignInButton
+        onPress={handleGoogleSignIn}
+        isSigningIn={isGoogleLoading}
+        disabled={isLoading || isGoogleLoading || !isReady}
+      />
+    </AuthScreen>
   );
 }

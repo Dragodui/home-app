@@ -1,32 +1,51 @@
-import { useRouter } from "expo-router";
 import { BarChart2, Calendar, Check, Eye, EyeOff, Plus, RotateCcw, Trash2, X } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { Image, RefreshControl, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TouchableOpacity, View } from "react-native";
 import { PollsSkeleton } from "@/components/skeletons";
-import { useAlert } from "@/components/ui/alert";
-import Button from "@/components/ui/button";
-import DatePicker from "@/components/ui/date-picker";
-import Input from "@/components/ui/input";
-import Modal from "@/components/ui/modal";
+import {
+  Avatar,
+  Button,
+  Card,
+  DateTimeField,
+  EmptyState,
+  Fab,
+  IconButton,
+  Input,
+  ListItem,
+  Modal,
+  ResponsiveGrid,
+  Section,
+  SegmentedControl,
+  Switch,
+  TabHeader,
+  TabScreen,
+  Text,
+  useAlert,
+} from "@/components/ui";
 import { pollApi } from "@/lib/api";
 import type { Poll, PollOption } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
+function PollPill({ label }: { label: string }) {
+  return (
+    <View className="bg-white/60 px-3 py-1.5 rounded-xl">
+      <Text variant="caption" color="onAccent" className="font-manrope-semibold">
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 export default function PollsScreen() {
-  const insets = useSafeAreaInsets();
-  const _router = useRouter();
   const { user } = useAuth();
   const { home, isAdmin } = useHome();
   const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
-  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [polls, setPolls] = useState<Poll[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +60,6 @@ export default function PollsScreen() {
   const [allowRevote, setAllowRevote] = useState(false);
   const [hasEndDate, setHasEndDate] = useState(false);
   const [endsAt, setEndsAt] = useState<Date>(new Date(Date.now() + 24 * 60 * 60 * 1000)); // Default: tomorrow
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const loadPolls = useCallback(async () => {
@@ -224,401 +242,212 @@ export default function PollsScreen() {
     }
   };
 
-  const formatDateTime = (date: Date) => {
-    return date.toLocaleString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   if (isLoading) {
     return <PollsSkeleton />;
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: theme.background }}>
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingBottom: isDesktop ? 48 : 120,
-          paddingTop: insets.top + 24,
-          width: "100%",
-          maxWidth: contentMaxWidth,
-          alignSelf: "center",
-        }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View className="flex-row items-center justify-between mb-6">
-          <Text className="text-4xl font-manrope-bold" style={{ color: theme.text }}>
-            {t.polls.title}
-          </Text>
-        </View>
+    <TabScreen
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      overlay={<Fab icon={Plus} tone="purple" aboveTabBar onPress={() => setShowCreateModal(true)} />}
+    >
+      <TabHeader title={t.polls.title} />
 
-        {/* Poll Cards */}
-        {polls.length === 0 ? (
-          <View className="items-center py-20 px-6">
-            <View
-              className="w-16 h-16 rounded-full justify-center items-center mb-4"
-              style={{ backgroundColor: theme.surface }}
-            >
-              <BarChart2 size={32} color={theme.textSecondary} />
-            </View>
-            <Text className="text-xl font-manrope-bold mb-2 text-center" style={{ color: theme.text }}>
-              {t.polls.noActivePolls}
-            </Text>
-            <Text className="text-sm font-manrope text-center leading-5 mb-6" style={{ color: theme.textSecondary }}>
-              {t.polls.noActivePollsDescription || "There are no active polls in this home yet."}
-            </Text>
-            <Button title={t.polls.createPoll || "Create Poll"} onPress={() => setShowCreateModal(true)} />
-          </View>
-        ) : (
-          <View
-            className="gap-4"
-            style={{
-              flexDirection: isDesktop ? "row" : "column",
-              flexWrap: isDesktop ? "wrap" : "nowrap",
-              justifyContent: "space-between",
-            }}
-          >
-            {polls.map((poll, index) => {
-              const voted = hasUserVoted(poll);
-              const userVote = getUserVote(poll);
-              const pollColor = POLL_COLORS[index % POLL_COLORS.length];
+      {polls.length === 0 ? (
+        <EmptyState
+          icon={BarChart2}
+          title={t.polls.noActivePolls}
+          description={t.polls.noActivePollsDescription || "There are no active polls in this home yet."}
+          action={<Button title={t.polls.createPoll || "Create Poll"} onPress={() => setShowCreateModal(true)} />}
+        />
+      ) : (
+        <ResponsiveGrid>
+          {polls.map((poll, index) => {
+            const voted = hasUserVoted(poll);
+            const userVote = getUserVote(poll);
 
-              return (
-                <View
-                  key={poll.id}
-                  className="rounded-3xl p-6"
-                  style={{ backgroundColor: pollColor, width: isDesktop ? "49%" : "100%" }}
-                >
-                  {/* Poll Header */}
-                  <View className="flex-row justify-between items-center mb-4">
-                    <View className="bg-white/60 px-3 py-1.5 rounded-xl">
-                      <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">{getTimeRemaining(poll)}</Text>
-                    </View>
-                    <View className="flex-row items-center gap-2">
-                      {isAdmin && (
-                        <TouchableOpacity
-                          className="w-8 h-8 rounded-lg justify-center items-center"
-                          onPress={() => handleDeletePoll(poll.id)}
-                          activeOpacity={0.7}
-                        >
-                          <Trash2 size={16} color="#1C1C1E" />
-                        </TouchableOpacity>
-                      )}
-                      <View className="bg-white/60 px-3 py-1.5 rounded-xl">
-                        <Text className="text-xs font-manrope-semibold text-[#1C1C1E]">{poll.type}</Text>
-                      </View>
-                    </View>
+            return (
+              <Card key={poll.id} style={{ backgroundColor: POLL_COLORS[index % POLL_COLORS.length] }}>
+                <View className="flex-row justify-between items-center mb-4">
+                  <PollPill label={getTimeRemaining(poll)} />
+                  <View className="flex-row items-center gap-2">
+                    {isAdmin && (
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={t.common.delete}
+                        className="w-8 h-8 rounded-lg justify-center items-center"
+                        hitSlop={8}
+                        onPress={() => handleDeletePoll(poll.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Trash2 size={16} color={theme.onAccent} />
+                      </TouchableOpacity>
+                    )}
+                    <PollPill label={poll.type} />
                   </View>
+                </View>
 
-                  {/* Poll Question */}
-                  <Text className="text-[22px] font-manrope-bold text-[#1C1C1E] leading-7 mb-5">{poll.question}</Text>
+                <Text variant="heading" color="onAccent" className="mb-5" style={{ fontSize: 22, lineHeight: 28 }}>
+                  {poll.question}
+                </Text>
 
-                  {/* Poll Options */}
-                  <View className="gap-2.5">
-                    {poll.options?.map((option) => {
-                      const isSelected = userVote === option.id;
-                      const voteCount = option.votes?.length || 0;
+                <View className="gap-2.5">
+                  {poll.options?.map((option) => {
+                    const isSelected = userVote === option.id;
+                    const voteCount = option.votes?.length || 0;
 
-                      return (
-                        <TouchableOpacity
-                          key={option.id}
-                          className={`rounded-xl p-4 flex-row justify-between items-center ${
-                            isSelected ? "bg-[#1C1C1E]" : "bg-white/60"
-                          }`}
-                          onPress={() => !voted && handleVote(poll.id, option.id)}
-                          onLongPress={() =>
-                            poll.type === "public" && (option.votes?.length ?? 0) > 0 && setVotersOption(option)
-                          }
-                          disabled={voted && poll.type !== "public"}
-                          activeOpacity={voted ? 1 : 0.8}
+                    return (
+                      <TouchableOpacity
+                        key={option.id}
+                        className={`rounded-xl p-4 flex-row justify-between items-center gap-3 ${
+                          isSelected ? "bg-primary" : "bg-white/60"
+                        }`}
+                        onPress={() => !voted && handleVote(poll.id, option.id)}
+                        onLongPress={() =>
+                          poll.type === "public" && (option.votes?.length ?? 0) > 0 && setVotersOption(option)
+                        }
+                        disabled={voted && poll.type !== "public"}
+                        activeOpacity={voted ? 1 : 0.8}
+                      >
+                        <Text
+                          variant="label"
+                          className="flex-1"
+                          style={{ color: isSelected ? theme.onDanger : theme.onAccent }}
                         >
+                          {option.title}
+                        </Text>
+                        <View className="flex-row items-center gap-2">
+                          {isSelected && <Check size={16} color={theme.onDanger} />}
                           <Text
-                            className={`text-[15px] font-manrope-semibold ${
-                              isSelected ? "text-white" : "text-[#1C1C1E]"
-                            }`}
+                            variant="caption"
+                            className="font-manrope-medium opacity-60"
+                            style={{ color: isSelected ? theme.onDanger : theme.onAccent }}
                           >
-                            {option.title}
+                            {voteCount} {voteCount !== 1 ? t.polls.votes : t.polls.vote}
                           </Text>
-                          <View className="flex-row items-center gap-2">
-                            {isSelected && <Check size={16} color="#FFFFFF" />}
-                            <Text
-                              className={`text-[13px] font-manrope-medium ${
-                                isSelected ? "text-white/70" : "text-black/50"
-                              }`}
-                            >
-                              {voteCount} {voteCount !== 1 ? t.polls.votes : t.polls.vote}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-
-                  {/* Unvote button */}
-                  {voted && poll.allowRevote && (
-                    <TouchableOpacity
-                      className="flex-row items-center justify-center gap-2 py-3 mt-3 bg-white/60 rounded-xl"
-                      onPress={() => handleUnvote(poll.id)}
-                      activeOpacity={0.8}
-                    >
-                      <RotateCcw size={16} color="#1C1C1E" />
-                      <Text className="text-sm font-manrope-semibold text-[#1C1C1E]">
-                        {t.polls.removeVote || "Remove Vote"}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
-              );
-            })}
-          </View>
-        )}
-      </ScrollView>
 
-      {/* Floating Add Poll FAB */}
-      <TouchableOpacity
-        className="absolute bottom-[120px] right-6 w-14 h-14 rounded-[18px] justify-center items-center shadow-lg z-40"
-        style={{ backgroundColor: theme.accent.purple }}
-        onPress={() => setShowCreateModal(true)}
-        activeOpacity={0.8}
-      >
-        <Plus size={28} color="#1C1C1E" strokeWidth={2.5} />
-      </TouchableOpacity>
+                {voted && poll.allowRevote && (
+                  <Button
+                    title={t.polls.removeVote || "Remove Vote"}
+                    icon={<RotateCcw size={16} color={theme.onAccent} />}
+                    size="md"
+                    variant="onAccent"
+                    onPress={() => handleUnvote(poll.id)}
+                    className="mt-3"
+                  />
+                )}
+              </Card>
+            );
+          })}
+        </ResponsiveGrid>
+      )}
 
-      {/* Create Poll Modal */}
-      <Modal
-        visible={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        title={t.polls.createPoll}
-        height="full"
-      >
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          <View className="flex-1">
-            <Input
-              label={t.polls.question}
-              placeholder={t.polls.questionPlaceholder}
-              value={pollQuestion}
-              onChangeText={setPollQuestion}
-            />
+      <Modal visible={showCreateModal} onClose={() => setShowCreateModal(false)} title={t.polls.createPoll}>
+        <Input
+          label={t.polls.question}
+          placeholder={t.polls.questionPlaceholder}
+          value={pollQuestion}
+          onChangeText={setPollQuestion}
+        />
 
-            {/* Poll Type Selection */}
-            <View className="mt-4 mb-2">
-              <Text
-                className="text-xs font-manrope-bold tracking-widest mb-3 ml-1"
-                style={{ color: theme.textSecondary }}
-              >
-                {t.polls.pollType || "POLL TYPE"}
-              </Text>
-              <View className="flex-row gap-3">
-                <TouchableOpacity
-                  className="flex-1 flex-row items-center justify-center gap-2 py-3.5 rounded-xl"
-                  style={{ backgroundColor: pollType === "public" ? theme.accent.purple : theme.surface }}
-                  onPress={() => setPollType("public")}
-                >
-                  <Eye size={18} color={pollType === "public" ? "#1C1C1E" : theme.textSecondary} />
-                  <Text
-                    className="text-sm font-manrope-semibold"
-                    style={{ color: pollType === "public" ? "#1C1C1E" : theme.textSecondary }}
-                  >
-                    {t.polls.public || "Public"}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="flex-1 flex-row items-center justify-center gap-2 py-3.5 rounded-xl"
-                  style={{ backgroundColor: pollType === "anonymous" ? theme.accent.purple : theme.surface }}
-                  onPress={() => setPollType("anonymous")}
-                >
-                  <EyeOff size={18} color={pollType === "anonymous" ? "#1C1C1E" : theme.textSecondary} />
-                  <Text
-                    className="text-sm font-manrope-semibold"
-                    style={{ color: pollType === "anonymous" ? "#1C1C1E" : theme.textSecondary }}
-                  >
-                    {t.polls.anonymous || "Anonymous"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View className="mt-2">
-              <Text
-                className="text-xs font-manrope-bold tracking-widest mb-3 ml-1"
-                style={{ color: theme.textSecondary }}
-              >
-                {t.polls.options}
-              </Text>
-              {pollOptions.map((option, index) => (
-                <View key={index} className="flex-row items-center gap-2 mb-2">
-                  <View className="flex-1">
-                    <Input
-                      placeholder={t.polls.optionPlaceholder.replace("{index}", String(index + 1))}
-                      value={option}
-                      onChangeText={(text) => updateOption(index, text)}
-                    />
-                  </View>
-                  {pollOptions.length > 2 && (
-                    <TouchableOpacity
-                      className="w-11 h-11 rounded-xl justify-center items-center mb-4"
-                      style={{ backgroundColor: theme.surface }}
-                      onPress={() => removeOption(index)}
-                    >
-                      <X size={20} color={theme.textSecondary} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              ))}
-
-              {pollOptions.length < 6 && (
-                <TouchableOpacity
-                  className="flex-row items-center justify-center gap-2 py-3.5 rounded-xl border-2 border-dashed mt-2"
-                  style={{ borderColor: theme.accent.purple }}
-                  onPress={addOption}
-                >
-                  <Plus size={20} color={theme.accent.purple} />
-                  <Text className="text-sm font-manrope-bold" style={{ color: theme.accent.purple }}>
-                    {t.polls.addOption}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Allow Revote Toggle */}
-            <View className="mt-4">
-              <Text
-                className="text-xs font-manrope-bold tracking-widest mb-3 ml-1"
-                style={{ color: theme.textSecondary }}
-              >
-                {t.polls.settings || "SETTINGS"}
-              </Text>
-              <View
-                className="flex-row items-center justify-between py-3.5 px-4 rounded-xl"
-                style={{ backgroundColor: theme.surfaceLight }}
-              >
-                <View className="flex-row items-center gap-3">
-                  <RotateCcw size={20} color={theme.text} />
-                  <Text className="text-[15px] font-manrope-medium" style={{ color: theme.text }}>
-                    {t.polls.allowRevote || "Allow Revote"}
-                  </Text>
-                </View>
-                <Switch
-                  value={allowRevote}
-                  onValueChange={setAllowRevote}
-                  trackColor={{ false: theme.border, true: theme.accent.purple }}
-                  thumbColor={theme.isDark ? "#FFFFFF" : "#FFFFFF"}
-                />
-              </View>
-            </View>
-
-            {/* End Date Toggle and Picker */}
-            <View className="mt-4">
-              <Text
-                className="text-xs font-manrope-bold tracking-widest mb-3 ml-1"
-                style={{ color: theme.textSecondary }}
-              >
-                {t.polls.endDate || "END DATE"}
-              </Text>
-              <View
-                className="flex-row items-center justify-between py-3.5 px-4 rounded-xl"
-                style={{ backgroundColor: theme.surfaceLight }}
-              >
-                <View className="flex-row items-center gap-3">
-                  <Calendar size={20} color={theme.text} />
-                  <Text className="text-[15px] font-manrope-medium" style={{ color: theme.text }}>
-                    {t.polls.setEndDate || "Set End Date"}
-                  </Text>
-                </View>
-                <Switch
-                  value={hasEndDate}
-                  onValueChange={setHasEndDate}
-                  trackColor={{ false: theme.border, true: theme.accent.purple }}
-                  thumbColor={theme.isDark ? "#FFFFFF" : "#FFFFFF"}
-                />
-              </View>
-
-              {hasEndDate && (
-                <TouchableOpacity
-                  className="flex-row items-center justify-between py-3.5 px-4 rounded-xl mt-2"
-                  style={{ backgroundColor: theme.surfaceLight }}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Text className="text-[15px] font-manrope-medium" style={{ color: theme.text }}>
-                    {formatDateTime(endsAt)}
-                  </Text>
-                  <Calendar size={18} color={theme.textSecondary} />
-                </TouchableOpacity>
-              )}
-
-              <DatePicker
-                visible={showDatePicker}
-                onClose={() => setShowDatePicker(false)}
-                onConfirm={(date) => {
-                  setEndsAt(date);
-                  setShowDatePicker(false);
-                }}
-                value={endsAt}
-                mode="datetime"
-                minimumDate={new Date()}
-                title={t.polls.endDate}
-                confirmLabel={t.common.done}
-              />
-            </View>
-          </View>
-        </ScrollView>
-
-        <View className="pt-4 border-t" style={{ borderTopColor: theme.border }}>
-          <Button
-            title={t.polls.createPoll}
-            onPress={handleCreatePoll}
-            loading={creating}
-            disabled={!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2 || creating}
-            variant="purple"
+        <Section compact title={t.polls.pollType || "POLL TYPE"}>
+          <SegmentedControl<"public" | "anonymous">
+            value={pollType}
+            onChange={setPollType}
+            options={[
+              { value: "public", label: t.polls.public || "Public", icon: Eye },
+              { value: "anonymous", label: t.polls.anonymous || "Anonymous", icon: EyeOff },
+            ]}
           />
-        </View>
+        </Section>
+
+        <Section compact title={t.polls.options}>
+          {pollOptions.map((option, index) => (
+            <View key={index} className="flex-row items-start gap-2">
+              <View className="flex-1">
+                <Input
+                  placeholder={t.polls.optionPlaceholder.replace("{index}", String(index + 1))}
+                  value={option}
+                  onChangeText={(text) => updateOption(index, text)}
+                />
+              </View>
+              {pollOptions.length > 2 && (
+                <IconButton
+                  icon={X}
+                  onPress={() => removeOption(index)}
+                  className="mt-2"
+                  accessibilityLabel={t.common.delete}
+                />
+              )}
+            </View>
+          ))}
+
+          {pollOptions.length < 6 && (
+            <Button
+              title={t.polls.addOption}
+              icon={<Plus size={20} color={theme.textSecondary} />}
+              size="md"
+              variant="outline"
+              onPress={addOption}
+            />
+          )}
+        </Section>
+
+        <Section compact title={t.polls.settings || "SETTINGS"}>
+          <ListItem
+            left={<RotateCcw size={20} color={theme.text} />}
+            title={t.polls.allowRevote || "Allow Revote"}
+            right={<Switch value={allowRevote} onValueChange={setAllowRevote} />}
+          />
+        </Section>
+
+        <Section compact title={t.polls.endDate || "END DATE"}>
+          <ListItem
+            left={<Calendar size={20} color={theme.text} />}
+            title={t.polls.setEndDate || "Set End Date"}
+            right={<Switch value={hasEndDate} onValueChange={setHasEndDate} />}
+            className="mb-2"
+          />
+          {hasEndDate && (
+            <DateTimeField placeholder={t.polls.endDate} value={endsAt} onChange={setEndsAt} minimumDate={new Date()} />
+          )}
+        </Section>
+
+        <Button
+          title={t.polls.createPoll}
+          onPress={handleCreatePoll}
+          loading={creating}
+          disabled={!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2 || creating}
+          variant="purple"
+        />
       </Modal>
 
-      {/* Voters Modal */}
       <Modal
         visible={votersOption !== null}
         onClose={() => setVotersOption(null)}
         title={`${votersOption?.title} voters`}
+        height="auto"
       >
         <View className="gap-3">
           {votersOption?.votes?.map((vote) => (
             <View key={vote.id} className="flex-row items-center gap-3 py-2">
-              {vote.user?.avatar ? (
-                <Image
-                  source={{ uri: vote.user.avatar }}
-                  className="w-9 h-9 rounded-full justify-center items-center"
-                />
-              ) : (
-                <View
-                  className="w-9 h-9 rounded-full justify-center items-center"
-                  style={{ backgroundColor: theme.accent.purple }}
-                >
-                  <Text className="text-sm font-manrope-bold text-[#1C1C1E]">
-                    {(vote.user?.name ?? "?").charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-              )}
-
-              <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
-                {vote.user?.name ?? `User #${vote.userId}`}
-              </Text>
+              <Avatar uri={vote.user?.avatar} name={vote.user?.name ?? "?"} size={36} />
+              <Text variant="subtitle">{vote.user?.name ?? `User #${vote.userId}`}</Text>
             </View>
           ))}
           {(!votersOption?.votes || votersOption.votes.length === 0) && (
-            <Text className="text-sm text-center py-4" style={{ color: theme.textSecondary }}>
+            <Text variant="bodySmall" color="secondary" className="text-center py-4">
               {t.polls.noVotesYet}
             </Text>
           )}
         </View>
       </Modal>
-    </View>
+    </TabScreen>
   );
 }

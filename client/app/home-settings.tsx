@@ -1,12 +1,22 @@
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Check, ChevronRight, Copy, DoorOpen, Pencil, RotateCcw, Users } from "lucide-react-native";
+import { Check, Copy, DoorOpen, House, Pencil, RotateCcw, Users } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAlert } from "@/components/ui/alert";
-import Modal from "@/components/ui/modal";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
+import { TextInput, TouchableOpacity, View } from "react-native";
+import {
+  BackButton,
+  Card,
+  EmptyState,
+  IconButton,
+  ListItem,
+  Modal,
+  Screen,
+  ScreenHeader,
+  Section,
+  Spinner,
+  Text,
+  useAlert,
+} from "@/components/ui";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
@@ -14,12 +24,10 @@ import { useTheme } from "@/stores/themeStore";
 const CURRENCY_OPTIONS = ["USD", "EUR", "GBP", "PLN", "UAH", "BYN"];
 
 export default function HomeSettingsScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { theme } = useTheme();
   const { t } = useI18n();
   const { alert } = useAlert();
-  const { horizontalPadding } = useResponsiveLayout();
   const { home, isAdmin, updateHome, regenerateInviteCode } = useHome();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -78,229 +86,126 @@ export default function HomeSettingsScreen() {
 
   if (!home) {
     return (
-      <View className="flex-1" style={{ paddingTop: insets.top, backgroundColor: theme.background }}>
-        <View className="flex-row items-center mb-8 px-4">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-12 h-12 rounded-16 justify-center items-center"
-            style={{ backgroundColor: theme.surface }}
-          >
-            <ArrowLeft size={22} color={theme.text} />
-          </TouchableOpacity>
-        </View>
-        <View className="flex-1 justify-center items-center px-6">
-          <Text className="text-base font-manrope" style={{ color: theme.textSecondary }}>
-            {t.rooms.joinHomeToManage}
-          </Text>
-        </View>
-      </View>
+      <Screen width="md">
+        <BackButton />
+        <EmptyState icon={House} title={t.rooms.joinHomeToManage} />
+      </Screen>
     );
   }
 
+  const currentCurrency = (home.currency || "USD").toUpperCase();
+
   return (
-    <View className="flex-1" style={{ backgroundColor: theme.background }}>
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingBottom: 40,
-          paddingTop: insets.top + 16,
-          width: "100%",
-          maxWidth: 960,
-          alignSelf: "center",
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View className="flex-row items-center mb-8">
-          <TouchableOpacity
-            className="w-12 h-12 rounded-16 justify-center items-center"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={22} color={theme.text} />
-          </TouchableOpacity>
-          <Text className="flex-1 text-2xl font-manrope-bold text-center" style={{ color: theme.text }}>
-            {t.profile.homeSettings}
-          </Text>
-          <View className="w-12" />
-        </View>
+    <Screen width="md">
+      <ScreenHeader title={t.profile.homeSettings} />
 
-        {/* Home Name */}
-        <View className="mb-8">
-          <Text
-            className="text-xs font-manrope-bold mb-3 ml-1"
-            style={{ color: theme.textSecondary, letterSpacing: 1 }}
-          >
-            {t.settings.homeName || "Home Name"}
-          </Text>
-          <View className="flex-row items-center p-5 rounded-20 gap-3" style={{ backgroundColor: theme.surface }}>
-            {isEditingName ? (
-              <>
-                <TextInput
-                  ref={nameInputRef}
-                  className="flex-1 text-base font-manrope-semibold"
-                  style={{ color: theme.text }}
-                  value={nameInput}
-                  onChangeText={setNameInput}
-                  onSubmitEditing={saveName}
-                  onBlur={saveName}
-                  autoFocus
-                  maxLength={100}
-                  editable={!isSavingName}
+      <Section title={t.settings.homeName || "Home Name"}>
+        <Card size="md" className="flex-row items-center gap-3">
+          {isEditingName ? (
+            <>
+              <TextInput
+                ref={nameInputRef}
+                className="flex-1 text-base font-manrope-semibold"
+                style={{ color: theme.text }}
+                value={nameInput}
+                onChangeText={setNameInput}
+                onSubmitEditing={saveName}
+                onBlur={saveName}
+                autoFocus
+                maxLength={100}
+                editable={!isSavingName}
+              />
+              {isSavingName ? (
+                <Spinner size="small" color={theme.accent.purple} />
+              ) : (
+                <IconButton icon={Check} size="sm" tone="mint" onPress={saveName} accessibilityLabel={t.common.save} />
+              )}
+            </>
+          ) : (
+            <>
+              <Text variant="subtitle" className="flex-1">
+                {home.name}
+              </Text>
+              {isAdmin && (
+                <IconButton
+                  icon={Pencil}
+                  size="sm"
+                  style={{ backgroundColor: theme.background }}
+                  onPress={() => {
+                    setNameInput(home.name);
+                    setIsEditingName(true);
+                  }}
                 />
-                {isSavingName ? (
-                  <ActivityIndicator size="small" color={theme.accent.purple} />
-                ) : (
-                  <TouchableOpacity onPress={saveName}>
-                    <Check size={20} color={theme.accent.mint} />
-                  </TouchableOpacity>
-                )}
-              </>
-            ) : (
-              <>
-                <Text className="flex-1 text-base font-manrope-semibold" style={{ color: theme.text }}>
-                  {home.name}
-                </Text>
-                {isAdmin && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      setNameInput(home.name);
-                      setIsEditingName(true);
-                    }}
-                  >
-                    <Pencil size={18} color={theme.textSecondary} />
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-          </View>
-        </View>
+              )}
+            </>
+          )}
+        </Card>
+      </Section>
 
-        {/* Currency */}
-        <View className="mb-8">
-          <Text
-            className="text-xs font-manrope-bold mb-3 ml-1"
-            style={{ color: theme.textSecondary, letterSpacing: 1 }}
-          >
-            {t.settings.currency || "CURRENCY"}
-          </Text>
-          <TouchableOpacity
-            className="flex-row items-center p-5 rounded-20 gap-3"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => isAdmin && setShowCurrencyModal(true)}
-            disabled={!isAdmin}
-            activeOpacity={0.7}
-          >
-            <Text className="flex-1 text-base font-manrope-semibold" style={{ color: theme.text }}>
-              {(home.currency || "USD").toUpperCase()}
-            </Text>
-            {isSavingCurrency ? (
-              <ActivityIndicator size="small" color={theme.accent.purple} />
-            ) : (
-              isAdmin && <ChevronRight size={20} color={theme.textSecondary} />
-            )}
-          </TouchableOpacity>
-        </View>
+      <Section title={t.settings.currency || "CURRENCY"}>
+        <ListItem
+          title={currentCurrency}
+          disabled={!isAdmin}
+          showChevron={isAdmin && !isSavingCurrency}
+          right={isSavingCurrency ? <Spinner size="small" color={theme.accent.purple} /> : undefined}
+          onPress={() => setShowCurrencyModal(true)}
+        />
+      </Section>
 
-        {/* Invite Code */}
-        {home.inviteCode && (
-          <View className="mb-8">
-            <Text
-              className="text-xs font-manrope-bold mb-3 ml-1"
-              style={{ color: theme.textSecondary, letterSpacing: 1 }}
+      {home.inviteCode && (
+        <Section title={t.profile.homeCode}>
+          <Card size="md" className="flex-row items-center gap-3">
+            <TouchableOpacity
+              className="flex-1 flex-row items-center gap-2"
+              onPress={async () => {
+                await Clipboard.setStringAsync(home.inviteCode);
+                alert(t.common.copied, t.profile.inviteCodeCopied);
+              }}
+              activeOpacity={0.7}
             >
-              {t.profile.homeCode}
-            </Text>
-            <View className="flex-row items-center p-5 rounded-20 gap-3" style={{ backgroundColor: theme.surface }}>
-              <TouchableOpacity
-                className="flex-1 flex-row items-center gap-2"
-                onPress={async () => {
-                  await Clipboard.setStringAsync(home.inviteCode);
-                  alert(t.common.copied, t.profile.inviteCodeCopied);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text className="text-base font-manrope-bold tracking-widest" style={{ color: theme.text }}>
-                  {home.inviteCode}
-                </Text>
-                <Copy size={16} color={theme.textSecondary} />
-              </TouchableOpacity>
-              {isAdmin &&
-                (isRotatingCode ? (
-                  <ActivityIndicator size="small" color={theme.accent.purple} />
-                ) : (
-                  <TouchableOpacity onPress={handleRotateCode}>
-                    <RotateCcw size={20} color={theme.textSecondary} />
-                  </TouchableOpacity>
-                ))}
-            </View>
-          </View>
-        )}
+              <Text variant="subtitle" className="font-manrope-bold tracking-widest">
+                {home.inviteCode}
+              </Text>
+              <Copy size={16} color={theme.textSecondary} />
+            </TouchableOpacity>
+            {isAdmin &&
+              (isRotatingCode ? (
+                <Spinner size="small" color={theme.accent.purple} />
+              ) : (
+                <IconButton
+                  icon={RotateCcw}
+                  size="sm"
+                  style={{ backgroundColor: theme.background }}
+                  onPress={handleRotateCode}
+                  accessibilityLabel={t.profile.rotate}
+                />
+              ))}
+          </Card>
+        </Section>
+      )}
 
-        {/* Links */}
-        <View className="mb-8 gap-3">
-          <TouchableOpacity
-            className="flex-row items-center p-4 rounded-20 gap-3.5"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => router.push("/members")}
-          >
-            <View
-              className="w-11 h-11 rounded-14 justify-center items-center"
-              style={{ backgroundColor: theme.accent.mint }}
-            >
-              <Users size={20} color="#1C1C1E" />
-            </View>
-            <Text className="flex-1 text-base font-manrope-semibold" style={{ color: theme.text }}>
-              {t.members.title}
-            </Text>
-            <ChevronRight size={20} color={theme.textSecondary} />
-          </TouchableOpacity>
+      <View className="mb-8 gap-3">
+        <ListItem icon={Users} iconTone="mint" title={t.members.title} onPress={() => router.push("/members")} />
+        <ListItem icon={DoorOpen} iconTone="yellow" title={t.rooms.title} onPress={() => router.push("/rooms")} />
+      </View>
 
-          <TouchableOpacity
-            className="flex-row items-center p-4 rounded-20 gap-3.5"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => router.push("/rooms")}
-          >
-            <View
-              className="w-11 h-11 rounded-14 justify-center items-center"
-              style={{ backgroundColor: theme.accent.yellow }}
-            >
-              <DoorOpen size={20} color="#1C1C1E" />
-            </View>
-            <Text className="flex-1 text-base font-manrope-semibold" style={{ color: theme.text }}>
-              {t.rooms.title}
-            </Text>
-            <ChevronRight size={20} color={theme.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* Currency Modal */}
       <Modal
         visible={showCurrencyModal}
         onClose={() => setShowCurrencyModal(false)}
         title={t.settings.currency || "Currency"}
-        height="full"
       >
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          {CURRENCY_OPTIONS.map((currency) => {
-            const isSelected = currency === (home.currency || "USD").toUpperCase();
-            return (
-              <TouchableOpacity
-                key={currency}
-                className="p-4.5 rounded-16 mb-2.5"
-                style={{ backgroundColor: isSelected ? theme.accent.purple : theme.surface }}
-                onPress={() => handleSelectCurrency(currency)}
-              >
-                <Text className="text-17 font-manrope-semibold" style={{ color: isSelected ? "#1C1C1E" : theme.text }}>
-                  {currency}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        <View className="gap-2.5">
+          {CURRENCY_OPTIONS.map((currency) => (
+            <ListItem
+              key={currency}
+              title={currency}
+              selected={currency === currentCurrency}
+              showChevron={false}
+              onPress={() => handleSelectCurrency(currency)}
+            />
+          ))}
+        </View>
       </Modal>
-    </View>
+    </Screen>
   );
 }

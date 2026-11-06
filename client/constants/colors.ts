@@ -28,6 +28,10 @@ export const darkTheme = {
   navIconActive: "#FFFFFF",
   navIconInactive: "#8E8E93",
   tabIconActiveBackground: "#FFFFFF",
+
+  // Foreground on solid accent / danger fills
+  onAccent: "#1C1C1E",
+  onDanger: "#FFFFFF",
 };
 
 // Light Theme (White theme - inverted)
@@ -58,6 +62,10 @@ export const lightTheme = {
   navIconActive: "#1C1C1E",
   navIconInactive: "#8E8E93",
   tabIconActiveBackground: "#D8D4FC",
+
+  // Foreground on solid accent / danger fills
+  onAccent: "#1C1C1E",
+  onDanger: "#FFFFFF",
 };
 
 // Accent colors (same for both themes - from PDF)
@@ -90,6 +98,23 @@ export const accentColors = {
   danger: "#8B3A3A",
   dangerLight: "rgba(199, 58, 58, 0.9)",
 };
+
+// Options offered by color pickers for rooms, shopping lists and categories
+export const PICKER_COLORS = [
+  "#FF7476",
+  "#FF9F7A",
+  "#FBEB9E",
+  "#A8E6CF",
+  "#7DD3E8",
+  "#D8D4FC",
+  "#F5A3D3",
+  "#22C55E",
+  "#F472B6",
+  "#C4B5FD",
+  "#94A3B8",
+  "#FDE68A",
+  "#6EE7B7",
+] as const;
 
 // Status colors
 export const statusColors = {

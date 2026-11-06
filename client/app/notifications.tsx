@@ -1,31 +1,64 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import { ArrowLeft, Bell, BellRing, Check, Trash2 } from "lucide-react-native";
+import { Bell, BellRing, Check, type LucideIcon, Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Platform, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NotificationsSkeleton } from "@/components/skeletons";
-import { useToast } from "@/components/ui/toast";
+import {
+  Card,
+  EmptyState,
+  IconTile,
+  ListItem,
+  ResponsiveGrid,
+  Screen,
+  ScreenHeader,
+  Text,
+  useToast,
+} from "@/components/ui";
 import { notificationApi } from "@/lib/api";
-import { getPushState, isPushSupported, type PushPermissionState, subscribeToPush } from "@/lib/pushUtils";
+import { getPushState, type PushPermissionState, subscribeToPush } from "@/lib/pushUtils";
 import type { HomeNotification, Notification } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
+function SwipeAction({
+  icon: Icon,
+  label,
+  color,
+  side,
+  onPress,
+}: {
+  icon: LucideIcon;
+  label: string;
+  color: string;
+  side: "left" | "right";
+  onPress: () => void;
+}) {
+  const { theme } = useTheme();
+
+  return (
+    <TouchableOpacity
+      className={`justify-center items-center px-5 ${side === "left" ? "rounded-l-20" : "rounded-r-20"}`}
+      style={{ backgroundColor: color }}
+      onPress={onPress}
+    >
+      <Icon size={18} color={theme.onAccent} />
+      <Text variant="caption" color="onAccent" className="font-manrope-semibold mt-1">
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 export default function NotificationsScreen() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { theme } = useTheme();
   const { t } = useI18n();
   const { home } = useHome();
   const { user } = useAuth();
   const { show } = useToast();
-  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [notifications, setNotifications] = useState<(Notification | HomeNotification)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -194,178 +227,102 @@ export default function NotificationsScreen() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: theme.background }}>
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingBottom: 40,
-          paddingTop: insets.top + 16,
-          width: "100%",
-          maxWidth: contentMaxWidth,
-          alignSelf: "center",
-        }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View className="flex-row items-center mb-8">
-          <TouchableOpacity
-            className="w-12 h-12 rounded-16 justify-center items-center"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={22} color={theme.text} />
-          </TouchableOpacity>
-          <Text className="flex-1 text-2xl font-manrope-bold text-center" style={{ color: theme.text }}>
-            {t.profile.notifications}
-          </Text>
-          <View className="w-12" />
-        </View>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
+      <ScreenHeader title={t.profile.notifications} />
 
-        {/* Push Notification Banner */}
-        {pushState === "prompt" && (
-          <TouchableOpacity
-            className="flex-row items-center p-4 rounded-16 mb-4 gap-3"
-            style={{ backgroundColor: theme.accent.purple }}
-            onPress={handleEnablePush}
-          >
-            <BellRing size={22} color="#1C1C1E" />
-            <View className="flex-1">
-              <Text className="text-15 font-manrope-bold" style={{ color: "#1C1C1E" }}>
-                {t.notifications.enablePush || "Enable push notifications"}
-              </Text>
-              <Text className="text-13 font-manrope" style={{ color: "#3A3A3C" }}>
-                {t.notifications.enablePushText || "Get notified even when the app is closed"}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        {pushState === "denied" && (
-          <View className="flex-row items-center p-4 rounded-16 mb-4 gap-3" style={{ backgroundColor: theme.surface }}>
-            <Bell size={22} color={theme.textSecondary} />
-            <View className="flex-1">
-              <Text className="text-15 font-manrope-bold" style={{ color: theme.text }}>
-                {t.notifications.pushBlocked || "Push notifications blocked"}
-              </Text>
-              <Text className="text-13 font-manrope" style={{ color: theme.textSecondary }}>
-                {t.notifications.pushBlockedText || "Enable them in your browser settings"}
-              </Text>
-            </View>
-          </View>
-        )}
+      {pushState === "prompt" && (
+        <ListItem
+          left={<BellRing size={22} color={theme.onAccent} />}
+          title={t.notifications.enablePush || "Enable push notifications"}
+          subtitle={t.notifications.enablePushText || "Get notified even when the app is closed"}
+          selected
+          onPress={handleEnablePush}
+          className="mb-4"
+        />
+      )}
+      {pushState === "denied" && (
+        <ListItem
+          left={<Bell size={22} color={theme.textSecondary} />}
+          title={t.notifications.pushBlocked || "Push notifications blocked"}
+          subtitle={t.notifications.pushBlockedText || "Enable them in your browser settings"}
+          className="mb-4"
+        />
+      )}
 
-        {/* Notifications List */}
-        {notifications.length === 0 ? (
-          <View className="flex-1 justify-center items-center pt-20">
-            <View
-              className="w-24 h-24 rounded-full justify-center items-center mb-6"
-              style={{ backgroundColor: theme.surface }}
-            >
-              <Bell size={48} color={theme.textSecondary} />
-            </View>
-            <Text className="text-xl font-manrope-bold mb-2" style={{ color: theme.text }}>
-              {t.notifications.noNotifications || "No notifications"}
-            </Text>
-            <Text className="text-15 font-manrope" style={{ color: theme.textSecondary }}>
-              {t.notifications.noNotificationsText || "You're all caught up!"}
-            </Text>
-          </View>
-        ) : (
-          <View
-            className="gap-3"
-            style={{
-              flexDirection: isDesktop ? "row" : "column",
-              flexWrap: isDesktop ? "wrap" : "nowrap",
-              justifyContent: "space-between",
-            }}
-          >
-            {notifications.map((notification) => (
-              <View key={getSwipeableKey(notification)} style={{ width: isDesktop ? "49%" : "100%" }}>
-                <Swipeable
-                  ref={(ref) => {
-                    swipeRefs.current[getSwipeableKey(notification)] = ref;
+      {notifications.length === 0 ? (
+        <EmptyState
+          icon={Bell}
+          title={t.notifications.noNotifications || "No notifications"}
+          description={t.notifications.noNotificationsText || "You're all caught up!"}
+        />
+      ) : (
+        <ResponsiveGrid>
+          {notifications.map((notification) => (
+            <Swipeable
+              key={getSwipeableKey(notification)}
+              ref={(ref) => {
+                swipeRefs.current[getSwipeableKey(notification)] = ref;
+              }}
+              overshootLeft={false}
+              overshootRight={false}
+              onSwipeableOpen={(direction) => {
+                if (direction === "left") {
+                  closeSwipeable(notification);
+                  handleDelete(notification);
+                  return;
+                }
+                if (direction === "right" && !notification.read) {
+                  closeSwipeable(notification);
+                  handleMarkAsRead(notification);
+                }
+              }}
+              renderLeftActions={() => (
+                <SwipeAction
+                  icon={Trash2}
+                  label={t.common.delete}
+                  color={theme.accent.pink}
+                  side="left"
+                  onPress={() => {
+                    closeSwipeable(notification);
+                    handleDelete(notification);
                   }}
-                  overshootLeft={false}
-                  overshootRight={false}
-                  onSwipeableOpen={(direction) => {
-                    if (direction === "left") {
-                      closeSwipeable(notification);
-                      handleDelete(notification);
-                      return;
-                    }
-                    if (direction === "right" && !notification.read) {
+                />
+              )}
+              renderRightActions={() =>
+                notification.read ? null : (
+                  <SwipeAction
+                    icon={Check}
+                    label="Read"
+                    color={theme.accent.mint}
+                    side="right"
+                    onPress={() => {
                       closeSwipeable(notification);
                       handleMarkAsRead(notification);
-                    }
-                  }}
-                  renderLeftActions={() => (
-                    <TouchableOpacity
-                      className="justify-center items-center rounded-l-16 px-5 mb-1"
-                      style={{ backgroundColor: theme.accent.pink }}
-                      onPress={() => {
-                        closeSwipeable(notification);
-                        handleDelete(notification);
-                      }}
-                    >
-                      <Trash2 size={18} color="#1C1C1E" />
-                      <Text className="text-xs font-manrope-semibold mt-1" style={{ color: "#1C1C1E" }}>
-                        {t.common.delete}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  renderRightActions={() =>
-                    notification.read ? null : (
-                      <TouchableOpacity
-                        className="justify-center items-center rounded-r-16 px-5 mb-1"
-                        style={{ backgroundColor: theme.accent.mint }}
-                        onPress={() => {
-                          closeSwipeable(notification);
-                          handleMarkAsRead(notification);
-                        }}
-                      >
-                        <Check size={18} color="#1C1C1E" />
-                        <Text className="text-xs font-manrope-semibold mt-1" style={{ color: "#1C1C1E" }}>
-                          Read
-                        </Text>
-                      </TouchableOpacity>
-                    )
-                  }
-                >
-                  <View
-                    className="p-4 rounded-16 mb-1"
-                    style={{
-                      backgroundColor: theme.surface,
-                      borderLeftWidth: !notification.read ? 3 : 0,
-                      borderLeftColor: !notification.read ? theme.accent.purple : undefined,
                     }}
-                  >
-                    <View className="flex-row items-start gap-3">
-                      <View
-                        className="w-10 h-10 rounded-full justify-center items-center"
-                        style={{ backgroundColor: theme.accent.purple }}
-                      >
-                        <Bell size={18} color="#1C1C1E" />
-                      </View>
-                      <View className="flex-1">
-                        <Text
-                          className="text-15 font-manrope-medium mb-1"
-                          style={{ color: theme.text, lineHeight: 22 }}
-                        >
-                          {notification.description}
-                        </Text>
-                        <Text className="text-13 font-manrope" style={{ color: theme.textSecondary }}>
-                          {formatDate(notification.createdAt)}
-                        </Text>
-                      </View>
-                    </View>
+                  />
+                )
+              }
+            >
+              <Card
+                size="sm"
+                style={notification.read ? undefined : { borderLeftWidth: 3, borderLeftColor: theme.accent.purple }}
+              >
+                <View className="flex-row items-start gap-3">
+                  <IconTile icon={Bell} tone="purple" />
+                  <View className="flex-1">
+                    <Text variant="bodySmall" className="font-manrope-medium mb-1">
+                      {notification.description}
+                    </Text>
+                    <Text variant="caption" color="secondary">
+                      {formatDate(notification.createdAt)}
+                    </Text>
                   </View>
-                </Swipeable>
-              </View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </View>
+                </View>
+              </Card>
+            </Swipeable>
+          ))}
+        </ResponsiveGrid>
+      )}
+    </Screen>
   );
 }
