@@ -290,7 +290,7 @@ const DatePicker: FC<DatePickerProps> = ({
         />
 
         {/* КАРТОЧКА БЕЗ TOUCHABLE ОБЕРТКИ */}
-        <View className="w-full rounded-3xl p-6" style={{ backgroundColor: theme.surface, maxWidth: 360 }}>
+        <View className="w-full rounded-3xl p-6" style={{ backgroundColor: theme.sheetBackground, maxWidth: 360 }}>
           {/* Title */}
           <Text className="text-lg font-manrope-bold text-center mb-4" style={{ color: theme.text }}>
             {title}

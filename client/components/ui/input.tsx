@@ -51,7 +51,7 @@ const Input: FC<InputProps> = ({ label, error, style, secureTextEntry, className
           className={`h-16 rounded-20 px-6 text-base font-manrope-medium ${isPassword ? "pr-14" : ""}`}
           style={[
             {
-              backgroundColor: inModal ? theme.background : theme.inputBackground,
+              backgroundColor: inModal ? theme.sheetControl : theme.inputBackground,
               color: theme.inputText,
             },
             webInputResetStyle,

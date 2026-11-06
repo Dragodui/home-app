@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Appearance, type ColorSchemeName } from "react-native";
 import { create } from "zustand";
 import { accentColors, categoryColors, darkTheme, lightTheme, statusColors, userColors } from "@/constants/colors";
+import { getGlassThemeOverrides } from "@/constants/glass-theme";
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -25,6 +26,8 @@ export interface Theme {
   navIconActive: string;
   navIconInactive: string;
   tabIconActiveBackground: string;
+  sheetBackground: string;
+  sheetControl: string;
   onAccent: string;
   onDanger: string;
   accent: typeof accentColors;
@@ -42,6 +45,7 @@ function buildTheme(mode: ThemeMode, systemScheme: string | null | undefined): T
     mode,
     isDark,
     ...themeColors,
+    ...getGlassThemeOverrides(isDark),
     accent: accentColors,
     status: statusColors,
     userColors,

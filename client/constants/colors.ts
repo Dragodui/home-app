@@ -29,6 +29,10 @@ export const darkTheme = {
   navIconInactive: "#8E8E93",
   tabIconActiveBackground: "#FFFFFF",
 
+  // Modal sheets, and controls placed on them
+  sheetBackground: "#2C2C2E",
+  sheetControl: "#1C1C1E",
+
   // Foreground on solid accent / danger fills
   onAccent: "#1C1C1E",
   onDanger: "#FFFFFF",
@@ -62,6 +66,10 @@ export const lightTheme = {
   navIconActive: "#1C1C1E",
   navIconInactive: "#8E8E93",
   tabIconActiveBackground: "#D8D4FC",
+
+  // Modal sheets, and controls placed on them
+  sheetBackground: "#F5F5F7",
+  sheetControl: "#FFFFFF",
 
   // Foreground on solid accent / danger fills
   onAccent: "#1C1C1E",

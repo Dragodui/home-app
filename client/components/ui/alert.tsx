@@ -1,6 +1,7 @@
 import { createContext, type FC, type ReactNode, useCallback, useContext, useState } from "react";
 import { Modal as RNModal, Text, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { useTheme } from "@/stores/themeStore";
+import { frostStyle } from "./surface";
 
 interface AlertButton {
   text: string;
@@ -86,7 +87,10 @@ export const AlertProvider: FC<{ children: ReactNode }> = ({ children }) => {
             }}
           >
             <TouchableWithoutFeedback>
-              <View className="w-full rounded-3xl p-6" style={{ backgroundColor: theme.surface, maxWidth: 340 }}>
+              <View
+                className="w-full rounded-3xl p-6"
+                style={[{ backgroundColor: theme.sheetBackground, maxWidth: 340 }, frostStyle]}
+              >
                 <Text className="text-lg font-manrope-bold text-center mb-2" style={{ color: theme.text }}>
                   {state.title}
                 </Text>
