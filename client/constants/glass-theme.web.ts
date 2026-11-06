@@ -8,6 +8,8 @@ export const DEFAULT_UI_STYLE: UiStyle = "glass";
 export function getGlassThemeOverrides(isDark: boolean) {
   const ink = isDark ? "#FFFFFF" : "#000000";
   const paper = isDark ? "#000000" : "#FFFFFF";
+  // Muted, so the only color on screen does not shout against pure black and white.
+  const softRed = isDark ? "#E8746C" : "#C2453E";
 
   return {
     background: paper,
@@ -43,10 +45,10 @@ export function getGlassThemeOverrides(isDark: boolean) {
       green: ink,
       greenLight: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)",
       cyan: ink,
-      danger: "#FF453A",
-      dangerLight: "#FF3B30",
+      danger: softRed,
+      dangerLight: isDark ? "#A63A34" : "#C2453E",
     },
-    status: { success: ink, warning: ink, info: ink, error: "#FF453A" },
+    status: { success: ink, warning: ink, info: ink, error: softRed },
     userColors: [ink],
     categoryColors: { dinner: ink, snacks: ink, birthday: ink, other: ink },
   };
