@@ -293,8 +293,8 @@ export default function HomeScreen() {
               })}
             </Text>
             <View className="flex-row justify-between items-center">
-              <View className="bg-accent-pink/15 px-4 py-3 rounded-14">
-                <Text variant="caption" className="font-manrope-bold" style={{ color: theme.accent.pink }}>
+              <View className="px-4 py-3 rounded-14" style={{ backgroundColor: theme.accent.pinkLight }}>
+                <Text variant="caption" color="onAccent" className="font-manrope-bold">
                   {t.home.totalExpenses}
                 </Text>
               </View>

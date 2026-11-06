@@ -46,8 +46,7 @@ function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           {
             pointerEvents: "auto",
             "--lg-tab-width": `${tabWidth}px`,
-            "--lg-tab-selected": theme.isDark ? theme.accent.purple : "#6C5CE7",
-            "--lg-fill": theme.isDark ? theme.accent.purple : "#6C5CE7",
+            "--lg-tab-selected": theme.text,
             fontFamily: "Manrope_600SemiBold",
           } as CSSProperties
         }

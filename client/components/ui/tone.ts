@@ -24,7 +24,7 @@ const ACCENT_KEYS = {
 export function getSoftColors(theme: Theme, color: string): { soft: string; onSoft: string } {
   // Pastel accents have no contrast on a light background, so light mode tints harder and uses body text.
   return {
-    soft: `${color}${theme.isDark ? "20" : "66"}`,
+    soft: `${color}${theme.softAlpha}`,
     onSoft: theme.isDark ? color : theme.text,
   };
 }
@@ -46,7 +46,7 @@ export function getToneColors(theme: Theme, tone: Tone): ToneColors {
   const color = tone === "warning" ? theme.status.warning : theme.accent[ACCENT_KEYS[tone]];
   return {
     solid: color,
-    onSolid: theme.onAccent,
+    onSolid: theme.onFill,
     ...getSoftColors(theme, color),
   };
 }

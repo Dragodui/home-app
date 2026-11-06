@@ -45,8 +45,8 @@ function SwipeAction({
       style={{ backgroundColor: color }}
       onPress={onPress}
     >
-      <Icon size={18} color={theme.onAccent} />
-      <Text variant="caption" color="onAccent" className="font-manrope-semibold mt-1">
+      <Icon size={18} color={theme.onFill} />
+      <Text variant="caption" className="font-manrope-semibold mt-1" style={{ color: theme.onFill }}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -232,7 +232,7 @@ export default function NotificationsScreen() {
 
       {pushState === "prompt" && (
         <ListItem
-          left={<BellRing size={22} color={theme.onAccent} />}
+          left={<BellRing size={22} color={theme.onFill} />}
           title={t.notifications.enablePush || "Enable push notifications"}
           subtitle={t.notifications.enablePushText || "Get notified even when the app is closed"}
           selected

@@ -1,5 +1,6 @@
 import { Check, type LucideIcon } from "lucide-react-native";
 import { View } from "react-native";
+import { toDisplayColor } from "@/constants/glass-theme";
 import { useTheme } from "@/stores/themeStore";
 import Button from "./button";
 import ColorPicker from "./color-picker";
@@ -49,8 +50,11 @@ function CategoryFormModal<T extends string>({
   return (
     <Modal visible={visible} onClose={onClose} title={title}>
       <View className="items-center mb-6">
-        <View className="w-20 h-20 rounded-3xl justify-center items-center" style={{ backgroundColor: color }}>
-          {PreviewIcon && <PreviewIcon size={32} color={theme.onAccent} />}
+        <View
+          className="w-20 h-20 rounded-3xl justify-center items-center"
+          style={{ backgroundColor: toDisplayColor(color, theme) }}
+        >
+          {PreviewIcon && <PreviewIcon size={32} color={theme.onFill} />}
         </View>
       </View>
 

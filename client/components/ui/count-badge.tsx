@@ -20,7 +20,7 @@ const CountBadge: FC<CountBadgeProps> = ({ count, max = 99, className }) => {
       className={`min-w-5 h-5 rounded-full justify-center items-center px-1.5 ${className || ""}`}
       style={{ backgroundColor: theme.accent.pink }}
     >
-      <Text variant="micro" color="onAccent" className="font-manrope-bold">
+      <Text variant="micro" className="font-manrope-bold" style={{ color: theme.onFill }}>
         {count > max ? `${max}+` : count}
       </Text>
     </View>

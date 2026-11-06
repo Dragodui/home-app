@@ -357,7 +357,9 @@ const DatePicker: FC<DatePickerProps> = ({
                         color: disabled
                           ? theme.border
                           : selected
-                            ? "#FFFFFF"
+                            ? theme.uiStyle === "glass"
+                              ? theme.onFill
+                              : "#FFFFFF"
                             : d.current
                               ? theme.text
                               : theme.textSecondary,

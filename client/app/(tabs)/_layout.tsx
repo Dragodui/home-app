@@ -32,7 +32,7 @@ export default function TabLayout() {
   return (
     <View className="flex-1">
       <Tabs
-        tabBar={glassTabBar}
+        tabBar={theme.uiStyle === "glass" ? glassTabBar : undefined}
         screenOptions={{
           tabBarActiveTintColor: theme.text,
           tabBarInactiveTintColor: theme.textSecondary,

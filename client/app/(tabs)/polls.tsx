@@ -31,8 +31,10 @@ import { useI18n } from "@/stores/i18nStore";
 import { useTheme } from "@/stores/themeStore";
 
 function PollPill({ label }: { label: string }) {
+  const { theme } = useTheme();
+
   return (
-    <View className="bg-white/60 px-3 py-1.5 rounded-xl">
+    <View className="px-3 py-1.5 rounded-xl" style={{ backgroundColor: theme.optionFill }}>
       <Text variant="caption" color="onAccent" className="font-manrope-semibold">
         {label}
       </Text>
@@ -300,9 +302,8 @@ export default function PollsScreen() {
                     return (
                       <TouchableOpacity
                         key={option.id}
-                        className={`rounded-xl p-4 flex-row justify-between items-center gap-3 ${
-                          isSelected ? "bg-primary" : "bg-white/60"
-                        }`}
+                        className="rounded-xl p-4 flex-row justify-between items-center gap-3"
+                        style={{ backgroundColor: isSelected ? theme.selectedFill : theme.optionFill }}
                         onPress={() => !voted && handleVote(poll.id, option.id)}
                         onLongPress={() =>
                           poll.type === "public" && (option.votes?.length ?? 0) > 0 && setVotersOption(option)
@@ -313,16 +314,16 @@ export default function PollsScreen() {
                         <Text
                           variant="label"
                           className="flex-1"
-                          style={{ color: isSelected ? theme.onDanger : theme.onAccent }}
+                          style={{ color: isSelected ? theme.onSelectedFill : theme.onAccent }}
                         >
                           {option.title}
                         </Text>
                         <View className="flex-row items-center gap-2">
-                          {isSelected && <Check size={16} color={theme.onDanger} />}
+                          {isSelected && <Check size={16} color={theme.onSelectedFill} />}
                           <Text
                             variant="caption"
                             className="font-manrope-medium opacity-60"
-                            style={{ color: isSelected ? theme.onDanger : theme.onAccent }}
+                            style={{ color: isSelected ? theme.onSelectedFill : theme.onAccent }}
                           >
                             {voteCount} {voteCount !== 1 ? t.polls.votes : t.polls.vote}
                           </Text>

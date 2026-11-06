@@ -1,15 +1,7 @@
-import { Switch as GlassSwitch } from "glisse";
-import type { FC } from "react";
+import { byUiStyle } from "./by-ui-style";
+import Classic from "./switch.classic";
+import Glass from "./switch.glass";
 
-interface SwitchProps {
-  value: boolean;
-  onValueChange: (value: boolean) => void;
-  disabled?: boolean;
-}
-
-/** Web version of Switch, on Liquid Glass. Same props as switch.tsx. */
-const Switch: FC<SwitchProps> = ({ value, onValueChange, disabled = false }) => (
-  <GlassSwitch checked={value} onCheckedChange={onValueChange} disabled={disabled} />
-);
+const Switch = byUiStyle(Classic, Glass);
 
 export default Switch;

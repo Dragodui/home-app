@@ -2,12 +2,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Appearance, type ColorSchemeName } from "react-native";
 import { create } from "zustand";
 import { accentColors, categoryColors, darkTheme, lightTheme, statusColors, userColors } from "@/constants/colors";
-import { getGlassThemeOverrides } from "@/constants/glass-theme";
+import { DEFAULT_UI_STYLE, getGlassThemeOverrides, SUPPORTS_UI_STYLES, type UiStyle } from "@/constants/glass-theme";
 
 type ThemeMode = "light" | "dark" | "system";
 
 export interface Theme {
   mode: ThemeMode;
+  uiStyle: UiStyle;
   isDark: boolean;
   background: string;
   surface: string;
@@ -29,6 +30,11 @@ export interface Theme {
   sheetBackground: string;
   sheetControl: string;
   onAccent: string;
+  onFill: string;
+  softAlpha: string;
+  optionFill: string;
+  selectedFill: string;
+  onSelectedFill: string;
   onDanger: string;
   accent: typeof accentColors;
   status: typeof statusColors;
@@ -37,19 +43,21 @@ export interface Theme {
 }
 
 const THEME_STORAGE_KEY = "@home_app_theme";
+const UI_STYLE_STORAGE_KEY = "@home_app_ui_style";
 
-function buildTheme(mode: ThemeMode, systemScheme: string | null | undefined): Theme {
+function buildTheme(mode: ThemeMode, systemScheme: string | null | undefined, uiStyle: UiStyle): Theme {
   const isDark = mode === "dark" || (mode === "system" && systemScheme === "dark");
   const themeColors = isDark ? darkTheme : lightTheme;
   return {
     mode,
+    uiStyle,
     isDark,
     ...themeColors,
-    ...getGlassThemeOverrides(isDark),
     accent: accentColors,
     status: statusColors,
     userColors,
     categoryColors,
+    ...(uiStyle === "glass" ? getGlassThemeOverrides(isDark) : {}),
   };
 }
 
@@ -59,6 +67,7 @@ interface ThemeState {
   isLoaded: boolean;
   init: () => Promise<void>;
   setThemeMode: (mode: ThemeMode) => void;
+  setUiStyle: (uiStyle: UiStyle) => void;
   toggleTheme: () => void;
 }
 
@@ -66,18 +75,16 @@ let appearanceSubscription: { remove: () => void } | null = null;
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
   themeMode: "dark",
-  theme: buildTheme("dark", Appearance.getColorScheme()),
+  theme: buildTheme("dark", Appearance.getColorScheme(), DEFAULT_UI_STYLE),
   isLoaded: false,
 
   init: async () => {
     try {
       const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-      if (saved === "light" || saved === "dark" || saved === "system") {
-        set({
-          themeMode: saved,
-          theme: buildTheme(saved, Appearance.getColorScheme()),
-        });
-      }
+      const savedStyle = SUPPORTS_UI_STYLES ? await AsyncStorage.getItem(UI_STYLE_STORAGE_KEY) : null;
+      const themeMode = saved === "light" || saved === "dark" || saved === "system" ? saved : get().themeMode;
+      const uiStyle = savedStyle === "classic" || savedStyle === "glass" ? savedStyle : DEFAULT_UI_STYLE;
+      set({ themeMode, theme: buildTheme(themeMode, Appearance.getColorScheme(), uiStyle) });
     } catch (error) {
       console.error("Error loading theme:", error);
     } finally {
@@ -93,7 +100,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     appearanceSubscription = Appearance.addChangeListener(({ colorScheme }: { colorScheme: ColorSchemeName }) => {
       const { themeMode } = get();
       if (themeMode === "system") {
-        set({ theme: buildTheme("system", colorScheme) });
+        set({ theme: buildTheme("system", colorScheme, get().theme.uiStyle) });
       }
     });
   },
@@ -101,9 +108,14 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   setThemeMode: (mode: ThemeMode) => {
     set({
       themeMode: mode,
-      theme: buildTheme(mode, Appearance.getColorScheme()),
+      theme: buildTheme(mode, Appearance.getColorScheme(), get().theme.uiStyle),
     });
     AsyncStorage.setItem(THEME_STORAGE_KEY, mode).catch(console.error);
+  },
+
+  setUiStyle: (uiStyle: UiStyle) => {
+    set({ theme: buildTheme(get().themeMode, Appearance.getColorScheme(), uiStyle) });
+    AsyncStorage.setItem(UI_STYLE_STORAGE_KEY, uiStyle).catch(console.error);
   },
 
   toggleTheme: () => {
@@ -117,8 +129,9 @@ export function useTheme() {
   const theme = useThemeStore((s) => s.theme);
   const themeMode = useThemeStore((s) => s.themeMode);
   const setThemeMode = useThemeStore((s) => s.setThemeMode);
+  const setUiStyle = useThemeStore((s) => s.setUiStyle);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
-  return { theme, themeMode, setThemeMode, toggleTheme };
+  return { theme, themeMode, setThemeMode, setUiStyle, toggleTheme };
 }
 
 export function useThemeColors() {

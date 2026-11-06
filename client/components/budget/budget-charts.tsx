@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { View } from "react-native";
 import Svg, { Circle, Line, Rect, Text as SvgText } from "react-native-svg";
 import { Text } from "@/components/ui";
+import { toChartColor } from "@/constants/glass-theme";
 import { useTheme } from "@/stores/themeStore";
 
 export const DonutChart = ({
@@ -17,6 +18,7 @@ export const DonutChart = ({
   total: number;
   totalLabel: string;
 }) => {
+  const { theme } = useTheme();
   const center = size / 2;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -38,7 +40,7 @@ export const DonutChart = ({
                 cx={center}
                 cy={center}
                 r={radius}
-                stroke={item.color}
+                stroke={toChartColor(item.color, index, theme)}
                 strokeWidth={strokeWidth}
                 fill="transparent"
                 strokeDasharray={[strokeLength, circumference]}

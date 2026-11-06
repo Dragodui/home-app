@@ -367,7 +367,7 @@ export default function ProfileScreen() {
                       iconTone="yellow"
                       title={h.name}
                       selected={isCurrent}
-                      right={isCurrent ? <Check size={20} color={theme.onAccent} /> : undefined}
+                      right={isCurrent ? <Check size={20} color={theme.onFill} /> : undefined}
                       showChevron={false}
                       onPress={() => switchHome(h.id)}
                     />

@@ -35,7 +35,16 @@ export const darkTheme = {
 
   // Foreground on solid accent / danger fills
   onAccent: "#1C1C1E",
+  onFill: "#1C1C1E",
   onDanger: "#FFFFFF",
+
+  // Alpha, as two hex digits, of the soft tint of a color
+  softAlpha: "20",
+
+  // Options on a colored card, such as a poll answer
+  optionFill: "rgba(255, 255, 255, 0.6)",
+  selectedFill: "#1C1C1E",
+  onSelectedFill: "#FFFFFF",
 };
 
 // Light Theme (White theme - inverted)
@@ -73,7 +82,16 @@ export const lightTheme = {
 
   // Foreground on solid accent / danger fills
   onAccent: "#1C1C1E",
+  onFill: "#1C1C1E",
   onDanger: "#FFFFFF",
+
+  // Alpha, as two hex digits, of the soft tint of a color
+  softAlpha: "66",
+
+  // Options on a colored card, such as a poll answer
+  optionFill: "rgba(255, 255, 255, 0.6)",
+  selectedFill: "#1C1C1E",
+  onSelectedFill: "#FFFFFF",
 };
 
 // Accent colors (same for both themes - from PDF)
