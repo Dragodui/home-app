@@ -1,28 +1,34 @@
 import { useRouter } from "expo-router";
-import { ArrowLeft, Check, Clock, Shield, Trash2, User, Users, X } from "lucide-react-native";
+import { Check, Clock, Shield, Trash2, Users, X } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TouchableOpacity, View } from "react-native";
 import { MembersSkeleton } from "@/components/skeletons";
-import { useAlert } from "@/components/ui/alert";
+import {
+  Avatar,
+  Badge,
+  Card,
+  EmptyState,
+  IconButton,
+  ResponsiveGrid,
+  Screen,
+  ScreenHeader,
+  Section,
+  Text,
+  useAlert,
+} from "@/components/ui";
 import { homeApi } from "@/lib/api";
 import type { HomeMembership } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
-import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
-import { useTheme } from "@/stores/themeStore";
 
 export default function MembersScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { theme } = useTheme();
   const { t } = useI18n();
   const { home, isAdmin, removeMember } = useHome();
   const { user } = useAuth();
   const { alert } = useAlert();
-  const { isDesktop, horizontalPadding, contentMaxWidth } = useResponsiveLayout();
 
   const [members, setMembers] = useState<HomeMembership[]>([]);
   const [pendingMembers, setPendingMembers] = useState<HomeMembership[]>([]);
@@ -154,209 +160,92 @@ export default function MembersScreen() {
     const isMemberAdmin = member.role === "admin";
 
     return (
-      <View
-        key={member.id}
-        className="flex-row items-center p-4 rounded-20"
-        style={{ backgroundColor: theme.surface, width: isDesktop ? "49%" : "100%" }}
-      >
+      <Card key={member.id} size="sm" className="flex-row items-center">
         <TouchableOpacity
           className="flex-row items-center flex-1"
           activeOpacity={0.8}
+          disabled={isPending}
           onPress={() => {
-            if (!isPending) {
-              router.push({
-                pathname: "/member-profile",
-                params: { userId: String(member.userId) },
-              });
-            }
+            router.push({
+              pathname: "/member-profile",
+              params: { userId: String(member.userId) },
+            });
           }}
         >
-          {/* Avatar */}
-          <View className="w-12 h-12 rounded-full overflow-hidden mr-3.5" style={{ backgroundColor: theme.background }}>
-            {member.user?.avatar ? (
-              <Image source={{ uri: member.user.avatar }} className="w-full h-full" />
-            ) : (
-              <View className="w-full h-full justify-center items-center">
-                <User size={24} color={theme.textSecondary} />
-              </View>
-            )}
-          </View>
+          <Avatar uri={member.user?.avatar} className="mr-3.5" />
 
-          {/* Info */}
           <View className="flex-1">
             <View className="flex-row items-center gap-2">
-              <Text className="text-base font-manrope-semibold" style={{ color: theme.text }}>
+              <Text variant="subtitle" numberOfLines={1} className="shrink">
                 {member.user?.name || t.profile.memberProfileUnknown}
               </Text>
               {isCurrentUser && (
-                <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
+                <Text variant="caption" color="secondary">
                   {t.members.you}
                 </Text>
               )}
             </View>
-            <Text className="text-sm font-manrope mt-0.5" style={{ color: theme.textSecondary }}>
+            <Text variant="bodySmall" color="secondary" numberOfLines={1} className="mt-0.5">
               {member.user?.email}
             </Text>
-            <View className="flex-row items-center gap-2 mt-1.5">
-              {/* Role/Status badge */}
+            <View className="flex-row flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
               {isPending ? (
-                <View
-                  className="flex-row items-center gap-1 px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: `${theme.accent.yellow}20` }}
-                >
-                  <Clock size={12} color={theme.accent.yellow} />
-                  <Text className="text-xs font-manrope-semibold" style={{ color: theme.accent.yellow }}>
-                    {t.members.pending}
-                  </Text>
-                </View>
+                <Badge label={t.members.pending} tone="yellow" icon={Clock} />
               ) : (
-                <View
-                  className="flex-row items-center gap-1 px-2.5 py-1 rounded-full"
-                  style={{
-                    backgroundColor: isMemberAdmin ? `${theme.accent.yellow}20` : `${theme.accent.purple}20`,
-                  }}
-                >
-                  {isMemberAdmin && <Shield size={12} color={theme.accent.yellow} />}
-                  <Text
-                    className="text-xs font-manrope-semibold"
-                    style={{
-                      color: isMemberAdmin ? theme.accent.yellow : theme.accent.purple,
-                    }}
-                  >
-                    {isMemberAdmin ? t.members.admin : t.members.member}
-                  </Text>
-                </View>
+                <Badge
+                  label={isMemberAdmin ? t.members.admin : t.members.member}
+                  tone={isMemberAdmin ? "yellow" : "purple"}
+                  icon={isMemberAdmin ? Shield : undefined}
+                />
               )}
-              {/* Join date */}
-              <Text className="text-xs font-manrope" style={{ color: theme.textSecondary }}>
+              <Text variant="caption" color="secondary">
                 {interpolate(t.members.joined, { date: formatDate(member.joinedAt) })}
               </Text>
             </View>
           </View>
         </TouchableOpacity>
 
-        {/* Action buttons */}
         {isPending ? (
           <View className="flex-row gap-2 ml-2">
-            <TouchableOpacity
-              className="w-10 h-10 rounded-14 justify-center items-center"
-              style={{ backgroundColor: `${theme.accent.mint}20` }}
-              onPress={() => handleApproveMember(member)}
-            >
-              <Check size={18} color={theme.accent.mint} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="w-10 h-10 rounded-14 justify-center items-center"
-              style={{ backgroundColor: `${theme.accent.dangerLight}20` }}
-              onPress={() => handleRejectMember(member)}
-            >
-              <X size={18} color={theme.accent.pink} />
-            </TouchableOpacity>
+            <IconButton icon={Check} size="sm" tone="mint" onPress={() => handleApproveMember(member)} />
+            <IconButton icon={X} size="sm" tone="danger" onPress={() => handleRejectMember(member)} />
           </View>
         ) : (
           isAdmin &&
           !isCurrentUser && (
             <View className="flex-row gap-2 ml-2">
-              <TouchableOpacity
-                className="w-10 h-10 rounded-14 justify-center items-center"
-                style={{ backgroundColor: `${theme.accent.yellow}20` }}
-                onPress={() => handleUpdateRole(member)}
-              >
-                <Shield size={18} color={theme.accent.yellow} />
-              </TouchableOpacity>
+              <IconButton icon={Shield} size="sm" tone="yellow" onPress={() => handleUpdateRole(member)} />
               {!isMemberAdmin && (
-                <TouchableOpacity
-                  className="w-10 h-10 rounded-14 justify-center items-center"
-                  style={{ backgroundColor: `${theme.accent.dangerLight}20` }}
-                  onPress={() => handleRemoveMember(member)}
-                >
-                  <Trash2 size={18} color={theme.accent.pink} />
-                </TouchableOpacity>
+                <IconButton icon={Trash2} size="sm" tone="danger" onPress={() => handleRemoveMember(member)} />
               )}
             </View>
           )
         )}
-      </View>
+      </Card>
     );
   };
 
   return (
-    <View className="flex-1" style={{ backgroundColor: theme.background }}>
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingBottom: 40,
-          paddingTop: insets.top + 16,
-          width: "100%",
-          maxWidth: contentMaxWidth,
-          alignSelf: "center",
-        }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />}
-      >
-        {/* Header */}
-        <View className="flex-row items-center mb-8">
-          <TouchableOpacity
-            className="w-12 h-12 rounded-16 justify-center items-center"
-            style={{ backgroundColor: theme.surface }}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={22} color={theme.text} />
-          </TouchableOpacity>
-          <Text className="flex-1 text-2xl font-manrope-bold text-center" style={{ color: theme.text }}>
-            {t.members.title}
-          </Text>
-          <View className="w-12" />
-        </View>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
+      <ScreenHeader title={t.members.title} />
 
-        {/* Loading State */}
-        {isLoading ? (
-          <MembersSkeleton />
-        ) : (
-          <>
-            {/* Pending Members Section (admin only) */}
-            {isAdmin && pendingMembers.length > 0 && (
-              <View className="mb-6">
-                <Text className="text-lg font-manrope-bold mb-3" style={{ color: theme.text }}>
-                  {t.members.pendingRequests} ({pendingMembers.length})
-                </Text>
-                <View
-                  className="gap-3"
-                  style={{
-                    flexDirection: isDesktop ? "row" : "column",
-                    flexWrap: isDesktop ? "wrap" : "nowrap",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  {pendingMembers.map((member) => renderMemberCard(member, true))}
-                </View>
-              </View>
-            )}
+      {isLoading ? (
+        <MembersSkeleton />
+      ) : (
+        <>
+          {isAdmin && pendingMembers.length > 0 && (
+            <Section title={`${t.members.pendingRequests} (${pendingMembers.length})`} titleVariant="heading">
+              <ResponsiveGrid>{pendingMembers.map((member) => renderMemberCard(member, true))}</ResponsiveGrid>
+            </Section>
+          )}
 
-            {/* Current Members */}
-            {members.length === 0 ? (
-              <View className="flex-1 justify-center items-center py-20">
-                <Users size={48} color={theme.textSecondary} />
-                <Text className="text-base font-manrope-medium mt-4" style={{ color: theme.textSecondary }}>
-                  {t.members.noMembers}
-                </Text>
-              </View>
-            ) : (
-              <View
-                className="gap-3"
-                style={{
-                  flexDirection: isDesktop ? "row" : "column",
-                  flexWrap: isDesktop ? "wrap" : "nowrap",
-                  justifyContent: "space-between",
-                }}
-              >
-                {members.map((member) => renderMemberCard(member))}
-              </View>
-            )}
-          </>
-        )}
-      </ScrollView>
-    </View>
+          {members.length === 0 ? (
+            <EmptyState icon={Users} title={t.members.noMembers} />
+          ) : (
+            <ResponsiveGrid>{members.map((member) => renderMemberCard(member))}</ResponsiveGrid>
+          )}
+        </>
+      )}
+    </Screen>
   );
 }
