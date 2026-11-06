@@ -66,13 +66,13 @@ const TaskScheduleModal: FC<TaskScheduleModalProps> = ({
                   left={
                     isSelected ? (
                       <View className="w-6 h-6 rounded-full justify-center items-center bg-black/10">
-                        <Text variant="caption" color="onAccent" className="font-manrope-bold">
+                        <Text variant="caption" className="font-manrope-bold" style={{ color: theme.onFill }}>
                           {orderIndex + 1}
                         </Text>
                       </View>
                     ) : undefined
                   }
-                  right={isSelected ? <X size={16} color={theme.onAccent} /> : undefined}
+                  right={isSelected ? <X size={16} color={theme.onFill} /> : undefined}
                   showChevron={false}
                   onPress={() =>
                     onUserIdsChange(

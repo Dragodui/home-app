@@ -18,6 +18,7 @@ import {
   Text,
   useAlert,
 } from "@/components/ui";
+import { SUPPORTS_UI_STYLES, type UiStyle } from "@/constants/glass-theme";
 import { smarthomeApi } from "@/lib/api";
 import { useHome } from "@/stores/homeStore";
 import { useI18n } from "@/stores/i18nStore";
@@ -25,7 +26,7 @@ import { useTheme } from "@/stores/themeStore";
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { theme, themeMode, setThemeMode } = useTheme();
+  const { theme, themeMode, setThemeMode, setUiStyle } = useTheme();
   const { t, language, setLanguage, languageNames, availableLanguages } = useI18n();
   const { home, leaveHome, isAdmin } = useHome();
   const { alert } = useAlert();
@@ -126,6 +127,21 @@ export default function SettingsScreen() {
               { value: "dark", label: t.profile.dark, icon: Moon, activeTone: "purple" },
             ]}
           />
+          {SUPPORTS_UI_STYLES && (
+            <>
+              <Text variant="subtitle" className="mt-5 mb-4">
+                {t.settings.uiStyle}
+              </Text>
+              <SegmentedControl<UiStyle>
+                value={theme.uiStyle}
+                onChange={setUiStyle}
+                options={[
+                  { value: "classic", label: t.settings.uiStyleClassic },
+                  { value: "glass", label: t.settings.uiStyleGlass },
+                ]}
+              />
+            </>
+          )}
         </Card>
       </Section>
 

@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 import { CheckCircle, DollarSign, Home, type LucideIcon, ShoppingBag, User } from "lucide-react-native";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { glassTabBar } from "@/components/glass-tab-bar";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import fonts from "@/constants/fonts";
 import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
@@ -31,6 +32,7 @@ export default function TabLayout() {
   return (
     <View className="flex-1">
       <Tabs
+        tabBar={theme.uiStyle === "glass" ? glassTabBar : undefined}
         screenOptions={{
           tabBarActiveTintColor: theme.text,
           tabBarInactiveTintColor: theme.textSecondary,

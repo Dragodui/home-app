@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Avatar, CountBadge, Text } from "@/components/ui";
+import { frostStyle } from "@/components/ui/surface";
 import { chatApi, notificationApi } from "@/lib/api";
 import type { ChatConversation } from "@/lib/types";
 import { useAuth } from "@/stores/authStore";
@@ -146,8 +147,9 @@ export default function ProfileDropdown() {
       <Animated.View
         style={[
           styles.buttonRow,
+          frostStyle,
           {
-            backgroundColor: theme.surface,
+            backgroundColor: theme.sheetBackground,
             borderBottomLeftRadius: buttonBottomRadius,
             borderBottomRightRadius: buttonBottomRadius,
           },
@@ -162,7 +164,6 @@ export default function ProfileDropdown() {
             onPress={() => router.push("/notifications")}
             activeOpacity={0.7}
             className="w-12 h-12 rounded-full justify-center items-center"
-            style={{ backgroundColor: theme.surface }}
           >
             <Bell size={22} color={theme.text} />
             {unreadCount > 0 && (
@@ -196,8 +197,9 @@ export default function ProfileDropdown() {
         <Animated.View
           style={[
             styles.dropdown,
+            frostStyle,
             {
-              backgroundColor: theme.surface,
+              backgroundColor: theme.sheetBackground,
               width,
               height,
               borderTopRightRadius: dropdownTopRightRadius,

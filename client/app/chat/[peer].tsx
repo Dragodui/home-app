@@ -29,6 +29,7 @@ import {
   Text,
   useAlert,
 } from "@/components/ui";
+import { toDisplayColor } from "@/constants/glass-theme";
 import { billApi, billCategoryApi, chatApi, homeApi, imageApi, noteApi, shoppingApi, taskApi } from "@/lib/api";
 import type {
   Bill,
@@ -501,7 +502,7 @@ export default function ChatThreadScreen() {
     const regex = new RegExp(MENTION_REGEX.source, "g");
     const parts: React.ReactNode[] = [];
     const isOwn = message.createdBy === user?.id;
-    const baseColor = isOwn ? theme.onAccent : theme.text;
+    const baseColor = isOwn ? theme.onFill : theme.text;
     let lastIndex = 0;
     let key = 0;
 
@@ -532,7 +533,7 @@ export default function ChatThreadScreen() {
       let badgeColor = "";
       let icon: React.ReactNode = null;
       let matched = false;
-      const chipText = theme.onAccent;
+      const chipText = theme.onFill;
 
       if (!prefixType && name.toLowerCase() === "all") {
         matched = true;
@@ -583,7 +584,7 @@ export default function ChatThreadScreen() {
           <View
             key={key++}
             className="flex-row items-center gap-1 px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: badgeColor }}
+            style={{ backgroundColor: toDisplayColor(badgeColor, theme) }}
           >
             {icon}
             <Text variant="label" style={{ color: chipText }}>
@@ -608,7 +609,7 @@ export default function ChatThreadScreen() {
     const isOwn = item.createdBy === user?.id;
     const readCount = item.reads?.length || 0;
     const author = item.creator;
-    const mutedOnBubble = isOwn ? `${theme.onAccent}99` : theme.textSecondary;
+    const mutedOnBubble = isOwn ? `${theme.onFill}99` : theme.textSecondary;
 
     return (
       <View className={`mb-3 flex-row items-end gap-2 ${isOwn ? "justify-end" : "justify-start"}`}>
@@ -650,7 +651,7 @@ export default function ChatThreadScreen() {
               {/* One tick until somebody reads it, two once it's been read. */}
               {isOwn &&
                 (readCount > 0 ? (
-                  <CheckCheck size={13} color={theme.onAccent} />
+                  <CheckCheck size={13} color={theme.onFill} />
                 ) : (
                   <Check size={13} color={mutedOnBubble} />
                 ))}
@@ -731,7 +732,7 @@ export default function ChatThreadScreen() {
                 hitSlop={8}
                 onPress={() => setAttachedImage(null)}
               >
-                <X size={14} color={theme.onAccent} />
+                <X size={14} color={theme.onFill} />
               </TouchableOpacity>
             </View>
           </View>

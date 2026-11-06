@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useResponsiveLayout } from "@/lib/useResponsiveLayout";
 import { useTheme } from "@/stores/themeStore";
 import IconButton from "./icon-button";
-import { ModalSurfaceProvider } from "./surface";
+import { frostStyle, ModalSurfaceProvider } from "./surface";
 import Text from "./text";
 
 interface ModalProps {
@@ -67,9 +67,10 @@ const Modal: FC<ModalProps> = ({ visible, onClose, title, children, height = "fu
           className={isDesktop ? "rounded-40 pt-8 px-6" : "rounded-t-40 pt-8 px-6"}
           style={[
             getHeightStyle(),
+            frostStyle,
             {
               paddingBottom: insets.bottom + 16,
-              backgroundColor: theme.surface,
+              backgroundColor: theme.sheetBackground,
               width: "100%",
               maxWidth: isDesktop ? 760 : undefined,
               alignSelf: isDesktop ? "center" : undefined,
@@ -79,7 +80,7 @@ const Modal: FC<ModalProps> = ({ visible, onClose, title, children, height = "fu
         >
           <View className="flex-row items-center gap-3 mb-6">
             <View className="flex-1">{title && <Text variant="title">{title}</Text>}</View>
-            <IconButton icon={X} onPress={onClose} style={{ backgroundColor: theme.background }} />
+            <IconButton icon={X} onPress={onClose} style={{ backgroundColor: theme.sheetControl }} />
           </View>
 
           <ScrollView

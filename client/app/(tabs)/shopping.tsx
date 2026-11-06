@@ -23,6 +23,7 @@ import {
   useAlert,
 } from "@/components/ui";
 import { PICKER_COLORS } from "@/constants/colors";
+import { toDisplayColor } from "@/constants/glass-theme";
 import { shoppingApi } from "@/lib/api";
 import type { ShoppingCategory, ShoppingItem } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
@@ -529,7 +530,10 @@ export default function ShoppingScreen() {
                 key={category.id}
                 padding={18}
                 borderRadius={24}
-                style={{ backgroundColor: category.color || DEFAULT_CATEGORY_COLOR, aspectRatio: 0.9 }}
+                style={{
+                  backgroundColor: toDisplayColor(category.color || DEFAULT_CATEGORY_COLOR, theme),
+                  aspectRatio: 0.9,
+                }}
                 onPress={() => setActiveCategory(category)}
                 onLongPress={() => openCategoryActions(category)}
               >

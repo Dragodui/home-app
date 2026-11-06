@@ -349,6 +349,9 @@ export default {
 
   // Settings
   settings: {
+    uiStyle: "Styl interfejsu",
+    uiStyleClassic: "Klasyczny",
+    uiStyleGlass: "Liquid Glass",
     appearance: "WYGLĄD",
     language: "JĘZYK",
     selectLanguage: "Wybierz język",

@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react-native";
 import { TouchableOpacity, View } from "react-native";
+import { toDisplayColor } from "@/constants/glass-theme";
 import { useTheme } from "@/stores/themeStore";
 import { useControlSurface } from "./surface";
 
@@ -33,10 +34,12 @@ function IconPicker<T extends string>({ options, value, onChange, selectedColor,
             accessibilityLabel={optionValue}
             accessibilityState={{ selected: isSelected }}
             className="w-12 h-12 rounded-full justify-center items-center"
-            style={{ backgroundColor: isSelected ? (selectedColor ?? theme.accent.purple) : surface }}
+            style={{
+              backgroundColor: isSelected ? toDisplayColor(selectedColor ?? theme.accent.purple, theme) : surface,
+            }}
             onPress={() => onChange(optionValue)}
           >
-            <Icon size={20} color={isSelected ? theme.onAccent : theme.textSecondary} />
+            <Icon size={20} color={isSelected ? theme.onFill : theme.textSecondary} />
           </TouchableOpacity>
         );
       })}

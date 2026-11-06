@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react-native";
 import type { FC } from "react";
 import { View } from "react-native";
+import { toDisplayColor } from "@/constants/glass-theme";
 import { useTheme } from "@/stores/themeStore";
 import { useControlSurface } from "./surface";
 import Text from "./text";
@@ -18,7 +19,7 @@ interface BadgeProps {
 const Badge: FC<BadgeProps> = ({ label, tone = "neutral", color, icon: Icon, className }) => {
   const { theme } = useTheme();
   const surface = useControlSurface();
-  const colors = color ? getSoftColors(theme, color) : getToneColors(theme, tone);
+  const colors = color ? getSoftColors(theme, toDisplayColor(color, theme)) : getToneColors(theme, tone);
   const backgroundColor = !color && tone === "neutral" ? surface : colors.soft;
 
   return (

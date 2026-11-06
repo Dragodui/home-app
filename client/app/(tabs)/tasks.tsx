@@ -18,13 +18,13 @@ import {
   Text,
   useAlert,
 } from "@/components/ui";
-import { userColors } from "@/constants/colors";
 import { taskApi, taskScheduleApi } from "@/lib/api";
 import type { Task, TaskAssignment } from "@/lib/types";
 import { useRealtimeRefresh } from "@/lib/useRealtimeRefresh";
 import { useAuth } from "@/stores/authStore";
 import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
+import { useTheme } from "@/stores/themeStore";
 
 type FilterType = "All" | "My" | "By Room" | "Completed";
 
@@ -42,6 +42,7 @@ export default function TasksScreen() {
   const { user } = useAuth();
   const { home, rooms, isAdmin } = useHome();
   const { t } = useI18n();
+  const { theme } = useTheme();
   const { alert } = useAlert();
 
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -476,7 +477,7 @@ export default function TasksScreen() {
                 task={task}
                 completed={completed}
                 assigneeLabel={getTaskAssignee(task)}
-                assigneeColor={userColors[index % userColors.length]}
+                assigneeColor={theme.userColors[index % theme.userColors.length]}
                 dueText={getTaskDueText(task)}
                 reminderText={getReminderText(task)}
                 completedDate={completed ? getTaskCompletedDate(task) : ""}

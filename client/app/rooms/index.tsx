@@ -16,6 +16,7 @@ import {
   Text,
   useAlert,
 } from "@/components/ui";
+import { toDisplayColor } from "@/constants/glass-theme";
 import { roomApi } from "@/lib/api";
 import { useHome } from "@/stores/homeStore";
 import { interpolate, useI18n } from "@/stores/i18nStore";
@@ -138,7 +139,9 @@ export default function RoomsScreen() {
               theme.surface,
               theme.border,
             ];
-            const backgroundColor = room.color || ROOM_COLORS[index % ROOM_COLORS.length];
+            const backgroundColor = room.color
+              ? toDisplayColor(room.color, theme)
+              : ROOM_COLORS[index % ROOM_COLORS.length];
             const textColor =
               backgroundColor === theme.surface || backgroundColor === theme.border ? theme.text : theme.onAccent;
             const RoomIcon = getRoomIcon(room.icon);
