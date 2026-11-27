@@ -17,7 +17,6 @@ import (
 	"github.com/Dragodui/diploma-server/internal/logger"
 	"github.com/Dragodui/diploma-server/internal/metrics"
 	"github.com/Dragodui/diploma-server/internal/router"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -33,7 +32,7 @@ func NewServer() (*Server, error) {
 	logger.Init()
 	cfg := config.Load()
 
-	db, err := gorm.Open(postgres.Open(cfg.DB_DSN), &gorm.Config{})
+	db, err := database.Open(cfg.DBDriver, cfg.DB_DSN, &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,7 @@ type AuditEvent struct {
 	EventType   string         `gorm:"size:80;not null;index" json:"event_type"`
 	EntityType  string         `gorm:"size:80;not null;index" json:"entity_type"`
 	EntityID    *int           `gorm:"index" json:"entity_id,omitempty"`
-	Metadata    datatypes.JSON `gorm:"type:jsonb" json:"metadata,omitempty"`
+	Metadata    datatypes.JSON `json:"metadata,omitempty"`
 	IP          string         `gorm:"size:64" json:"ip,omitempty"`
 	UserAgent   string         `gorm:"size:512" json:"user_agent,omitempty"`
 	CreatedAt   time.Time      `gorm:"autoCreateTime;index" json:"created_at"`

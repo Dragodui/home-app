@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY --from=builder /app/main .
+RUN mkdir -p /app/data
 
 EXPOSE 8000
 CMD ["./main"]

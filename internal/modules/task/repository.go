@@ -180,6 +180,12 @@ func (r *taskRepo) FindClosestUnassignedTaskInHome(ctx context.Context, homeID i
 func (r *taskRepo) FindAssignmentsNeedingReminder(ctx context.Context, windowStart, windowEnd time.Time) ([]models.TaskAssignment, error) {
 	var assignments []models.TaskAssignment
 
+	// Reminder time = due_date - reminder_minutes, in each dialect's date arithmetic.
+	remindAt, param := "(tasks.due_date - (tasks.reminder_minutes * interval '1 minute'))", "?"
+	if r.db.Dialector.Name() == "sqlite" {
+		remindAt, param = "(julianday(tasks.due_date) - tasks.reminder_minutes / 1440.0)", "julianday(?)"
+	}
+
 	err := r.db.WithContext(ctx).
 		Model(&models.TaskAssignment{}).
 		Preload("Task").
@@ -187,8 +193,8 @@ func (r *taskRepo) FindAssignmentsNeedingReminder(ctx context.Context, windowSta
 		Where("task_assignments.reminder_sent_at IS NULL").
 		Joins("JOIN tasks ON task_assignments.task_id = tasks.id").
 		Where("tasks.due_date IS NOT NULL").
-		Where("(tasks.due_date - (tasks.reminder_minutes * interval '1 minute')) > ?", windowStart).
-		Where("(tasks.due_date - (tasks.reminder_minutes * interval '1 minute')) <= ?", windowEnd).
+		Where(remindAt+" > "+param, windowStart).
+		Where(remindAt+" <= "+param, windowEnd).
 		Find(&assignments).Error
 	if err != nil {
 		return nil, err
