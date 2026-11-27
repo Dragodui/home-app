@@ -6,6 +6,10 @@ services:
     container_name: go-backend
     env_file:
       - .env
+    volumes:
+      # SQLite file lives in ./data on the host (gitignored), so it survives
+      # rebuilds and the git reset in the deploy job.
+      - ./data:/app/data
     depends_on:
       - redis
       - fluent-bit

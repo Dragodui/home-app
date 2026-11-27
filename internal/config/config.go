@@ -9,7 +9,8 @@ import (
 type Config struct {
 	Mode string
 	// DB
-	DB_DSN string
+	DBDriver string // "postgres" (default) or "sqlite"
+	DB_DSN   string // Postgres DSN, or SQLite file path
 
 	// AUTH
 	JWTSecret    string
@@ -80,6 +81,7 @@ func Load() *Config {
 	// Initialize configuration struct using determined keys
 	cfg := &Config{
 		Mode:         getEnv("MODE", "dev"),
+		DBDriver:     getEnv("DB_DRIVER", "postgres"),
 		DB_DSN:       getEnvRequired("DB_DSN"),
 		JWTSecret:    getEnvRequired("JWT_SECRET"),
 		Port:         getEnv("PORT", "8000"),

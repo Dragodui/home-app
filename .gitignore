@@ -37,3 +37,6 @@ tmp/main
 client-code.txt
 .env.prod
 security_best_practices_report.md
+
+# Local SQLite database
+data/
