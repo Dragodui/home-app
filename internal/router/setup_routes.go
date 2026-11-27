@@ -107,6 +107,11 @@ func SetupRoutes(deps RoutesDeps) http.Handler {
 		json.NewEncoder(w).Encode("OK")
 	})
 
+	// file links served by self-hosted storage
+	if cfg.StorageProvider == "s7a" {
+		mountStorageProxy(r, cfg.S7AURL)
+	}
+
 	r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
 		wsHandler.HandleWS(w, r, cache)
 	})

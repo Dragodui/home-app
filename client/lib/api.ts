@@ -993,12 +993,18 @@ export const noteApi = {
 
 // ============ Image Upload API ============
 export const imageApi = {
-  upload: async (formData: FormData): Promise<{ url: string }> => {
-    const response = await api.post<{ status: boolean; message: string; url: string }>("/upload", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
+  // "private" (default): link expires, server refreshes it on every load (receipts, chat, shopping).
+  // "public": permanent link anyone with it can open (avatars).
+  upload: async (formData: FormData, visibility: "public" | "private" = "private"): Promise<{ url: string }> => {
+    const response = await api.post<{ status: boolean; message: string; url: string }>(
+      `/upload?visibility=${visibility}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       },
-    });
+    );
     return { url: response.data.url };
   },
 };

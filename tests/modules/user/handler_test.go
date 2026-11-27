@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Dragodui/diploma-server/internal/models"
+	"github.com/Dragodui/diploma-server/internal/modules/image"
 	"github.com/Dragodui/diploma-server/internal/modules/user"
 	"github.com/Dragodui/diploma-server/internal/utils"
 	"github.com/Dragodui/diploma-server/tests/testutil"
@@ -68,7 +69,7 @@ type mockImageServiceForUser struct {
 	UploadFunc func(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error)
 }
 
-func (m *mockImageServiceForUser) Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error) {
+func (m *mockImageServiceForUser) Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader, _ image.Visibility) (string, error) {
 	if m.UploadFunc != nil {
 		return m.UploadFunc(ctx, file, header)
 	}
