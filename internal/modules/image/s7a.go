@@ -132,32 +132,50 @@ func (s *S7AService) Upload(ctx context.Context, file multipart.File, header *mu
 	if err != nil {
 		return "", err
 	}
-	bucket := s.privateBucket
-	if visibility == Public {
-		bucket = s.publicBucket
-	}
 
 	start := time.Now()
-	resp, err := s.do(ctx, http.MethodPut, "/api/buckets/"+url.PathEscape(bucket.Name)+"/objects/"+escapeKey(key), file, contentType, header.Size)
+	err = s.PutObject(ctx, visibility, key, contentType, file, header.Size)
 	metrics.S3UploadDuration.Observe(time.Since(start).Seconds())
 	if err != nil {
 		metrics.S3UploadsTotal.WithLabelValues("error").Inc()
-		return "", fmt.Errorf("failed to upload file to s7a: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		metrics.S3UploadsTotal.WithLabelValues("error").Inc()
-		return "", apiError(resp)
+		return "", err
 	}
 	metrics.S3UploadsTotal.WithLabelValues("success").Inc()
 	metrics.S3UploadSizeBytes.Observe(float64(header.Size))
-	log.Printf("Uploaded to s7a: %s/%s (Size: %d bytes, Type: %s)", bucket.Name, key, header.Size, contentType)
+	log.Printf("Uploaded to s7a: %s (Size: %d bytes, Type: %s, visibility: %s)", key, header.Size, contentType, visibility)
 
-	if visibility == Public {
-		return s.publicLink(key), nil
+	// private: client gets an openable link now; it is turned back into a reference on save
+	return s.Resolve(s.StoredValue(visibility, key)), nil
+}
+
+// PutObject stores raw bytes under key without image validation (used by Upload and migrations).
+func (s *S7AService) PutObject(ctx context.Context, visibility Visibility, key, contentType string, body io.Reader, size int64) error {
+	bucket := s.bucket(visibility)
+	resp, err := s.do(ctx, http.MethodPut, "/api/buckets/"+url.PathEscape(bucket.Name)+"/objects/"+escapeKey(key), body, contentType, size)
+	if err != nil {
+		return fmt.Errorf("failed to upload file to s7a: %w", err)
 	}
-	// client gets an openable link now; it is turned back into a reference on save
-	return s.Resolve(s7aRefPrefix + bucket.Name + "/" + key), nil
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		return apiError(resp)
+	}
+	return nil
+}
+
+// StoredValue is what the database keeps for a file: permanent link for public,
+// s7a://<bucket>/<key> reference for private.
+func (s *S7AService) StoredValue(visibility Visibility, key string) string {
+	if visibility == Public {
+		return s.publicLink(key)
+	}
+	return s7aRefPrefix + s.privateBucket.Name + "/" + key
+}
+
+func (s *S7AService) bucket(visibility Visibility) bucketInfo {
+	if visibility == Public {
+		return s.publicBucket
+	}
+	return s.privateBucket
 }
 
 // Delete removes a file by its link or stored reference. Links of other storages are ignored.
