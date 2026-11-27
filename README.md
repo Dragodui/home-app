@@ -71,8 +71,8 @@ flowchart LR
     backend -- "logs" --> fluent --> opensearch --> osdash
     prometheus -- "scrape /metrics" --> backend
     grafana --> prometheus
-    gha -- "SSH deploy" --> homeapp
-    gha -- "SSH deploy" --> s7astack
+    gha -. "SSH deploy" .-> backend
+    gha -. "SSH deploy" .-> s7a
 ```
 
 - Every request goes through nginx to the Go API. Routes live under `/api/homes/{home_id}/...` and check home membership or admin role.
