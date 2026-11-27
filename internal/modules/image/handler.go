@@ -22,6 +22,7 @@ func NewHandler(svc IService) *Handler {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        image formData file true "Image File"
+// @Param        visibility query string false "public (permanent link, e.g. avatars) or private (expiring links, default)"
 // @Success      201  {object}  map[string]interface{}
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
@@ -41,7 +42,13 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	publicPath, err := h.svc.Upload(r.Context(), file, header)
+	visibility, err := ParseVisibility(r.URL.Query().Get("visibility"))
+	if err != nil {
+		utils.JSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	publicPath, err := h.svc.Upload(r.Context(), file, header, visibility)
 
 	if err != nil {
 		utils.SafeError(w, err, "Failed to upload image", http.StatusInternalServerError)

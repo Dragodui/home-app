@@ -4967,6 +4967,11 @@ paths:
         name: image
         required: true
         type: file
+      - description: public (permanent link, e.g. avatars) or private (expiring links,
+          default)
+        in: query
+        name: visibility
+        type: string
       produces:
       - application/json
       responses:

@@ -42,8 +42,30 @@ type Service struct {
 	publicBaseURL string
 }
 
+// Visibility decides who can open an uploaded file.
+type Visibility string
+
+const (
+	// Public files get a permanent link that works for anyone who has it (avatars).
+	Public Visibility = "public"
+	// Private files are served only by expiring links (receipts, chat, shopping photos).
+	Private Visibility = "private"
+)
+
+// ParseVisibility parses the "visibility" upload parameter. Empty means private.
+func ParseVisibility(v string) (Visibility, error) {
+	switch Visibility(v) {
+	case "", Private:
+		return Private, nil
+	case Public:
+		return Public, nil
+	}
+	return "", fmt.Errorf("visibility must be public or private")
+}
+
 type IService interface {
-	Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error)
+	// Upload stores a validated image and returns a link the client can open right away.
+	Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader, visibility Visibility) (string, error)
 	GetPresignedURL(ctx context.Context, key string, expiration time.Duration) (string, error)
 	Delete(ctx context.Context, imageURL string) error
 }
@@ -74,62 +96,13 @@ func NewService(bucketName, region, accountID, accessKey, secretKey, publicBaseU
 		publicBaseURL: strings.TrimSuffix(publicBaseURL, "/"),
 	}, nil
 }
-func (s *Service) Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error) {
-	// Check file size
-	if header.Size > maxFileSize {
-		return "", fmt.Errorf("file size exceeds maximum allowed size of %d bytes", maxFileSize)
-	}
 
-	if header.Size == 0 {
-		return "", errors.New("file is empty")
-	}
-
-	// Get and normalize extension
-	ext := strings.ToLower(filepath.Ext(header.Filename))
-
-	// Check for forbidden extensions (case-insensitive)
-	for _, forbiddenExt := range forbiddenExtensions {
-		if ext == forbiddenExt {
-			return "", errors.New("forbidden file extension")
-		}
-	}
-
-	// Check for double extensions (e.g., .jpg.php)
-	baseFilename := strings.TrimSuffix(header.Filename, ext)
-	if strings.Contains(baseFilename, ".") {
-		secondExt := strings.ToLower(filepath.Ext(baseFilename))
-		for _, forbiddenExt := range forbiddenExtensions {
-			if secondExt == forbiddenExt {
-				return "", errors.New("forbidden double extension detected")
-			}
-		}
-	}
-
-	// Validate image file content and get detected MIME type
-	detectedContentType, width, height, err := validateImageFile(file)
+// Upload stores the image in R2. R2 bucket is public, so visibility is not applied.
+func (s *Service) Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader, _ Visibility) (string, error) {
+	detectedContentType, newName, err := validateUpload(file, header)
 	if err != nil {
 		return "", err
 	}
-
-	// Check image dimensions
-	if width > maxImageWidth || height > maxImageHeight {
-		return "", fmt.Errorf("image dimensions (%dx%d) exceed maximum allowed (%dx%d)",
-			width, height, maxImageWidth, maxImageHeight)
-	}
-
-	// Auto-correct extension to match detected content type
-	correctExt, ok := allowedTypes[detectedContentType]
-	if !ok {
-		return "", fmt.Errorf("unsupported content type: %s", detectedContentType)
-	}
-
-	if ext != correctExt && !(ext == ".jpg" && correctExt == ".jpeg") && !(ext == ".jpeg" && correctExt == ".jpg") {
-		log.Printf("Auto-correcting file extension from %s to %s (detected content type: %s)", ext, correctExt, detectedContentType)
-		ext = correctExt
-	}
-
-	// Generate new filename with validated extension
-	newName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
 
 	// Use detected content type instead of client-provided header
 	uploadStart := time.Now()
@@ -155,10 +128,70 @@ func (s *Service) Upload(ctx context.Context, file multipart.File, header *multi
 
 	publicURL := fmt.Sprintf("%s/%s", s.publicBaseURL, newName)
 
-	log.Printf("Uploaded to S3: %s (Size: %d bytes, Dimensions: %dx%d, Type: %s, ETag: %s)",
-		newName, header.Size, width, height, detectedContentType, *result.ETag)
+	log.Printf("Uploaded to S3: %s (Size: %d bytes, Type: %s, ETag: %s)",
+		newName, header.Size, detectedContentType, *result.ETag)
 
 	return publicURL, nil
+}
+
+// validateUpload checks size, extension, content and dimensions of the image.
+// Returns detected content type and a new random file name with matching extension.
+func validateUpload(file multipart.File, header *multipart.FileHeader) (contentType, newName string, err error) {
+	// Check file size
+	if header.Size > maxFileSize {
+		return "", "", fmt.Errorf("file size exceeds maximum allowed size of %d bytes", maxFileSize)
+	}
+
+	if header.Size == 0 {
+		return "", "", errors.New("file is empty")
+	}
+
+	// Get and normalize extension
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+
+	// Check for forbidden extensions (case-insensitive)
+	for _, forbiddenExt := range forbiddenExtensions {
+		if ext == forbiddenExt {
+			return "", "", errors.New("forbidden file extension")
+		}
+	}
+
+	// Check for double extensions (e.g., .jpg.php)
+	baseFilename := strings.TrimSuffix(header.Filename, ext)
+	if strings.Contains(baseFilename, ".") {
+		secondExt := strings.ToLower(filepath.Ext(baseFilename))
+		for _, forbiddenExt := range forbiddenExtensions {
+			if secondExt == forbiddenExt {
+				return "", "", errors.New("forbidden double extension detected")
+			}
+		}
+	}
+
+	// Validate image file content and get detected MIME type
+	detectedContentType, width, height, err := validateImageFile(file)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Check image dimensions
+	if width > maxImageWidth || height > maxImageHeight {
+		return "", "", fmt.Errorf("image dimensions (%dx%d) exceed maximum allowed (%dx%d)",
+			width, height, maxImageWidth, maxImageHeight)
+	}
+
+	// Auto-correct extension to match detected content type
+	correctExt, ok := allowedTypes[detectedContentType]
+	if !ok {
+		return "", "", fmt.Errorf("unsupported content type: %s", detectedContentType)
+	}
+
+	if ext != correctExt && !(ext == ".jpg" && correctExt == ".jpeg") && !(ext == ".jpeg" && correctExt == ".jpg") {
+		log.Printf("Auto-correcting file extension from %s to %s (detected content type: %s)", ext, correctExt, detectedContentType)
+		ext = correctExt
+	}
+
+	// Generate new filename with validated extension
+	return detectedContentType, uuid.New().String() + ext, nil
 }
 
 func (s *Service) Delete(ctx context.Context, imageURL string) error {

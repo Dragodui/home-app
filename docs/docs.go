@@ -6116,6 +6116,12 @@ const docTemplate = `{
                         "name": "image",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "public (permanent link, e.g. avatars) or private (expiring links, default)",
+                        "name": "visibility",
+                        "in": "query"
                     }
                 ],
                 "responses": {

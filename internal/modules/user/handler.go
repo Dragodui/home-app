@@ -122,7 +122,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	if hasAvatarFile {
 		defer file.Close()
 
-		imagePath, err := h.imageSvc.Upload(r.Context(), file, fileHeader)
+		imagePath, err := h.imageSvc.Upload(r.Context(), file, fileHeader, image.Public)
 		if err != nil {
 			utils.SafeError(w, err, "Failed to upload avatar", http.StatusInternalServerError)
 			return

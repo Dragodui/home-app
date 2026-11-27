@@ -37,7 +37,17 @@ type Config struct {
 	// Brevo API
 	BrevoAPIKey string
 
-	// R2
+	// StorageProvider selects image storage: "r2" (default) or "s7a"
+	StorageProvider string
+
+	// s7a (self-hosted storage, used when StorageProvider is "s7a")
+	S7AURL           string // internal address of s7a api, e.g. http://s7a:6465
+	S7AAPIKey        string
+	S7APublicURL     string // base of file links that clients open, e.g. https://api.example.com
+	S7APublicBucket  string // avatars and other files that are fine to show to anyone with the link
+	S7APrivateBucket string // receipts, chat and shopping photos, served only by expiring links
+
+	// R2 (used when StorageProvider is "r2")
 	R2Region          string
 	R2S3Bucket        string
 	R2AccessKeyID     string
@@ -104,14 +114,20 @@ func Load() *Config {
 
 		BrevoAPIKey: getEnvRequired("BREVO_API_KEY"),
 
-		R2AccessKeyID:     getEnvRequired("R2_ACCESS_KEY_ID"),
-		R2SecretAccessKey: getEnvRequired("R2_SECRET_ACCESS_KEY"),
-		R2S3Bucket:        getEnvRequired("R2_S3_BUCKET"),
-		R2Region:          getEnv("R2_REGION", "auto"),
+		StorageProvider: getEnv("STORAGE_PROVIDER", "r2"),
 
-		// r2
-		R2PublicUrl: getEnvRequired("R2_PUBLIC_URL"),
-		R2AccountID: getEnvRequired("R2_ACCOUNT_ID"),
+		S7AURL:           getEnv("S7A_URL", "http://s7a:6465"),
+		S7AAPIKey:        getEnv("S7A_API_KEY", ""),
+		S7APublicURL:     getEnv("S7A_PUBLIC_URL", ""),
+		S7APublicBucket:  getEnv("S7A_PUBLIC_BUCKET", "home-public"),
+		S7APrivateBucket: getEnv("S7A_PRIVATE_BUCKET", "home-private"),
+
+		R2AccessKeyID:     getEnv("R2_ACCESS_KEY_ID", ""),
+		R2SecretAccessKey: getEnv("R2_SECRET_ACCESS_KEY", ""),
+		R2S3Bucket:        getEnv("R2_S3_BUCKET", ""),
+		R2Region:          getEnv("R2_REGION", "auto"),
+		R2PublicUrl:       getEnv("R2_PUBLIC_URL", ""),
+		R2AccountID:       getEnv("R2_ACCOUNT_ID", ""),
 
 		// Admin credentials for /metrics and /swagger
 		AdminUsername: getEnvRequired("ADMIN_USERNAME"),
@@ -129,6 +145,18 @@ func Load() *Config {
 		VapidSubject:    getEnv("VAPID_SUBJECT", "mailto:contact@example.com"),
 	}
 
+	switch cfg.StorageProvider {
+	case "r2":
+		for _, key := range []string{"R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_S3_BUCKET", "R2_PUBLIC_URL", "R2_ACCOUNT_ID"} {
+			getEnvRequired(key)
+		}
+	case "s7a":
+		cfg.S7AAPIKey = getEnvRequired("S7A_API_KEY")
+		cfg.S7APublicURL = getEnv("S7A_PUBLIC_URL", cfg.ServerURL)
+	default:
+		log.Fatalf("STORAGE_PROVIDER must be r2 or s7a, got %q", cfg.StorageProvider)
+	}
+
 	if cfg.Mode != "dev" {
 		// Validate security-critical config values
 		if len(cfg.JWTSecret) < 32 {
@@ -139,7 +167,7 @@ func Load() *Config {
 			log.Fatal("SECURITY: HA_ENCRYPTION_KEY must be exactly 32 characters for AES-256")
 		}
 	}
-	
+
 	return cfg
 }
 

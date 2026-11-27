@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	"github.com/Dragodui/diploma-server/internal/modules/audit"
@@ -19,6 +20,7 @@ import (
 	"github.com/Dragodui/diploma-server/internal/modules/user"
 
 	"github.com/Dragodui/diploma-server/internal/config"
+	"github.com/Dragodui/diploma-server/internal/models"
 	"github.com/Dragodui/diploma-server/internal/router"
 	"github.com/Dragodui/diploma-server/internal/utils"
 	"github.com/markbates/goth"
@@ -67,7 +69,7 @@ type serviceSet struct {
 	shopping     *shopping.Service
 	poll         *poll.Service
 	user         *user.Service
-	image        *image.Service
+	image        image.IService
 	ocr          *billing.OCRService
 	smartHome    smarthome.IService
 	taskSchedule *task.ScheduleService
@@ -180,7 +182,7 @@ func newServices(cfg *config.Config, cache *redis.Client, repos repositories) (s
 		notificationSvc,
 	)
 
-	imageSvc, err := image.NewService(cfg.R2S3Bucket, cfg.R2Region, cfg.R2AccountID, cfg.R2AccessKeyID, cfg.R2SecretAccessKey, cfg.R2PublicUrl)
+	imageSvc, err := newImageService(cfg)
 	if err != nil {
 		return serviceSet{}, err
 	}
@@ -257,4 +259,20 @@ func (h handlerSet) RouterHandlers() router.HandlerSet {
 		Note:         h.note,
 		Chat:         h.chat,
 	}
+}
+
+// newImageService picks image storage by STORAGE_PROVIDER.
+func newImageService(cfg *config.Config) (image.IService, error) {
+	if cfg.StorageProvider != "s7a" {
+		return image.NewService(cfg.R2S3Bucket, cfg.R2Region, cfg.R2AccountID, cfg.R2AccessKeyID, cfg.R2SecretAccessKey, cfg.R2PublicUrl)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	svc, err := image.NewS7AService(ctx, cfg.S7AURL, cfg.S7AAPIKey, cfg.S7APublicURL, cfg.S7APublicBucket, cfg.S7APrivateBucket)
+	if err != nil {
+		return nil, err
+	}
+	// private files are stored as references and turned into fresh links on every load
+	models.SetFileURLResolver(svc)
+	return svc, nil
 }

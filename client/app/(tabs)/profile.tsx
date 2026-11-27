@@ -100,7 +100,7 @@ export default function ProfileScreen() {
         });
       }
 
-      const result = await imageApi.upload(formData);
+      const result = await imageApi.upload(formData, "public");
       if (result.url) {
         await updateUser({ avatar: result.url });
       }

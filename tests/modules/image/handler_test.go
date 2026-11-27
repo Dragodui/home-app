@@ -23,7 +23,7 @@ type mockImageService struct {
 	DeleteFunc          func(ctx context.Context, imageURL string) error
 }
 
-func (m *mockImageService) Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error) {
+func (m *mockImageService) Upload(ctx context.Context, file multipart.File, header *multipart.FileHeader, _ image.Visibility) (string, error) {
 	if m.UploadFunc != nil {
 		return m.UploadFunc(ctx, file, header)
 	}

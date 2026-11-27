@@ -332,7 +332,9 @@ func (s *Service) EditItem(ctx context.Context, itemID int, name, image, link *s
 		updates["name"] = *name
 	}
 	if image != nil {
-		updates["image"] = image
+		// Updates(map) skips model hooks for map values, so normalize the link here
+		normalized := models.NormalizeFileURL(*image)
+		updates["image"] = &normalized
 	}
 	if link != nil {
 		updates["link"] = link
